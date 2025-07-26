@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -26,23 +26,33 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
+        # Generate session ID
         if 'session_id' not in session:
             session['session_id'] = str(uuid.uuid4())
         
         session_id = session['session_id']
         operation = request.form.get('operation')
+        
+        # Get uploaded files
         files = request.files.getlist('files')
         
-        if not files or not operation:
-            return jsonify({'success': False, 'error': 'ಫೈಲ್‌ಗಳು ಅಥವಾ ಕಾರ್ಯಾಚರಣೆ ಕಾಣೆಯಾಗಿದೆ'})
+        if not operation:
+            return jsonify({'success': False, 'error': 'ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ'})
+        
+        if not files or all(not f.filename for f in files):
+            return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
         
         # Save uploaded files
         file_paths = []
         for file in files:
             if file and file.filename:
-                file_path = file_handler.save_uploaded_file(file, session_id)
-                if file_path:
-                    file_paths.append(file_path)
+                try:
+                    file_path = file_handler.save_uploaded_file(file, session_id)
+                    if file_path:
+                        file_paths.append(file_path)
+                except Exception as e:
+                    print(f"Error saving file {file.filename}: {e}")
+                    continue
         
         if not file_paths:
             return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಸರಿಯಾದ ಫೈಲ್‌ಗಳು ಅಪ್‌ಲೋಡ್ ಆಗಿಲ್ಲ'})
@@ -54,33 +64,48 @@ def upload_file():
         # Process based on operation
         result_path = None
         
-        if operation == 'merge':
-            result_path = pdf_ops.merge_pdfs(file_paths, session_id)
+        try:
+            if operation == 'merge':
+                if len(file_paths) < 2:
+                    return jsonify({'success': False, 'error': 'ವಿಲೀನಗೊಳಿಸಲು ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು'})
+                result_path = pdf_ops.merge_pdfs(file_paths, session_id)
+                
+            elif operation == 'split':
+                result_path = pdf_ops.split_pdf(file_paths[0], session_id, pages)
+                
+            elif operation == 'extract':
+                if not pages:
+                    return jsonify({'success': False, 'error': 'ಹೊರತೆಗೆಯಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನೀಡಿ'})
+                result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
+                
+            elif operation == 'delete':
+                if not pages:
+                    return jsonify({'success': False, 'error': 'ಅಳಿಸಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನೀಡಿ'})
+                result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
+                
+            elif operation == 'compress':
+                result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
+                
+            elif operation == 'pdf_to_jpeg':
+                result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
+                
+            elif operation == 'jpeg_to_pdf':
+                result_path = pdf_ops.images_to_pdf(file_paths, session_id)
+                
+            elif operation == 'pdf_to_word':
+                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+                
+            elif operation == 'word_to_pdf':
+                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
             
-        elif operation == 'split':
-            result_path = pdf_ops.split_pdf(file_paths[0], session_id, pages)
-            
-        elif operation == 'extract':
-            result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
-            
-        elif operation == 'delete':
-            result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
-            
-        elif operation == 'compress':
-            result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
-            
-        elif operation == 'pdf_to_jpeg':
-            result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
-            
-        elif operation == 'jpeg_to_pdf':
-            result_path = pdf_ops.images_to_pdf(file_paths, session_id)
-            
-        elif operation == 'pdf_to_word':
-            result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
-            
-        elif operation == 'word_to_pdf':
-            result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
+            else:
+                return jsonify({'success': False, 'error': 'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ'})
         
+        except Exception as e:
+            print(f"Operation error: {e}")
+            return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(e)}'})
+        
+        # Check if result file exists
         if result_path and os.path.exists(result_path):
             filename = os.path.basename(result_path)
             download_url = f'/download/{session_id}/{filename}'
@@ -95,7 +120,8 @@ def upload_file():
             return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ'})
             
     except Exception as e:
-        return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
+        print(f"Upload error: {e}")
+        return jsonify({'success': False, 'error': f'ಅಪ್‌ಲೋಡ್ ದೋಷ: {str(e)}'})
 
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
@@ -106,6 +132,7 @@ def download_file(session_id, filename):
         else:
             return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
     except Exception as e:
+        print(f"Download error: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

@@ -5,38 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ಮುಖ್ಯ ಪುಟ - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Uncial+Antiqua&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root {
-            /* Enhanced Biscuit Brown & Gold Palette */
-            --biscuit-cream: #f5e6d3;
-            --biscuit-light: #e6d7c3;
-            --biscuit-medium: #d4af37;
-            --biscuit-brown: #cd853f;
-            --biscuit-dark: #a0522d;
-            --biscuit-deep: #8b4513;
-            
-            /* Gold Variations */
-            --gold-bright: #ffd700;
-            --gold-antique: #d4af37;
-            --gold-copper: #b8860b;
-            --gold-bronze: #cd7f32;
-            --gold-dark: #996515;
-            
-            /* Brown Spectrum */
-            --brown-light: #deb887;
-            --brown-medium: #cd853f;
-            --brown-dark: #8b4513;
-            --brown-chocolate: #7b3f00;
-            --brown-coffee: #6f4e37;
-            
-            /* Supporting Colors */
-            --cream-white: #faf6f0;
-            --parchment: #f4f1e8;
-            --shadow-brown: rgba(139, 69, 19, 0.3);
-            --glow-gold: rgba(255, 215, 0, 0.4);
+            --biscuit-cream: #f5f1e8;
+            --biscuit-light: #e8e0d1;
+            --light-brown: #8b7355;
+            --brown-text: #5d4037;
+            --gold: #d4af37;
+            --dark-text: #3e2723;
+            --white: #ffffff;
+            --shadow: rgba(139, 115, 85, 0.2);
         }
 
         * {
@@ -47,113 +28,17 @@
 
         body {
             font-family: 'Noto Sans Kannada', 'Cormorant Garamond', serif;
-            background: linear-gradient(135deg, 
-                var(--biscuit-cream) 0%, 
-                var(--biscuit-light) 25%, 
-                var(--brown-light) 50%, 
-                var(--biscuit-medium) 75%, 
-                var(--biscuit-brown) 100%);
-            background-attachment: fixed;
-            color: var(--brown-chocolate);
-            line-height: 1.7;
+            background: var(--biscuit-cream);
+            color: var(--dark-text);
+            line-height: 1.6;
             min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
         }
 
-        /* Animated top border with biscuit brown and gold mixture */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg, 
-                var(--biscuit-dark) 0%,
-                var(--gold-antique) 15%,
-                var(--biscuit-brown) 30%,
-                var(--gold-bright) 45%,
-                var(--biscuit-medium) 60%,
-                var(--gold-copper) 75%,
-                var(--biscuit-dark) 90%,
-                var(--gold-bronze) 100%
-            );
-            background-size: 200% 100%;
-            animation: borderFlow 6s ease-in-out infinite;
-            z-index: 1001;
-            box-shadow: 0 2px 8px var(--shadow-brown);
-        }
-
-        @keyframes borderFlow {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* Enhanced texture overlay */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(circle at 25% 25%, var(--biscuit-medium) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, var(--gold-antique) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, var(--biscuit-brown) 0%, transparent 70%);
-            opacity: 0.1;
-            pointer-events: none;
-            z-index: -1;
-            animation: textureFloat 12s ease-in-out infinite;
-        }
-
-        @keyframes textureFloat {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-20px) scale(1.05); }
-        }
-
-        /* Enhanced Header */
         .header {
-            background: linear-gradient(135deg,
-                var(--biscuit-dark) 0%,
-                var(--brown-dark) 20%,
-                var(--gold-bronze) 40%,
-                var(--biscuit-brown) 60%,
-                var(--brown-coffee) 80%,
-                var(--biscuit-deep) 100%
-            );
-            padding: 4rem 0;
-            margin-top: 8px; /* Account for top border */
-            box-shadow: 
-                0 8px 32px var(--shadow-brown),
-                inset 0 4px 8px rgba(255, 215, 0, 0.2),
-                inset 0 -4px 8px rgba(139, 69, 19, 0.4);
-            border-bottom: 6px solid var(--gold-antique);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255, 215, 0, 0.1) 10px,
-                rgba(255, 215, 0, 0.1) 20px
-            );
-            animation: headerShimmer 8s ease-in-out infinite;
-        }
-
-        @keyframes headerShimmer {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
+            background: var(--biscuit-light);
+            padding: 3rem 0;
+            border-bottom: 3px solid var(--gold);
+            box-shadow: 0 2px 10px var(--shadow);
         }
 
         .header-content {
@@ -161,256 +46,108 @@
             margin: 0 auto;
             padding: 0 2rem;
             text-align: center;
-            position: relative;
-            z-index: 1;
         }
 
         .app-title {
-            font-family: 'Uncial Antiqua', 'Cinzel', serif;
-            font-size: 3.8rem;
-            background: linear-gradient(45deg, 
-                var(--gold-bright) 0%,
-                var(--biscuit-cream) 25%,
-                var(--gold-antique) 50%,
-                var(--biscuit-light) 75%,
-                var(--gold-copper) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            color: var(--brown-text);
             margin-bottom: 1rem;
-            letter-spacing: 3px;
-            animation: titleGlow 4s ease-in-out infinite alternate;
-        }
-
-        @keyframes titleGlow {
-            0% { 
-                filter: drop-shadow(0 0 15px var(--glow-gold));
-                transform: scale(1);
-            }
-            100% { 
-                filter: drop-shadow(0 0 25px var(--gold-bright));
-                transform: scale(1.02);
-            }
+            letter-spacing: 2px;
         }
 
         .app-subtitle {
-            font-size: 1.4rem;
-            color: var(--biscuit-cream);
-            font-weight: 500;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            color: var(--light-brown);
+            margin-bottom: 1.5rem;
         }
 
         .ornament {
-            display: inline-block;
-            width: 120px;
-            height: 6px;
-            background: linear-gradient(90deg, 
-                var(--biscuit-brown) 0%,
-                var(--gold-bright) 25%,
-                var(--biscuit-medium) 50%,
-                var(--gold-antique) 75%,
-                var(--biscuit-brown) 100%
-            );
-            margin: 1.5rem auto;
-            border-radius: 10px;
-            box-shadow: 
-                0 4px 12px var(--glow-gold),
-                inset 0 2px 4px rgba(255, 255, 255, 0.3);
-            animation: ornamentPulse 3s ease-in-out infinite;
-        }
-
-        @keyframes ornamentPulse {
-            0%, 100% { 
-                transform: scale(1);
-                box-shadow: 0 4px 12px var(--glow-gold);
-            }
-            50% { 
-                transform: scale(1.1);
-                box-shadow: 0 6px 20px var(--gold-bright);
-            }
+            width: 80px;
+            height: 3px;
+            background: var(--gold);
+            margin: 1rem auto;
+            border-radius: 2px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 3rem 2rem;
+            padding: 2rem;
         }
 
         .welcome-section {
             text-align: center;
-            margin: 3rem 0;
-            background: linear-gradient(135deg,
-                rgba(245, 230, 211, 0.9) 0%,
-                rgba(230, 215, 195, 0.8) 50%,
-                rgba(212, 175, 55, 0.1) 100%
-            );
-            padding: 3rem 2rem;
-            border-radius: 20px;
-            border: 3px solid var(--biscuit-medium);
-            box-shadow: 0 15px 35px var(--shadow-brown);
+            margin: 2rem 0;
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 5px 15px var(--shadow);
         }
 
         .section-title {
             font-family: 'Cinzel', serif;
-            font-size: 2.4rem;
-            background: linear-gradient(135deg, 
-                var(--brown-chocolate) 0%,
-                var(--biscuit-brown) 50%,
-                var(--gold-dark) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 2rem;
+            color: var(--brown-text);
             margin-bottom: 1rem;
-            letter-spacing: 2px;
-        }
-
-        .section-title i {
-            background: linear-gradient(45deg, var(--gold-bright), var(--gold-antique));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-right: 1rem;
-            animation: iconSpin 4s ease-in-out infinite;
-        }
-
-        @keyframes iconSpin {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(10deg); }
         }
 
         .section-description {
-            font-size: 1.2rem;
-            color: var(--brown-dark);
+            font-size: 1.1rem;
+            color: var(--light-brown);
             max-width: 600px;
             margin: 0 auto;
-            line-height: 1.8;
-            font-weight: 500;
         }
 
         .operations-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2.5rem;
-            margin: 3rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
         }
 
         .operation-card {
-            background: linear-gradient(135deg,
-                var(--cream-white) 0%,
-                var(--biscuit-cream) 30%,
-                rgba(212, 175, 55, 0.1) 70%,
-                var(--biscuit-light) 100%
-            );
-            border: 4px solid var(--biscuit-medium);
-            border-radius: 25px;
-            padding: 2.5rem;
+            background: var(--white);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 2rem;
             text-align: center;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            overflow: hidden;
-            box-shadow: 
-                0 15px 35px var(--shadow-brown),
-                inset 0 2px 6px rgba(255, 255, 255, 0.7);
-        }
-
-        .operation-card::before {
-            content: '';
-            position: absolute;
-            top: -4px;
-            left: -4px;
-            right: -4px;
-            bottom: -4px;
-            background: linear-gradient(45deg,
-                var(--gold-bright) 0%,
-                var(--biscuit-brown) 25%,
-                var(--gold-antique) 50%,
-                var(--biscuit-medium) 75%,
-                var(--gold-copper) 100%
-            );
-            background-size: 400% 400%;
-            border-radius: 25px;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            animation: cardBorderFlow 6s ease-in-out infinite;
-        }
-
-        @keyframes cardBorderFlow {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px var(--shadow);
         }
 
         .operation-card:hover {
-            transform: translateY(-15px) scale(1.02);
-            box-shadow: 
-                0 25px 50px var(--shadow-brown),
-                0 10px 25px var(--glow-gold);
-        }
-
-        .operation-card:hover::before {
-            opacity: 1;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px var(--shadow);
         }
 
         .operation-icon {
-            font-size: 4rem;
-            background: linear-gradient(45deg,
-                var(--gold-bright) 0%,
-                var(--biscuit-brown) 50%,
-                var(--gold-antique) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 1.5rem;
+            font-size: 3rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
             display: block;
-            animation: iconBounce 3s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px var(--glow-gold));
-        }
-
-        @keyframes iconBounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-10px) scale(1.1); }
         }
 
         .operation-title {
             font-family: 'Cinzel', serif;
-            font-size: 1.6rem;
-            font-weight: 600;
-            background: linear-gradient(135deg,
-                var(--brown-chocolate) 0%,
-                var(--biscuit-dark) 50%,
-                var(--brown-coffee) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.4rem;
+            color: var(--brown-text);
             margin-bottom: 1rem;
-            letter-spacing: 1px;
         }
 
         .operation-description {
-            font-size: 1rem;
-            color: var(--brown-dark);
-            margin-bottom: 2rem;
-            line-height: 1.6;
-            font-weight: 500;
+            color: var(--light-brown);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
         }
 
         .btn {
             font-family: 'Cinzel', serif;
-            font-weight: 600;
-            padding: 15px 30px;
-            border: 3px solid var(--biscuit-medium);
-            background: linear-gradient(135deg,
-                var(--biscuit-brown) 0%,
-                var(--gold-antique) 50%,
-                var(--biscuit-medium) 100%
-            );
-            color: var(--cream-white);
+            padding: 12px 25px;
+            border: 2px solid var(--gold);
+            background: var(--gold);
+            color: var(--white);
             border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -418,65 +155,23 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 1.1rem;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-            box-shadow: 
-                0 6px 20px var(--shadow-brown),
-                inset 0 2px 4px rgba(255, 255, 255, 0.2);
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg,
-                transparent,
-                rgba(255, 255, 255, 0.4),
-                transparent
-            );
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
+            font-weight: 500;
         }
 
         .btn:hover {
-            transform: translateY(-3px) scale(1.05);
-            background: linear-gradient(135deg,
-                var(--gold-bright) 0%,
-                var(--biscuit-medium) 50%,
-                var(--gold-copper) 100%
-            );
-            border-color: var(--gold-bright);
-            box-shadow: 
-                0 12px 30px var(--glow-gold),
-                inset 0 2px 6px rgba(255, 255, 255, 0.3);
-            color: var(--brown-chocolate);
+            background: var(--white);
+            color: var(--gold);
+            transform: translateY(-2px);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg,
-                var(--brown-dark) 0%,
-                var(--biscuit-brown) 50%,
-                var(--brown-coffee) 100%
-            );
-            border-color: var(--brown-dark);
+            background: var(--light-brown);
+            border-color: var(--light-brown);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg,
-                var(--gold-antique) 0%,
-                var(--biscuit-medium) 50%,
-                var(--gold-copper) 100%
-            );
-            color: var(--brown-chocolate);
+            background: var(--white);
+            color: var(--light-brown);
         }
 
         /* Modal Styles */
@@ -488,59 +183,41 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(139, 69, 19, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(61, 39, 35, 0.7);
         }
 
         .modal-content {
-            background: linear-gradient(135deg,
-                var(--cream-white) 0%,
-                var(--biscuit-cream) 50%,
-                var(--biscuit-light) 100%
-            );
+            background: var(--biscuit-cream);
             margin: 5% auto;
             padding: 0;
-            border: 4px solid var(--gold-antique);
-            border-radius: 20px;
+            border: 3px solid var(--gold);
+            border-radius: 15px;
             width: 90%;
             max-width: 700px;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 
-                0 30px 80px var(--shadow-brown),
-                inset 0 2px 6px rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 50px var(--shadow);
         }
 
         .modal-header {
-            padding: 2rem;
-            border-bottom: 3px solid var(--biscuit-medium);
+            padding: 1.5rem;
+            border-bottom: 2px solid var(--gold);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg,
-                var(--biscuit-light) 0%,
-                rgba(212, 175, 55, 0.2) 100%
-            );
-            border-radius: 20px 20px 0 0;
+            background: var(--biscuit-light);
         }
 
         .modal-title {
             font-family: 'Cinzel', serif;
-            font-size: 1.8rem;
-            background: linear-gradient(135deg,
-                var(--brown-chocolate) 0%,
-                var(--biscuit-brown) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 600;
+            font-size: 1.5rem;
+            color: var(--brown-text);
             margin: 0;
         }
 
         .close {
-            color: var(--brown-dark);
-            font-size: 2rem;
+            color: var(--light-brown);
+            font-size: 1.8rem;
             font-weight: bold;
             cursor: pointer;
             padding: 0.5rem;
@@ -549,9 +226,8 @@
         }
 
         .close:hover {
-            color: var(--gold-bright);
-            background: rgba(212, 175, 55, 0.2);
-            transform: rotate(90deg);
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
         }
 
         .modal-body {
@@ -559,59 +235,39 @@
         }
 
         .upload-area {
-            border: 4px dashed var(--biscuit-medium);
-            border-radius: 20px;
+            border: 3px dashed var(--gold);
+            border-radius: 15px;
             padding: 3rem 2rem;
             text-align: center;
             cursor: pointer;
-            transition: all 0.4s ease;
-            background: linear-gradient(135deg,
-                rgba(255, 255, 255, 0.9) 0%,
-                rgba(245, 230, 211, 0.7) 100%
-            );
-            margin: 2rem 0;
+            transition: all 0.3s ease;
+            background: var(--white);
+            margin: 1.5rem 0;
         }
 
         .upload-area:hover, .upload-area.dragover {
-            border-color: var(--gold-antique);
-            background: linear-gradient(135deg,
-                rgba(255, 215, 0, 0.1) 0%,
-                rgba(245, 230, 211, 0.9) 100%
-            );
+            border-color: var(--light-brown);
+            background: var(--biscuit-light);
             transform: scale(1.02);
-            box-shadow: 0 10px 30px var(--glow-gold);
         }
 
         .upload-icon {
-            font-size: 4rem;
-            background: linear-gradient(45deg,
-                var(--gold-bright) 0%,
-                var(--biscuit-brown) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 3.5rem;
+            color: var(--gold);
             margin-bottom: 1rem;
             display: block;
-            animation: uploadIconFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes uploadIconFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
         }
 
         .upload-text {
-            font-size: 1.3rem;
-            color: var(--brown-dark);
+            font-size: 1.2rem;
+            color: var(--brown-text);
             margin-bottom: 0.5rem;
-            font-weight: 600;
+            font-weight: 500;
         }
 
         .upload-subtext {
-            color: var(--brown-medium);
-            font-size: 1rem;
-            opacity: 0.8;
+            color: var(--light-brown);
+            font-size: 0.9rem;
         }
 
         .form-group {
@@ -621,70 +277,54 @@
         .form-label {
             display: block;
             margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--brown-dark);
-            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--brown-text);
         }
 
         .form-input, .form-select {
             width: 100%;
-            padding: 15px 20px;
-            border: 3px solid var(--biscuit-medium);
-            border-radius: 12px;
+            padding: 12px 15px;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
             font-family: inherit;
-            font-size: 1rem;
-            background: linear-gradient(135deg,
-                var(--cream-white) 0%,
-                var(--biscuit-cream) 100%
-            );
-            color: var(--brown-dark);
+            background: var(--white);
+            color: var(--dark-text);
             transition: all 0.3s ease;
         }
 
         .form-input:focus, .form-select:focus {
             outline: none;
-            border-color: var(--gold-antique);
-            box-shadow: 0 0 0 4px var(--glow-gold);
-            transform: scale(1.02);
+            border-color: var(--light-brown);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
         }
 
         .file-list {
             max-height: 200px;
             overflow-y: auto;
-            border: 2px solid var(--biscuit-light);
-            border-radius: 15px;
+            border: 2px solid var(--gold);
+            border-radius: 10px;
             padding: 1rem;
-            background: var(--cream-white);
+            background: var(--white);
             margin-bottom: 1rem;
         }
 
         .file-item {
             display: flex;
             align-items: center;
-            padding: 1rem;
+            padding: 0.8rem;
             border-bottom: 1px solid var(--biscuit-light);
             transition: all 0.3s ease;
-            border-radius: 8px;
+            border-radius: 5px;
             margin-bottom: 0.5rem;
         }
 
         .file-item:hover {
-            background: linear-gradient(135deg,
-                var(--biscuit-cream) 0%,
-                rgba(212, 175, 55, 0.1) 100%
-            );
-            transform: translateX(10px);
+            background: var(--biscuit-light);
         }
 
         .file-icon {
-            font-size: 2rem;
-            background: linear-gradient(45deg,
-                var(--gold-bright) 0%,
-                var(--biscuit-brown) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.5rem;
+            color: var(--gold);
             margin-right: 1rem;
         }
 
@@ -693,16 +333,14 @@
         }
 
         .file-name {
-            font-weight: 600;
-            color: var(--brown-dark);
-            margin-bottom: 0.25rem;
-            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--brown-text);
+            margin-bottom: 0.2rem;
         }
 
         .file-size {
-            font-size: 0.9rem;
-            color: var(--brown-medium);
-            opacity: 0.8;
+            font-size: 0.85rem;
+            color: var(--light-brown);
         }
 
         .file-remove {
@@ -711,12 +349,11 @@
             padding: 0.5rem;
             border-radius: 50%;
             transition: all 0.3s ease;
-            font-size: 1.2rem;
         }
 
         .file-remove:hover {
             background: rgba(211, 47, 47, 0.1);
-            transform: scale(1.2);
+            transform: scale(1.1);
         }
 
         .loading-modal {
@@ -727,35 +364,29 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(139, 69, 19, 0.9);
-            backdrop-filter: blur(10px);
+            background: rgba(61, 39, 35, 0.8);
         }
 
         .loading-content {
-            background: linear-gradient(135deg,
-                var(--cream-white) 0%,
-                var(--biscuit-cream) 100%
-            );
+            background: var(--biscuit-cream);
             margin: 15% auto;
-            padding: 3rem;
-            border: 4px solid var(--gold-antique);
-            border-radius: 20px;
+            padding: 2rem;
+            border: 3px solid var(--gold);
+            border-radius: 15px;
             width: 90%;
-            max-width: 500px;
+            max-width: 400px;
             text-align: center;
-            box-shadow: 0 30px 80px var(--shadow-brown);
+            box-shadow: 0 20px 50px var(--shadow);
         }
 
         .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid var(--biscuit-light);
-            border-top: 6px solid var(--gold-bright);
-            border-right: 6px solid var(--biscuit-brown);
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--biscuit-light);
+            border-top: 4px solid var(--gold);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 2rem;
-            box-shadow: 0 0 20px var(--glow-gold);
+            margin: 0 auto 1.5rem;
         }
 
         @keyframes spin {
@@ -764,31 +395,24 @@
         }
 
         .alert {
-            padding: 1.5rem;
-            border-radius: 12px;
+            padding: 1rem;
+            border-radius: 8px;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
             font-weight: 500;
-            border-left: 5px solid;
         }
 
         .alert-success {
-            background: linear-gradient(135deg,
-                rgba(76, 175, 80, 0.1) 0%,
-                rgba(76, 175, 80, 0.05) 100%
-            );
-            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+            border: 2px solid #4caf50;
             color: #2e7d32;
         }
 
         .alert-error {
-            background: linear-gradient(135deg,
-                rgba(244, 67, 54, 0.1) 0%,
-                rgba(244, 67, 54, 0.05) 100%
-            );
-            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+            border: 2px solid #f44336;
             color: #c62828;
         }
 
@@ -805,11 +429,11 @@
             }
             
             .app-title {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
             }
             
             .operation-card {
-                padding: 2rem;
+                padding: 1.5rem;
             }
         }
 
@@ -819,18 +443,16 @@
             }
             
             .app-title {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
             .operation-card {
-                padding: 1.5rem;
+                padding: 1.2rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Enhanced top border is created with CSS ::before pseudo-element -->
-    
     <header class="header">
         <div class="header-content">
             <h1 class="app-title">ಕನ್ನಡ PDF ಉಪಕರಣಗಳು</h1>
@@ -840,23 +462,19 @@
     </header>
 
     <div class="container">
-        <section class="welcome-section fade-in">
-            <div class="welcome-content">
-                <h2 class="section-title">
-                    <i class="fas fa-book-open"></i>
-                    ನಿಮ್ಮ PDF ಕಾರ್ಯಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ
-                </h2>
-                <div class="ornament"></div>
-                <p class="section-description">
-                    ಕೆಳಗಿನ ಕಾರ್ಯಗಳಲ್ಲಿ ಒಂದನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ನಿಮ್ಮ ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
-                </p>
-            </div>
+        <section class="welcome-section">
+            <h2 class="section-title">
+                <i class="fas fa-book-open"></i>
+                ನಿಮ್ಮ PDF ಕಾರ್ಯಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ
+            </h2>
+            <div class="ornament"></div>
+            <p class="section-description">
+                ಕೆಳಗಿನ ಕಾರ್ಯಗಳಲ್ಲಿ ಒಂದನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ನಿಮ್ಮ ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
+            </p>
         </section>
 
         <section class="operations-section">
             <div class="operations-grid">
-                
-                <!-- Merge PDFs -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-layer-group"></i></div>
                     <h3 class="operation-title">PDF ವಿಲೀನಗೊಳಿಸಿ</h3>
@@ -866,7 +484,6 @@
                     </button>
                 </div>
 
-                <!-- Split PDF -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-cut"></i></div>
                     <h3 class="operation-title">PDF ವಿಭಾಗಿಸಿ</h3>
@@ -876,7 +493,6 @@
                     </button>
                 </div>
 
-                <!-- Extract Pages -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-file-export"></i></div>
                     <h3 class="operation-title">ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ</h3>
@@ -886,7 +502,6 @@
                     </button>
                 </div>
 
-                <!-- Delete Pages -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-trash-alt"></i></div>
                     <h3 class="operation-title">ಪುಟಗಳನ್ನು ಅಳಿಸಿ</h3>
@@ -896,7 +511,6 @@
                     </button>
                 </div>
 
-                <!-- Compress PDF -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-compress-arrows-alt"></i></div>
                     <h3 class="operation-title">PDF ಸಂಕುಚಿಸಿ</h3>
@@ -906,7 +520,6 @@
                     </button>
                 </div>
 
-                <!-- PDF to JPEG -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-image"></i></div>
                     <h3 class="operation-title">PDF ನಿಂದ JPEG</h3>
@@ -916,7 +529,6 @@
                     </button>
                 </div>
 
-                <!-- JPEG to PDF -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-file-pdf"></i></div>
                     <h3 class="operation-title">JPEG ನಿಂದ PDF</h3>
@@ -926,7 +538,6 @@
                     </button>
                 </div>
 
-                <!-- PDF to Word -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-file-word"></i></div>
                     <h3 class="operation-title">PDF ನಿಂದ Word</h3>
@@ -936,7 +547,6 @@
                     </button>
                 </div>
 
-                <!-- Word to PDF -->
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-file-pdf"></i></div>
                     <h3 class="operation-title">Word ನಿಂದ PDF</h3>
@@ -945,7 +555,6 @@
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
-
             </div>
         </section>
     </div>
@@ -961,7 +570,6 @@
                 <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
                     <input type="hidden" name="operation" id="selectedOperation">
                     
-                    <!-- File Upload Area -->
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">
                             <i class="fas fa-cloud-upload-alt"></i>
@@ -971,12 +579,9 @@
                         <input type="file" name="files" id="fileInput" multiple accept=".pdf" style="display: none;">
                     </div>
 
-                    <!-- Selected Files List -->
                     <div id="filesList" class="file-list" style="display: none;"></div>
 
-                    <!-- Operation-specific Options -->
                     <div id="operationOptions" style="display: none;">
-                        <!-- Pages input for split, extract, delete -->
                         <div class="form-group" id="pagesGroup" style="display: none;">
                             <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
                             <input type="text" name="pages" id="pagesInput" class="form-input" 
@@ -984,7 +589,6 @@
                             <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
                         </div>
 
-                        <!-- Compression level -->
                         <div class="form-group" id="compressionGroup" style="display: none;">
                             <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
                             <select name="compression" id="compressionSelect" class="form-select">
@@ -995,7 +599,6 @@
                         </div>
                     </div>
 
-                    <!-- Process Button -->
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="processBtn" disabled>
                             <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
@@ -1022,65 +625,74 @@
             'merge': {
                 title: 'PDF ಗಳನ್ನು ವಿಲೀನಗೊಳಿಸಿ',
                 accept: '.pdf',
-                supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
+                supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ (ಕನಿಷ್ಠ 2 ಫೈಲ್‌ಗಳು)',
                 multiple: true,
-                options: []
+                options: [],
+                minFiles: 2  // Added minimum files requirement
             },
             'split': {
                 title: 'PDF ಅನ್ನು ವಿಭಾಗಿಸಿ',
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: ['pages']
+                options: ['pages'],
+                minFiles: 1
             },
             'extract': {
                 title: 'ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ',
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: ['pages']
+                options: ['pages'],
+                minFiles: 1
             },
             'delete': {
                 title: 'ಪುಟಗಳನ್ನು ಅಳಿಸಿ',
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: ['pages']
+                options: ['pages'],
+                minFiles: 1
             },
             'compress': {
                 title: 'PDF ಸಂಕುಚಿಸಿ',
                 accept: '.pdf',
                 supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
-                options: ['compression']
+                options: ['compression'],
+                minFiles: 1
             },
             'pdf_to_jpeg': {
                 title: 'PDF ನಿಂದ JPEG',
                 accept: '.pdf',
                 supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
-                options: []
+                options: [],
+                minFiles: 1
             },
             'jpeg_to_pdf': {
                 title: 'JPEG ನಿಂದ PDF',
                 accept: '.jpg,.jpeg,.png,.bmp,.tiff',
                 supportText: 'ಚಿತ್ರ ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
-                options: []
+                options: [],
+                minFiles: 1
             },
             'pdf_to_word': {
                 title: 'PDF ನಿಂದ Word',
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: []
+                options: [],
+                minFiles: 1
             },
             'word_to_pdf': {
                 title: 'Word ನಿಂದ PDF',
                 accept: '.docx,.doc',
                 supportText: 'Word ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
-                options: []
+                options: [],
+                minFiles: 1
             }
         };
 
@@ -1160,6 +772,7 @@
         function handleFileSelection(files) {
             const config = operationConfigs[currentOperation];
             
+            // For operations that don't allow multiple files, replace existing files
             if (!config.multiple && files.length > 1) {
                 showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
                 return;
@@ -1174,9 +787,22 @@
                 showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
             }
             
-            selectedFiles = validFiles;
+            // For single file operations, replace the file
+            if (!config.multiple) {
+                selectedFiles = validFiles.slice(0, 1);
+            } else {
+                // For multiple file operations, add to existing files
+                validFiles.forEach(file => {
+                    // Check if file already exists
+                    const existingFile = selectedFiles.find(f => f.name === file.name && f.size === file.size);
+                    if (!existingFile) {
+                        selectedFiles.push(file);
+                    }
+                });
+            }
+            
             displaySelectedFiles();
-            document.getElementById('processBtn').disabled = selectedFiles.length === 0;
+            updateProcessButton();
         }
 
         function displaySelectedFiles() {
@@ -1207,11 +833,30 @@
         function removeFile(index) {
             selectedFiles.splice(index, 1);
             displaySelectedFiles();
-            document.getElementById('processBtn').disabled = selectedFiles.length === 0;
+            updateProcessButton();
             
+            // Update the file input
             const dt = new DataTransfer();
             selectedFiles.forEach(file => dt.items.add(file));
             document.getElementById('fileInput').files = dt.files;
+        }
+
+        function updateProcessButton() {
+            const processBtn = document.getElementById('processBtn');
+            const config = operationConfigs[currentOperation];
+            const hasEnoughFiles = selectedFiles.length >= (config.minFiles || 1);
+            
+            if (hasEnoughFiles) {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ';
+            } else {
+                processBtn.disabled = true;
+                if (currentOperation === 'merge') {
+                    processBtn.innerHTML = '<i class="fas fa-cog"></i> ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು';
+                } else {
+                    processBtn.innerHTML = '<i class="fas fa-cog"></i> ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ';
+                }
+            }
         }
 
         function getFileIcon(filename) {
@@ -1236,8 +881,13 @@
         document.getElementById('operationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            if (selectedFiles.length === 0) {
-                showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+            const config = operationConfigs[currentOperation];
+            if (selectedFiles.length < (config.minFiles || 1)) {
+                if (currentOperation === 'merge') {
+                    showAlert('error', 'ವಿಲೀನಗೊಳಿಸಲು ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು');
+                } else {
+                    showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+                }
                 return;
             }
             
