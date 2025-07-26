@@ -1,178 +1,228 @@
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, jsonify, session, url_for
 import os
 import uuid
 from werkzeug.utils import secure_filename
-from utils.pdf_operations import PDFOperations
-from utils.file_handler import FileHandler
-from utils.validators import validate_file
-from config import Config 
+from PyPDF2 import PdfReader, PdfWriter
+import zipfile
 
 app = Flask(__name__)
-app.config.from_object(Config) 
+app.secret_key = 'your-secret-key'
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
-# Initialize utility classes
-pdf_ops = PDFOperations()
-file_handler = FileHandler()
+# Ensure directories exist
+os.makedirs('uploads', exist_ok=True)
+os.makedirs('output', exist_ok=True)
+
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'jpg', 'jpeg', 'png'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
-    """Main page with all PDF operations"""
     return render_template('index.html')
 
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    """Handle file uploads"""
-    if request.method == 'POST':
+@app.route('/upload', methods=['POST'])
+def upload():
+    try:
+        session_id = str(uuid.uuid4())[:8]
         operation = request.form.get('operation')
         files = request.files.getlist('files')
         
-        if not files or files[0].filename == '':
-            flash('ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ')  # Please select at least one file
-            return redirect(url_for('index'))
+        if not operation:
+            return jsonify({'success': False, 'error': 'ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ'})
         
-        # Validate files
-        valid_files = []
-        for file in files:
-            if validate_file(file, operation):
-                valid_files.append(file)
-        
-        if not valid_files:
-            flash('ಅಮಾನ್ಯ ಫೈಲ್ ಪ್ರಕಾರ')  # Invalid file type
-            return redirect(url_for('index'))
-        
-        # Generate session ID for tracking
-        session_id = str(uuid.uuid4())
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'success': False, 'error': 'ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ'})
         
         # Save uploaded files
-        file_paths = []
-        for file in valid_files:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_{filename}")
-            file.save(file_path)
-            file_paths.append(file_path)
+        saved_files = []
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = f"uploads/{session_id}_{filename}"
+                file.save(file_path)
+                saved_files.append(file_path)
         
-        # Process operation
-        try:
-            result = process_operation(operation, file_paths, request.form, session_id)
-            return jsonify(result)
-        except Exception as e:
-            return jsonify({'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲವಾಗಿದೆ: {str(e)}'})
-    
-    return render_template('upload.html')
-
-def process_operation(operation, file_paths, form_data, session_id):
-    """Process the selected PDF operation"""
-    
-    operations = {
-        'merge': pdf_ops.merge_pdfs,
-        'split': pdf_ops.split_pdf,
-        'extract': pdf_ops.extract_pages,
-        'delete': pdf_ops.delete_pages,
-        'crop': pdf_ops.crop_pages,
-        'rotate': pdf_ops.rotate_pages,
-        'pdf_to_word': pdf_ops.pdf_to_word,
-        'word_to_pdf': pdf_ops.word_to_pdf,
-        'pdf_to_jpeg': pdf_ops.pdf_to_jpeg,
-        'jpeg_to_pdf': pdf_ops.jpeg_to_pdf,
-        'compress': pdf_ops.compress_pdf
-    }
-    
-    if operation not in operations:
-        raise ValueError('ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ')  # Invalid operation
-    
-    # Prepare parameters based on operation
-    params = {'files': file_paths, 'session_id': session_id}
-    
-    if operation in ['split', 'extract', 'delete']:
-        pages = form_data.get('pages', '1')
-        params['pages'] = pages
-    
-    if operation == 'rotate':
-        angle = int(form_data.get('angle', 90))
-        params['angle'] = angle
-    
-    if operation == 'crop':
-        params.update({
-            'left': float(form_data.get('left', 0)),
-            'top': float(form_data.get('top', 0)),
-            'right': float(form_data.get('right', 0)),
-            'bottom': float(form_data.get('bottom', 0))
-        })
-    
-    # Execute operation
-    result_path = operations[operation](**params)
-    
-    # Generate download URL
-    download_url = url_for('download_file', filename=os.path.basename(result_path))
-    
-    return {
-        'success': True,
-        'message': 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ',  # Operation completed successfully
-        'download_url': download_url,
-        'filename': os.path.basename(result_path)
-    }
-
-@app.route('/download/<filename>')
-def download_file(filename):
-    """Handle file downloads"""
-    try:
-        file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-        if os.path.exists(file_path):
-            return send_file(file_path, as_attachment=True)
+        if not saved_files:
+            return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಮಾನ್ಯ ಫೈಲ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ'})
+        
+        # Process files
+        result_file = process_pdf(operation, saved_files, session_id, request.form)
+        
+        if result_file and os.path.exists(result_file):
+            # Store in session for download
+            session[f'file_{session_id}'] = result_file
+            
+            # Return success response
+            return jsonify({
+                'success': True,
+                'message': 'ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ',
+                'filename': os.path.basename(result_file),
+                'download_url': f'/download/{session_id}',
+                'session_id': session_id
+            })
         else:
-            flash('ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ')  # File not found
-            return redirect(url_for('index'))
+            return jsonify({'success': False, 'error': 'ಸಂಸ್ಕರಣೆಯಲ್ಲಿ ದೋಷ'})
+            
     except Exception as e:
-        flash(f'ಡೌನ್‌ಲೋಡ್ ವಿಫಲವಾಗಿದೆ: {str(e)}')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
+    finally:
+        # Clean up uploaded files
+        for f in saved_files:
+            if os.path.exists(f):
+                try:
+                    os.remove(f)
+                except:
+                    pass
 
-@app.route('/api/progress/<session_id>')
-def get_progress(session_id):
-    """Get operation progress"""
-    # This would connect to a progress tracking system
-    # For now, returning a simple response
-    return jsonify({'progress': 100, 'status': 'completed'})
-
-@app.errorhandler(413)
-def too_large(e):
-    flash('ಫೈಲ್ ಗಾತ್ರ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ')  # File size too large
-    return redirect(url_for('index'))
-
-@app.errorhandler(404)
-def not_found(e):
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def server_error(e):
-    return render_template('500.html'), 500
-
-# Cleanup function to remove old files
-def cleanup_old_files():
-    """Remove files older than 1 hour"""
-    import time
-    current_time = time.time()
-    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            if os.path.isfile(file_path):
-                if current_time - os.path.getctime(file_path) > 3600:  # 1 hour
+def process_pdf(operation, files, session_id, form_data):
+    if operation == 'merge':
+        writer = PdfWriter()
+        for file_path in files:
+            reader = PdfReader(file_path)
+            for page in reader.pages:
+                writer.add_page(page)
+        
+        output_path = f"output/{session_id}_merged.pdf"
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        return output_path
+    
+    elif operation == 'split':
+        reader = PdfReader(files[0])
+        pages = form_data.get('pages', '1-2').replace(' ', '').split(',')
+        output_files = []
+        
+        for i, page_range in enumerate(pages):
+            writer = PdfWriter()
+            try:
+                if '-' in page_range:
+                    start, end = map(int, page_range.split('-'))
+                    for p in range(start-1, min(end, len(reader.pages))):
+                        if 0 <= p < len(reader.pages):
+                            writer.add_page(reader.pages[p])
+                else:
+                    p = int(page_range) - 1
+                    if 0 <= p < len(reader.pages):
+                        writer.add_page(reader.pages[p])
+                
+                if len(writer.pages) > 0:  # Only save if has pages
+                    output_path = f"output/{session_id}_split_{i+1}.pdf"
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    output_files.append(output_path)
+            except ValueError:
+                continue  # Skip invalid page numbers
+        
+        # Create zip if multiple files
+        if len(output_files) > 1:
+            zip_path = f"output/{session_id}_split.zip"
+            with zipfile.ZipFile(zip_path, 'w') as zipf:
+                for file_path in output_files:
+                    zipf.write(file_path, os.path.basename(file_path))
                     os.remove(file_path)
+            return zip_path
+        return output_files[0] if output_files else None
+    
+    elif operation == 'extract':
+        reader = PdfReader(files[0])
+        writer = PdfWriter()
+        pages_str = form_data.get('pages', '1').replace(' ', '')
+        
+        # Parse pages (supports ranges like 1-3,5,7-9)
+        page_numbers = []
+        for part in pages_str.split(','):
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                page_numbers.extend(range(start-1, min(end, len(reader.pages))))
+            else:
+                page_numbers.append(int(part) - 1)
+        
+        for page_num in page_numbers:
+            if 0 <= page_num < len(reader.pages):
+                writer.add_page(reader.pages[page_num])
+        
+        output_path = f"output/{session_id}_extracted.pdf"
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        return output_path
+    
+    elif operation == 'delete':
+        reader = PdfReader(files[0])
+        writer = PdfWriter()
+        pages_to_delete = set()
+        pages_str = form_data.get('pages', '').replace(' ', '')
+        
+        # Parse pages to delete
+        for part in pages_str.split(','):
+            if part:
+                if '-' in part:
+                    start, end = map(int, part.split('-'))
+                    pages_to_delete.update(range(start-1, min(end, len(reader.pages))))
+                else:
+                    pages_to_delete.add(int(part) - 1)
+        
+        # Add pages that are NOT in delete list
+        for i, page in enumerate(reader.pages):
+            if i not in pages_to_delete:
+                writer.add_page(page)
+        
+        output_path = f"output/{session_id}_deleted.pdf"
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        return output_path
+    
+    elif operation == 'rotate':
+        reader = PdfReader(files[0])
+        writer = PdfWriter()
+        angle = int(form_data.get('angle', 90))
+        
+        for page in reader.pages:
+            writer.add_page(page.rotate(angle))
+        
+        output_path = f"output/{session_id}_rotated.pdf"
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        return output_path
+    
+    elif operation == 'compress':
+        # Simple compression by reducing quality
+        reader = PdfReader(files[0])
+        writer = PdfWriter()
+        
+        for page in reader.pages:
+            page.compress_content_streams()
+            writer.add_page(page)
+        
+        output_path = f"output/{session_id}_compressed.pdf"
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+        return output_path
+
+@app.route('/download/<session_id>')
+def download(session_id):
+    result_file = session.get(f'file_{session_id}')
+    
+    if not result_file or not os.path.exists(result_file):
+        return jsonify({'error': 'ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'}), 404
+    
+    return send_file(result_file, as_attachment=True, download_name=os.path.basename(result_file))
+
+@app.route('/cleanup/<session_id>')
+def cleanup(session_id):
+    """Clean up session files"""
+    result_file = session.get(f'file_{session_id}')
+    if result_file and os.path.exists(result_file):
+        try:
+            os.remove(result_file)
+        except:
+            pass
+    
+    # Remove from session
+    session.pop(f'file_{session_id}', None)
+    
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
-    # Create directories if they don't exist
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
-    
-    # Start cleanup scheduler (in production, use Celery or similar)
-    import threading
-    import time
-    
-    def periodic_cleanup():
-        while True:
-            time.sleep(3600)  # Run every hour
-            cleanup_old_files()
-    
-    cleanup_thread = threading.Thread(target=periodic_cleanup, daemon=True)
-    cleanup_thread.start()
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)

@@ -42,7 +42,8 @@ class KannadaPDFToolkit {
             retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
             fileTooLarge: 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ',
             networkError: 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ',
-            serverError: 'ಸರ್ವರ್ ದೋಷ'
+            serverError: 'ಸರ್ವರ್ ದೋಷ',
+            downloading: 'ಡೌನ್‌ಲೋಡ್ ಪ್ರಾರಂಭವಾಗಿದೆ...'
         };
     }
 
@@ -162,7 +163,7 @@ class KannadaPDFToolkit {
     validateFiles(files) {
         const validFiles = [];
         const allowedTypes = this.getAllowedTypes(this.currentOperation);
-        const maxFileSize = 10 * 1024 * 1024; // 10MB limit
+        const maxFileSize = 50 * 1024 * 1024; // 50MB limit (matching config)
 
         for (let file of files) {
             if (file.size > maxFileSize) {
@@ -278,7 +279,6 @@ class KannadaPDFToolkit {
         try {
             const formData = new FormData();
             formData.append('operation', this.currentOperation);
-            formData.append('session_id', this.sessionId);
 
             // Add files
             this.selectedFiles.forEach(file => {
@@ -288,22 +288,28 @@ class KannadaPDFToolkit {
             // Add operation-specific parameters
             this.addOperationParameters(formData);
 
+            console.log('Sending request to /upload with operation:', this.currentOperation);
+
             const response = await fetch('/upload', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                body: formData
             });
 
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error:', errorText);
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const result = await response.json();
+            console.log('Server response:', result);
 
             if (result.success) {
                 this.showSuccessModal(result);
+                // Auto-download the processed file
+                this.autoDownload(result);
             } else {
                 throw new Error(result.error || 'Unknown error');
             }
@@ -312,6 +318,32 @@ class KannadaPDFToolkit {
             console.error('Processing error:', error);
             this.showErrorModal(error.message);
         }
+    }
+
+    autoDownload(result) {
+        console.log('Starting auto-download:', result.download_url);
+        
+        // Show downloading message
+        this.showAlert(this.messages.downloading, 'info');
+        
+        // Create and trigger download
+        setTimeout(() => {
+            try {
+                const link = document.createElement('a');
+                link.href = result.download_url;
+                link.download = result.filename || 'processed_file';
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('Auto-download triggered successfully');
+            } catch (error) {
+                console.error('Auto-download failed:', error);
+                this.showAlert('ಡೌನ್‌ಲೋಡ್ ವಿಫಲವಾಗಿದೆ', 'error');
+            }
+        }, 1000); // Small delay to ensure modal is shown
     }
 
     addOperationParameters(formData) {
@@ -557,7 +589,7 @@ class KannadaPDFToolkit {
                 <h3>${this.messages.completed}</h3>
                 <p>${this.messages.downloadReady}</p>
                 <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                    <a href="${result.download_url}" class="btn btn-primary" download>
+                    <a href="${result.download_url}" class="btn btn-primary" download="${result.filename}">
                         ${this.messages.download}
                     </a>
                     <button class="btn" onclick="kannadaPDF.closeModal()">
@@ -566,18 +598,6 @@ class KannadaPDFToolkit {
                 </div>
             </div>
         `;
-
-        // Auto-download if single file
-        if (result.auto_download) {
-            setTimeout(() => {
-                const link = document.createElement('a');
-                link.href = result.download_url;
-                link.download = result.filename || 'processed_file';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }, 1000);
-        }
     }
 
     showErrorModal(errorMessage) {
@@ -626,6 +646,9 @@ class KannadaPDFToolkit {
     }
 
     showAlert(message, type = 'info') {
+        // Remove existing alerts first
+        document.querySelectorAll('.alert').forEach(alert => alert.remove());
+        
         // Create alert element
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} fade-in`;

@@ -8,614 +8,164 @@
         @font-face {
             font-family: 'NotoSansKannada';
             src: url('../static/fonts/NotoSansKannada-Regular.woff2') format('woff2');
-            font-display: swap;
         }
         
-        @font-face {
-            font-family: 'OldScript';
-            src: url('../static/fonts/oldscript.woff2') format('woff2');
-            font-display: swap;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
             font-family: 'NotoSansKannada', serif;
             background: linear-gradient(135deg, #2c1810 0%, #3d2817 50%, #4a3020 100%);
             min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
+            color: #f4f1e8;
         }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 69, 19, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(160, 82, 45, 0.2) 0%, transparent 50%),
-                url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="paper" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><rect width="100" height="100" fill="%23f4f1e8" opacity="0.03"/><path d="M0 20L100 20M0 40L100 40M0 60L100 60M0 80L100 80" stroke="%23d4af37" stroke-width="0.5" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23paper)"/></svg>');
-            pointer-events: none;
-            z-index: 0;
-        }
-
+        
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 2rem;
-            position: relative;
-            z-index: 1;
         }
-
+        
         .header {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 2rem;
             padding: 2rem;
             background: rgba(212, 175, 55, 0.1);
             border: 2px solid rgba(212, 175, 55, 0.3);
             border-radius: 15px;
-            backdrop-filter: blur(10px);
-            position: relative;
         }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            background: linear-gradient(45deg, rgba(212, 175, 55, 0.2), rgba(184, 134, 11, 0.2));
-            border-radius: 20px;
-            z-index: -1;
-        }
-
+        
         .header h1 {
-            font-family: 'OldScript', serif;
             font-size: 2.5rem;
             color: #d4af37;
             margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
-
-        .header .subtitle {
-            color: #f4f1e8;
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
+        
         .result-container {
             background: rgba(244, 241, 232, 0.95);
             border: 3px solid #d4af37;
             border-radius: 20px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 
-                0 10px 30px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            position: relative;
+            padding: 2rem;
+            color: #2c1810;
         }
-
-        .result-container::before {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
-            pointer-events: none;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
+        
         .status-success {
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            display: inline-block;
+            margin-bottom: 2rem;
+            font-weight: bold;
         }
-
-        .status-error {
-            background: linear-gradient(135deg, #dc3545, #fd7e14);
-            color: white;
-            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-        }
-
-        .status-processing {
-            background: linear-gradient(135deg, #ffc107, #fd7e14);
-            color: #2c1810;
-            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .operation-details {
+        
+        .file-info {
             background: rgba(212, 175, 55, 0.1);
             border: 1px solid rgba(212, 175, 55, 0.3);
             border-radius: 10px;
             padding: 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .operation-details h3 {
-            color: #8b4513;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            font-family: 'OldScript', serif;
-        }
-
-        .detail-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem 0;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        }
-
-        .detail-item:last-child {
-            border-bottom: none;
-        }
-
-        .detail-label {
-            font-weight: bold;
-            color: #8b4513;
-        }
-
-        .detail-value {
-            color: #2c1810;
-            font-family: monospace;
-        }
-
-        .file-list {
-            background: white;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 10px;
-            padding: 1rem;
             margin: 1rem 0;
         }
-
+        
         .file-item {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
             padding: 1rem;
             border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-            transition: background-color 0.3s ease;
         }
-
-        .file-item:hover {
-            background: rgba(212, 175, 55, 0.1);
-        }
-
-        .file-item:last-child {
-            border-bottom: none;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .file-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #d4af37, #b8860b);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-
-        .file-details h4 {
-            color: #2c1810;
-            margin-bottom: 0.2rem;
-        }
-
-        .file-size {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
+        
         .download-btn {
             background: linear-gradient(135deg, #d4af37, #b8860b);
             color: white;
             border: none;
-            padding: 0.8rem 1.5rem;
+            padding: 1rem 2rem;
             border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
             text-decoration: none;
+            font-weight: bold;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
         }
-
+        
         .download-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
         }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(212, 175, 55, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #d4af37, #b8860b);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200px 0; }
-            100% { background-position: 200px 0; }
-        }
-
+        
         .action-buttons {
             display: flex;
             gap: 1rem;
             justify-content: center;
             margin-top: 2rem;
-            flex-wrap: wrap;
         }
-
+        
         .btn {
             padding: 1rem 2rem;
             border: none;
             border-radius: 25px;
             font-weight: bold;
-            cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             transition: all 0.3s ease;
-            font-size: 1rem;
         }
-
+        
         .btn-primary {
             background: linear-gradient(135deg, #007bff, #0056b3);
             color: white;
-            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
         }
-
+        
         .btn-secondary {
             background: linear-gradient(135deg, #6c757d, #495057);
             color: white;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
         }
-
+        
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
-
-        .error-message {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid rgba(220, 53, 69, 0.3);
-            border-radius: 10px;
-            padding: 1.5rem;
-            color: #721c24;
-            margin: 1rem 0;
-        }
-
-        .error-message h4 {
-            margin-bottom: 0.5rem;
-            color: #dc3545;
-        }
-
-        .ornament {
-            width: 60px;
-            height: 20px;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 20"><path d="M30 2L35 10L30 18L25 10Z M10 10L20 6L20 14Z M40 6L50 10L40 14Z" fill="%23d4af37" opacity="0.6"/></svg>') center/contain no-repeat;
-            margin: 2rem auto;
-        }
-
+        
         @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .result-container {
-                padding: 1.5rem;
-            }
-            
-            .file-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .btn {
-                width: 100%;
-                max-width: 300px;
-                justify-content: center;
-            }
+            .container { padding: 1rem; }
+            .header h1 { font-size: 2rem; }
+            .file-item { flex-direction: column; gap: 1rem; }
+            .action-buttons { flex-direction: column; align-items: center; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>ಕನ್ನಡ PDF ಟೂಲ್‌ಕಿಟ್</h1>
-            <p class="subtitle">ನಿಮ್ಮ PDF ಕಾರ್ಯಾಚರಣೆಯ ಫಲಿತಾಂಶಗಳು</p>
+            <p>ನಿಮ್ಮ PDF ಕಾರ್ಯಾಚರಣೆಯ ಫಲಿತಾಂಶಗಳು</p>
         </div>
 
-        <!-- Result Container -->
         <div class="result-container">
-            <!-- Status Badge -->
-            <div class="status-badge status-success" id="statusBadge">
+            <div class="status-success">
                 ✓ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ
             </div>
 
-            <!-- Operation Details -->
-            <div class="operation-details">
-                <h3>ಕಾರ್ಯಾಚರಣೆಯ ವಿವರಗಳು</h3>
-                <div class="detail-item">
-                    <span class="detail-label">ಕಾರ್ಯಾಚರಣೆ:</span>
-                    <span class="detail-value" id="operationType">PDF ವಿಲೀನ</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">ಸಂಸ್ಕರಿಸಿದ ಫೈಲ್‌ಗಳು:</span>
-                    <span class="detail-value" id="processedFiles">3</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">ಒಟ್ಟು ಪುಟಗಳು:</span>
-                    <span class="detail-value" id="totalPages">15</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">ಸಮಯ ತೆಗೆದುಕೊಂಡಿದೆ:</span>
-                    <span class="detail-value" id="processingTime">2.3 ಸೆಕೆಂಡ್‌ಗಳು</span>
-                </div>
-            </div>
-
-            <!-- Progress Bar (for processing status) -->
-            <div class="progress-bar" id="progressBar" style="display: none;">
-                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-            </div>
-
-            <!-- Output Files -->
-            <div class="file-list" id="outputFiles">
-                <h3 style="margin-bottom: 1rem; color: #8b4513;">ಫಲಿತಾಂಶ ಫೈಲ್‌ಗಳು</h3>
+            <div class="file-info">
+                <h3>ಕಾರ್ಯಾಚರಣೆ: {{ file_info.operation or 'PDF ಸಂಸ್ಕರಣೆ' }}</h3>
                 
                 <div class="file-item">
-                    <div class="file-info">
-                        <div class="file-icon">PDF</div>
-                        <div class="file-details">
-                            <h4>merged_document.pdf</h4>
-                            <p class="file-size">2.4 MB</p>
-                        </div>
+                    <div>
+                        <h4>{{ file_info.name }}</h4>
+                        <p>ಗಾತ್ರ: {{ file_info.size }}</p>
                     </div>
-                    <a href="#" class="download-btn" onclick="downloadFile('merged_document.pdf')">
+                    <a href="/download" class="download-btn">
                         📥 ಡೌನ್‌ಲೋಡ್
                     </a>
                 </div>
             </div>
 
-            <!-- Error Message (hidden by default) -->
-            <div class="error-message" id="errorMessage" style="display: none;">
-                <h4>ದೋಷ ಸಂಭವಿಸಿದೆ</h4>
-                <p id="errorText">ಫೈಲ್ ಸಂಸ್ಕರಣೆಯಲ್ಲಿ ಸಮಸ್ಯೆ ಉಂಟಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.</p>
-            </div>
-
-            <div class="ornament"></div>
-
-            <!-- Action Buttons -->
             <div class="action-buttons">
-                <a href="/" class="btn btn-primary">
-                    🏠 ಮುಖ್ಯ ಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ
-                </a>
-                <a href="/upload" class="btn btn-secondary">
-                    📁 ಹೊಸ ಫೈಲ್ ಅಪ್‌ಲೋಡ್
-                </a>
+                <a href="/" class="btn btn-primary">🏠 ಮುಖ್ಯ ಪುಟ</a>
+                <a href="/upload" class="btn btn-secondary">📁 ಹೊಸ ಫೈಲ್</a>
+                <a href="/cleanup" class="btn btn-secondary">🗑️ ಸ್ವಚ್ಛಗೊಳಿಸು</a>
             </div>
         </div>
     </div>
-
-    <script>
-        // Simulated data - this would come from Flask template variables
-        const resultData = {
-            status: 'success', // 'success', 'error', 'processing'
-            operation: 'merge',
-            operationName: 'PDF ವಿಲೀನ',
-            processedFiles: 3,
-            totalPages: 15,
-            processingTime: '2.3 ಸೆಕೆಂಡ್‌ಗಳು',
-            outputFiles: [
-                {
-                    name: 'merged_document.pdf',
-                    size: '2.4 MB',
-                    type: 'PDF',
-                    downloadUrl: '/download/merged_document.pdf'
-                }
-            ],
-            error: null
-        };
-
-        // Initialize page based on result data
-        function initializePage() {
-            const statusBadge = document.getElementById('statusBadge');
-            const errorMessage = document.getElementById('errorMessage');
-            const outputFiles = document.getElementById('outputFiles');
-            const progressBar = document.getElementById('progressBar');
-
-            // Update operation details
-            document.getElementById('operationType').textContent = resultData.operationName;
-            document.getElementById('processedFiles').textContent = resultData.processedFiles;
-            document.getElementById('totalPages').textContent = resultData.totalPages;
-            document.getElementById('processingTime').textContent = resultData.processingTime;
-
-            if (resultData.status === 'success') {
-                statusBadge.className = 'status-badge status-success';
-                statusBadge.innerHTML = '✓ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ';
-                
-                // Render output files
-                renderOutputFiles();
-                
-            } else if (resultData.status === 'error') {
-                statusBadge.className = 'status-badge status-error';
-                statusBadge.innerHTML = '✗ ದೋಷ ಸಂಭವಿಸಿದೆ';
-                
-                errorMessage.style.display = 'block';
-                outputFiles.style.display = 'none';
-                
-                if (resultData.error) {
-                    document.getElementById('errorText').textContent = resultData.error;
-                }
-                
-            } else if (resultData.status === 'processing') {
-                statusBadge.className = 'status-badge status-processing';
-                statusBadge.innerHTML = '⏳ ಸಂಸ್ಕರಣೆ ನಡೆಯುತ್ತಿದೆ...';
-                
-                progressBar.style.display = 'block';
-                outputFiles.style.display = 'none';
-                
-                // Start progress animation
-                animateProgress();
-            }
-        }
-
-        function renderOutputFiles() {
-            const container = document.getElementById('outputFiles');
-            const fileList = container.querySelector('.file-item').parentElement;
-            
-            // Clear existing files
-            const existingFiles = fileList.querySelectorAll('.file-item');
-            existingFiles.forEach(file => file.remove());
-
-            // Add new files
-            resultData.outputFiles.forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-icon">${file.type}</div>
-                        <div class="file-details">
-                            <h4>${file.name}</h4>
-                            <p class="file-size">${file.size}</p>
-                        </div>
-                    </div>
-                    <a href="${file.downloadUrl}" class="download-btn" onclick="trackDownload('${file.name}')">
-                        📥 ಡೌನ್‌ಲೋಡ್
-                    </a>
-                `;
-                fileList.appendChild(fileItem);
-            });
-        }
-
-        function animateProgress() {
-            const progressFill = document.getElementById('progressFill');
-            let progress = 0;
-            
-            const interval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    
-                    // Simulate completion
-                    setTimeout(() => {
-                        resultData.status = 'success';
-                        initializePage();
-                    }, 500);
-                }
-                progressFill.style.width = progress + '%';
-            }, 200);
-        }
-
-        function downloadFile(filename) {
-            // This would trigger the actual download
-            console.log('Downloading:', filename);
-            
-            // Add download animation
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '⬇️ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...';
-            btn.style.opacity = '0.7';
-            
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
-            }, 2000);
-        }
-
-        function trackDownload(filename) {
-            // Analytics tracking for downloads
-            console.log('Download tracked:', filename);
-        }
-
-        // Auto-refresh for processing status
-        function checkProcessingStatus() {
-            if (resultData.status === 'processing') {
-                // This would make an AJAX call to check status
-                setTimeout(checkProcessingStatus, 2000);
-            }
-        }
-
-        // Initialize page when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePage();
-            checkProcessingStatus();
-        });
-
-        // Add some interactive effects
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to file items
-            const fileItems = document.querySelectorAll('.file-item');
-            fileItems.forEach(item => {
-                item.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.boxShadow = '0 4px 15px rgba(212, 175, 55, 0.2)';
-                });
-                
-                item.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = 'none';
-                });
-            });
-        });
-    </script>
 </body>
 </html>
