@@ -118,28 +118,193 @@ class PDFOperations:
             raise Exception(f"ಪುಟ ಅಳಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
     
     def compress_pdf(self, file_path, compression_level, session_id):
-        """Compress PDF file"""
+        """Compress PDF file with debugging and error handling"""
         try:
-            doc = fitz.open(file_path)
+            print(f"Compression requested: {compression_level}")  # Debug
+            print(f"Input file: {file_path}")  # Debug
+            print(f"Input file size: {os.path.getsize(file_path)} bytes")  # Debug
+            
+            # Check if input file exists and is readable
+            if not os.path.exists(file_path):
+                raise Exception("Input file does not exist")
+            
+            # Try to open with PyMuPDF first
+            try:
+                doc = fitz.open(file_path)
+                print(f"PDF opened successfully, pages: {len(doc)}")  # Debug
+            except Exception as e:
+                raise Exception(f"Cannot open PDF with PyMuPDF: {str(e)}")
+            
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed.pdf")
+            print(f"Output path: {output_path}")  # Debug
             
-            # Compression settings based on level
+            # Enhanced compression settings
             if compression_level == 'high':
-                deflate_level = 9
-                image_quality = 50
+                print("Using HIGH compression settings")  # Debug
+                # Most aggressive compression
+                save_options = {
+                    'garbage': 4,        # Remove all unused objects
+                    'clean': True,       # Clean and optimize
+                    'deflate': True,     # Compress streams
+                    'deflate_images': True,  # Compress images
+                    'deflate_fonts': True,   # Compress fonts
+                    'linear': True,      # Optimize for web
+                    'ascii': False,      # Don't force ASCII
+                    'expand': 0,         # Don't expand
+                    'pretty': False      # Don't pretty print
+                }
+                
             elif compression_level == 'medium':
-                deflate_level = 6
-                image_quality = 70
+                print("Using MEDIUM compression settings")  # Debug
+                save_options = {
+                    'garbage': 3,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': True,
+                    'deflate_fonts': False,
+                    'linear': True,
+                    'pretty': False
+                }
+                
             else:  # low
-                deflate_level = 3
-                image_quality = 85
+                print("Using LOW compression settings")  # Debug
+                save_options = {
+                    'garbage': 1,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': False,
+                    'deflate_fonts': False,
+                    'linear': False,
+                    'pretty': False
+                }
             
-            doc.save(output_path, deflate_level=deflate_level, clean=True)
+            print(f"Save options: {save_options}")  # Debug
+            
+            # Try to save with compression
+            try:
+                doc.save(output_path, **save_options)
+                print("PDF saved successfully")  # Debug
+            except Exception as save_error:
+                print(f"Save error: {save_error}")  # Debug
+                # Try with minimal options for high compression
+                if compression_level == 'high':
+                    print("Trying fallback high compression...")  # Debug
+                    doc.save(output_path, garbage=4, clean=True, deflate=True)
+                else:
+                    raise save_error
+            
             doc.close()
             
+            # Verify output file
+            if not os.path.exists(output_path):
+                raise Exception("Output file was not created")
+            
+            output_size = os.path.getsize(output_path)
+            original_size = os.path.getsize(file_path)
+            
+            print(f"Original size: {original_size} bytes")  # Debug
+            print(f"Compressed size: {output_size} bytes")  # Debug
+            print(f"Compression ratio: {(1 - output_size/original_size)*100:.1f}%")  # Debug
+            
+            # If high compression didn't reduce size much, try image optimization
+            if compression_level == 'high' and output_size > original_size * 0.8:
+                print("Trying advanced image compression...")  # Debug
+                try:
+                    advanced_path = self._compress_with_image_optimization(file_path, session_id)
+                    if os.path.exists(advanced_path):
+                        advanced_size = os.path.getsize(advanced_path)
+                        if advanced_size < output_size:
+                            print(f"Advanced compression better: {advanced_size} bytes")  # Debug
+                            os.remove(output_path)  # Remove the less compressed version
+                            return advanced_path
+                except Exception as adv_error:
+                    print(f"Advanced compression failed: {adv_error}")  # Debug
+            
             return output_path
+            
         except Exception as e:
+            print(f"Compression error: {str(e)}")  # Debug
             raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
+
+    def _compress_with_image_optimization(self, file_path, session_id):
+        """Advanced compression focusing on image optimization"""
+        try:
+            doc = fitz.open(file_path)
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed_advanced.pdf")
+            
+            print(f"Starting advanced image compression...")  # Debug
+            
+            # Create a new document
+            new_doc = fitz.open()
+            
+            for page_num in range(len(doc)):
+                print(f"Processing page {page_num + 1}")  # Debug
+                page = doc.load_page(page_num)
+                
+                # Get page as image and compress it
+                mat = fitz.Matrix(1.0, 1.0)  # Keep original resolution
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL Image for compression
+                img_data = pix.tobytes("png")
+                from PIL import Image
+                import io
+                
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Compress image
+                compressed_io = io.BytesIO()
+                pil_img.save(compressed_io, format='JPEG', quality=60, optimize=True)
+                compressed_io.seek(0)
+                
+                # Create new page with compressed image
+                img_pdf = fitz.open("pdf", compressed_io.getvalue())
+                new_doc.insert_pdf(img_pdf)
+                img_pdf.close()
+            
+            doc.close()
+            
+            # Save the new compressed document
+            new_doc.save(output_path, garbage=4, clean=True, deflate=True)
+            new_doc.close()
+            
+            print(f"Advanced compression completed")  # Debug
+            return output_path
+            
+        except Exception as e:
+            print(f"Advanced compression error: {e}")  # Debug
+            raise Exception(f"Advanced compression failed: {str(e)}")
+
+    def _fallback_compression(self, file_path, session_id):
+        """Fallback compression using PyPDF2"""
+        try:
+            print("Using PyPDF2 fallback compression...")  # Debug
+            
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            
+            # Process each page
+            for page_num, page in enumerate(reader.pages):
+                print(f"Compressing page {page_num + 1}")  # Debug
+                
+                # Compress the page
+                page.compress_content_streams()
+                writer.add_page(page)
+            
+            # Remove duplicate objects
+            writer.remove_duplication()
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed_fallback.pdf")
+            
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            print("PyPDF2 compression completed")  # Debug
+            return output_path
+            
+        except Exception as e:
+            print(f"Fallback compression error: {e}")  # Debug
+            raise Exception(f"Fallback compression failed: {str(e)}")
     
     def pdf_to_images(self, file_path, session_id):
         """Convert PDF pages to JPEG images"""
