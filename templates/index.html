@@ -174,6 +174,18 @@
             color: var(--light-brown);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            background: var(--light-brown);
+            color: var(--white);
+            transform: none;
+        }
+
         /* Modal Styles */
         .modal {
             display: none;
@@ -416,6 +428,232 @@
             color: #c62828;
         }
 
+        /* Preview Modal Styles */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(61, 39, 35, 0.8);
+        }
+
+        .preview-modal-content {
+            background: var(--biscuit-cream);
+            margin: 2% auto;
+            padding: 0;
+            border: 3px solid var(--gold);
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 50px var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            background: var(--biscuit-light);
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .preview-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            color: var(--brown-text);
+            margin: 0;
+        }
+
+        .preview-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .pages-grid-container {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: var(--white);
+        }
+
+        .pages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            padding: 1rem 0;
+        }
+
+        .page-thumbnail {
+            position: relative;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .page-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px var(--shadow);
+        }
+
+        .page-thumbnail.selected {
+            border-color: var(--light-brown);
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.3);
+        }
+
+        .page-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(61, 39, 35, 0.9);
+            color: var(--white);
+            text-align: center;
+            padding: 0.3rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .page-checkbox {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .selection-panel {
+            width: 300px;
+            background: var(--biscuit-light);
+            border-left: 2px solid var(--gold);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .selection-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gold);
+            background: var(--white);
+        }
+
+        .selection-body {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .selection-method {
+            margin-bottom: 1.5rem;
+        }
+
+        .method-tabs {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .method-tab {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--white);
+            border: 1px solid var(--gold);
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .method-tab:first-child {
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .method-tab:last-child {
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+            border-left: none;
+        }
+
+        .method-tab.active {
+            background: var(--gold);
+            color: var(--white);
+        }
+
+        .method-content {
+            display: none;
+        }
+
+        .method-content.active {
+            display: block;
+        }
+
+        .selected-pages-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--gold);
+            border-radius: 5px;
+            background: var(--white);
+            padding: 0.5rem;
+        }
+
+        .selected-page-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.3rem 0.5rem;
+            margin-bottom: 0.3rem;
+            background: var(--biscuit-light);
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+
+        .remove-page {
+            color: #d32f2f;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .preview-actions {
+            padding: 1rem;
+            border-top: 1px solid var(--gold);
+            background: var(--white);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .selection-info {
+            padding: 1rem;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .operations-grid {
@@ -435,6 +673,26 @@
             .operation-card {
                 padding: 1.5rem;
             }
+
+            .preview-modal-content {
+                width: 98%;
+                height: 95vh;
+            }
+
+            .preview-body {
+                flex-direction: column;
+            }
+
+            .selection-panel {
+                width: 100%;
+                height: 300px;
+                border-left: none;
+                border-top: 2px solid var(--gold);
+            }
+
+            .pages-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
         }
 
         @media (max-width: 480px) {
@@ -448,6 +706,11 @@
             
             .operation-card {
                 padding: 1.2rem;
+            }
+
+            .pages-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 0.5rem;
             }
         }
     </style>
@@ -569,6 +832,7 @@
             <div class="modal-body">
                 <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
                     <input type="hidden" name="operation" id="selectedOperation">
+                    <input type="hidden" name="selected_pages" id="selectedPagesInput">
                     
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">
@@ -580,6 +844,13 @@
                     </div>
 
                     <div id="filesList" class="file-list" style="display: none;"></div>
+
+                    <!-- Preview Button for Page Operations -->
+                    <div id="previewSection" style="display: none; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
+                            <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
 
                     <div id="operationOptions" style="display: none;">
                         <div class="form-group" id="pagesGroup" style="display: none;">
@@ -609,6 +880,95 @@
         </div>
     </div>
 
+    <!-- Page Preview Modal -->
+    <div id="previewModal" class="preview-modal">
+        <div class="preview-modal-content">
+            <div class="preview-header">
+                <h3 class="preview-title">
+                    <i class="fas fa-eye"></i> ಪುಟ ಪೂರ್ವವೀಕ್ಷಣೆ ಮತ್ತು ಆಯ್ಕೆ
+                </h3>
+                <span class="close" onclick="closePreviewModal()">&times;</span>
+            </div>
+            <div class="preview-body">
+                <div class="pages-grid-container">
+                    <div id="loadingPreview" style="text-align: center; padding: 2rem; display: none;">
+                        <div class="loading-spinner"></div>
+                        <p>ಪೂರ್ವವೀಕ್ಷಣೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...</p>
+                    </div>
+                    <div id="pagesGrid" class="pages-grid"></div>
+                </div>
+                <div class="selection-panel">
+                    <div class="selection-header">
+                        <h4 style="margin: 0; font-family: 'Cinzel', serif; color: var(--brown-text);">
+                            ಪುಟ ಆಯ್ಕೆ
+                        </h4>
+                    </div>
+                    <div class="selection-body">
+                        <div class="selection-method">
+                            <div class="method-tabs">
+                                <div class="method-tab active" onclick="switchSelectionMethod('visual')">
+                                    ದೃಶ್ಯ ಆಯ್ಕೆ
+                                </div>
+                                <div class="method-tab" onclick="switchSelectionMethod('manual')">
+                                    ಸಂಖ್ಯೆ ಟೈಪ್ ಮಾಡಿ
+                                </div>
+                            </div>
+                            
+                            <div id="visualMethod" class="method-content active">
+                                <p style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--light-brown);">
+                                    ಪುಟಗಳ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ ಅಥವಾ ಚೆಕ್‌ಬಾಕ್ಸ್ ಬಳಸಿ
+                                </p>
+                                <div class="selection-actions" style="margin-bottom: 1rem;">
+                                    <button type="button" class="btn btn-small" onclick="selectAllPages()">
+                                        ಎಲ್ಲವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ
+                                    </button>
+                                    <button type="button" class="btn btn-small" onclick="clearSelection()" 
+                                            style="background: #6c757d; border-color: #6c757d;">
+                                        ಸ್ಪಷ್ಟಗೊಳಿಸಿ
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="manualMethod" class="method-content">
+                                <div class="form-group">
+                                    <label class="form-label" style="font-size: 0.9rem;">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
+                                    <input type="text" id="manualPagesInput" class="form-input" 
+                                           placeholder="ಉದಾ: 1,3,5-10" style="font-size: 0.9rem;">
+                                    <small style="color: var(--light-brown);">
+                                        ಉದಾ: 1,3,5-10 (ಕಾಮಾದಿಂದ ಬೇರ್ಪಡಿಸಿ)
+                                    </small>
+                                </div>
+                                <button type="button" class="btn btn-small" onclick="applyManualSelection()">
+                                    ಅನ್ವಯಿಸಿ
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="selection-info">
+                            <strong>ಆಯ್ಕೆಯಾದ ಪುಟಗಳು:</strong>
+                            <div id="selectedCount">0</div>
+                        </div>
+                        
+                        <div class="selected-pages-list" id="selectedPagesList">
+                            <div style="text-align: center; color: var(--light-brown); padding: 1rem; font-size: 0.9rem;">
+                                ಯಾವುದೇ ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿಲ್ಲ
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-actions">
+                        <button type="button" class="btn" onclick="closePreviewModal()" 
+                                style="background: #6c757d; border-color: #6c757d; color: white;">
+                            ರದ್ದುಗೊಳಿಸಿ
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="confirmPageSelection()" id="confirmSelectionBtn" disabled>
+                            ಆಯ್ಕೆ ದೃಢೀಕರಿಸಿ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Modal -->
     <div id="loadingModal" class="loading-modal">
         <div class="loading-content">
@@ -620,6 +980,8 @@
     <script>
         let selectedFiles = [];
         let currentOperation = '';
+        let currentPreviewData = null;
+        let selectedPages = new Set();
 
         const operationConfigs = {
             'merge': {
@@ -628,7 +990,8 @@
                 supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ (ಕನಿಷ್ಠ 2 ಫೈಲ್‌ಗಳು)',
                 multiple: true,
                 options: [],
-                minFiles: 2  // Added minimum files requirement
+                minFiles: 2,
+                hasPreview: false
             },
             'split': {
                 title: 'PDF ಅನ್ನು ವಿಭಾಗಿಸಿ',
@@ -636,7 +999,8 @@
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
                 options: ['pages'],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: true
             },
             'extract': {
                 title: 'ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ',
@@ -644,7 +1008,8 @@
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
                 options: ['pages'],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: true
             },
             'delete': {
                 title: 'ಪುಟಗಳನ್ನು ಅಳಿಸಿ',
@@ -652,7 +1017,8 @@
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
                 options: ['pages'],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: true
             },
             'compress': {
                 title: 'PDF ಸಂಕುಚಿಸಿ',
@@ -660,7 +1026,8 @@
                 supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
                 options: ['compression'],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: false
             },
             'pdf_to_jpeg': {
                 title: 'PDF ನಿಂದ JPEG',
@@ -668,7 +1035,8 @@
                 supportText: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
                 options: [],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: false
             },
             'jpeg_to_pdf': {
                 title: 'JPEG ನಿಂದ PDF',
@@ -676,7 +1044,8 @@
                 supportText: 'ಚಿತ್ರ ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
                 options: [],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: false
             },
             'pdf_to_word': {
                 title: 'PDF ನಿಂದ Word',
@@ -684,7 +1053,8 @@
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
                 options: [],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: false
             },
             'word_to_pdf': {
                 title: 'Word ನಿಂದ PDF',
@@ -692,7 +1062,8 @@
                 supportText: 'Word ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ',
                 multiple: true,
                 options: [],
-                minFiles: 1
+                minFiles: 1,
+                hasPreview: false
             }
         };
 
@@ -706,25 +1077,125 @@
             document.getElementById('fileInput').multiple = config.multiple;
             document.getElementById('uploadSubtext').textContent = config.supportText;
             
-            showOperationOptions(config.options);
+            showOperationOptions(config.options, config.hasPreview);
             resetForm();
+            restoreOriginalModalContent();
             document.getElementById('operationModal').style.display = 'block';
         }
 
-        function showOperationOptions(options) {
+        function restoreOriginalModalContent() {
+            const modalBody = document.querySelector('#operationModal .modal-body');
+            const config = operationConfigs[currentOperation];
+            
+            modalBody.innerHTML = `
+                <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
+                    <input type="hidden" name="operation" id="selectedOperation" value="${currentOperation}">
+                    <input type="hidden" name="selected_pages" id="selectedPagesInput">
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
+                        <div class="upload-subtext" id="uploadSubtext">${config.supportText}</div>
+                        <input type="file" name="files" id="fileInput" ${config.multiple ? 'multiple' : ''} accept="${config.accept}" style="display: none;">
+                    </div>
+
+                    <div id="filesList" class="file-list" style="display: none;"></div>
+
+                    <div id="previewSection" style="display: ${config.hasPreview ? 'none' : 'none'}; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
+                            <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
+
+                    <div id="operationOptions" style="display: ${config.options.length > 0 ? 'block' : 'none'};">
+                        <div class="form-group" id="pagesGroup" style="display: ${config.options.includes('pages') ? 'block' : 'none'};">
+                            <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
+                            <input type="text" name="pages" id="pagesInput" class="form-input" 
+                                   placeholder="ಉದಾ: 1,3,5-10">
+                            <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
+                        </div>
+
+                        <div class="form-group" id="compressionGroup" style="display: ${config.options.includes('compression') ? 'block' : 'none'};">
+                            <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
+                            <select name="compression" id="compressionSelect" class="form-select">
+                                <option value="low">ಕಡಿಮೆ (ಉತ್ತಮ ಗುಣಮಟ್ಟ)</option>
+                                <option value="medium" selected>ಮಧ್ಯಮ</option>
+                                <option value="high">ಹೆಚ್ಚು (ಚಿಕ್ಕ ಗಾತ್ರ)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="processBtn" disabled>
+                            <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
+                        </button>
+                    </div>
+                </form>
+            `;
+            
+            bindEventListeners();
+        }
+
+        function bindEventListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            if (uploadArea && fileInput) {
+                uploadArea.onclick = () => fileInput.click();
+                
+                uploadArea.ondragover = (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                };
+                
+                uploadArea.ondragleave = (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                };
+                
+                uploadArea.ondrop = (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    const files = Array.from(e.dataTransfer.files);
+                    handleFileSelection(files);
+                };
+                
+                fileInput.onchange = (e) => {
+                    const files = Array.from(e.target.files);
+                    handleFileSelection(files);
+                };
+            }
+
+            const form = document.getElementById('operationForm');
+            if (form) {
+                form.onsubmit = handleFormSubmission;
+            }
+        }
+
+        function showOperationOptions(options, hasPreview) {
             const optionGroups = ['pagesGroup', 'compressionGroup'];
             optionGroups.forEach(group => {
-                document.getElementById(group).style.display = 'none';
+                const element = document.getElementById(group);
+                if (element) {
+                    element.style.display = 'none';
+                }
             });
             
             const operationOptions = document.getElementById('operationOptions');
-            if (options.length > 0) {
-                operationOptions.style.display = 'block';
-                options.forEach(option => {
-                    document.getElementById(option + 'Group').style.display = 'block';
-                });
-            } else {
-                operationOptions.style.display = 'none';
+            if (operationOptions) {
+                if (options.length > 0) {
+                    operationOptions.style.display = 'block';
+                    options.forEach(option => {
+                        const element = document.getElementById(option + 'Group');
+                        if (element) {
+                            element.style.display = 'block';
+                        }
+                    });
+                } else {
+                    operationOptions.style.display = 'none';
+                }
             }
         }
 
@@ -734,45 +1205,39 @@
             resetForm();
         }
 
-        function resetForm() {
-            selectedFiles = [];
-            document.getElementById('filesList').style.display = 'none';
-            document.getElementById('filesList').innerHTML = '';
-            document.getElementById('processBtn').disabled = true;
-            document.getElementById('fileInput').value = '';
+        function closePreviewModal() {
+            document.getElementById('previewModal').style.display = 'none';
+            currentPreviewData = null;
+            selectedPages.clear();
         }
 
-        // File upload handling
-        document.getElementById('uploadArea').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
-
-        document.getElementById('uploadArea').addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.target.closest('.upload-area').classList.add('dragover');
-        });
-
-        document.getElementById('uploadArea').addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.target.closest('.upload-area').classList.remove('dragover');
-        });
-
-        document.getElementById('uploadArea').addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.target.closest('.upload-area').classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            handleFileSelection(files);
-        });
-
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            handleFileSelection(files);
-        });
+        function resetForm() {
+            selectedFiles = [];
+            selectedPages.clear();
+            currentPreviewData = null;
+            const filesList = document.getElementById('filesList');
+            const processBtn = document.getElementById('processBtn');
+            const fileInput = document.getElementById('fileInput');
+            const previewSection = document.getElementById('previewSection');
+            
+            if (filesList) {
+                filesList.style.display = 'none';
+                filesList.innerHTML = '';
+            }
+            if (processBtn) {
+                processBtn.disabled = true;
+            }
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            if (previewSection) {
+                previewSection.style.display = 'none';
+            }
+        }
 
         function handleFileSelection(files) {
             const config = operationConfigs[currentOperation];
             
-            // For operations that don't allow multiple files, replace existing files
             if (!config.multiple && files.length > 1) {
                 showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
                 return;
@@ -787,13 +1252,10 @@
                 showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
             }
             
-            // For single file operations, replace the file
             if (!config.multiple) {
                 selectedFiles = validFiles.slice(0, 1);
             } else {
-                // For multiple file operations, add to existing files
                 validFiles.forEach(file => {
-                    // Check if file already exists
                     const existingFile = selectedFiles.find(f => f.name === file.name && f.size === file.size);
                     if (!existingFile) {
                         selectedFiles.push(file);
@@ -803,13 +1265,286 @@
             
             displaySelectedFiles();
             updateProcessButton();
+            updatePreviewSection();
+        }
+
+        function updatePreviewSection() {
+            const config = operationConfigs[currentOperation];
+            const previewSection = document.getElementById('previewSection');
+            
+            if (previewSection && config.hasPreview && selectedFiles.length > 0) {
+                previewSection.style.display = 'block';
+            } else if (previewSection) {
+                previewSection.style.display = 'none';
+            }
+        }
+
+        async function showPagePreview() {
+            if (selectedFiles.length === 0) {
+                showAlert('error', 'ದಯವಿಟ್ಟು ಮೊದಲು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+
+            const loadingPreview = document.getElementById('loadingPreview');
+            const pagesGrid = document.getElementById('pagesGrid');
+            
+            document.getElementById('previewModal').style.display = 'block';
+            loadingPreview.style.display = 'block';
+            pagesGrid.innerHTML = '';
+            selectedPages.clear();
+            updateSelectedPagesDisplay();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFiles[0]);
+
+                const response = await fetch('/generate-preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentPreviewData = result;
+                    displayPagePreviews(result);
+                } else {
+                    throw new Error(result.error || 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ');
+                }
+            } catch (error) {
+                showAlert('error', 'ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ: ' + error.message);
+                closePreviewModal();
+            } finally {
+                loadingPreview.style.display = 'none';
+            }
+        }
+
+        function displayPagePreviews(previewData) {
+            const pagesGrid = document.getElementById('pagesGrid');
+            pagesGrid.innerHTML = '';
+
+            previewData.previews.forEach((preview, index) => {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'page-thumbnail';
+                pageDiv.dataset.pageNum = preview.page_num;
+
+                pageDiv.innerHTML = `
+                    <img src="${preview.image_path}" alt="Page ${preview.page_num}" class="page-image" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI4MCIgdmlld0JveD0iMCAwIDIwMCAyODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiBmaWxsPSIjZjVmMWU4Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOGI3MzU1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPkVycm9yPC90ZXh0Pgo8L3N2Zz4K'">
+                    <div class="page-number">ಪುಟ ${preview.page_num}</div>
+                    <input type="checkbox" class="page-checkbox" onchange="togglePageSelection(${preview.page_num})">
+                `;
+
+                pageDiv.onclick = (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        togglePageSelection(preview.page_num);
+                        const checkbox = pageDiv.querySelector('.page-checkbox');
+                        checkbox.checked = selectedPages.has(preview.page_num);
+                    }
+                };
+
+                pagesGrid.appendChild(pageDiv);
+            });
+        }
+
+        function togglePageSelection(pageNum) {
+            const pageDiv = document.querySelector(`[data-page-num="${pageNum}"]`);
+            const checkbox = pageDiv.querySelector('.page-checkbox');
+
+            if (selectedPages.has(pageNum)) {
+                selectedPages.delete(pageNum);
+                pageDiv.classList.remove('selected');
+                checkbox.checked = false;
+            } else {
+                selectedPages.add(pageNum);
+                pageDiv.classList.add('selected');
+                checkbox.checked = true;
+            }
+
+            updateSelectedPagesDisplay();
+        }
+
+        function selectAllPages() {
+            if (!currentPreviewData) return;
+
+            currentPreviewData.previews.forEach(preview => {
+                selectedPages.add(preview.page_num);
+                const pageDiv = document.querySelector(`[data-page-num="${preview.page_num}"]`);
+                const checkbox = pageDiv.querySelector('.page-checkbox');
+                pageDiv.classList.add('selected');
+                checkbox.checked = true;
+            });
+
+            updateSelectedPagesDisplay();
+        }
+
+        function clearSelection() {
+            selectedPages.clear();
+            document.querySelectorAll('.page-thumbnail').forEach(pageDiv => {
+                pageDiv.classList.remove('selected');
+                const checkbox = pageDiv.querySelector('.page-checkbox');
+                checkbox.checked = false;
+            });
+            updateSelectedPagesDisplay();
+        }
+
+        function switchSelectionMethod(method) {
+            const tabs = document.querySelectorAll('.method-tab');
+            const contents = document.querySelectorAll('.method-content');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            if (method === 'visual') {
+                tabs[0].classList.add('active');
+                document.getElementById('visualMethod').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('manualMethod').classList.add('active');
+            }
+        }
+
+        function applyManualSelection() {
+            const input = document.getElementById('manualPagesInput');
+            const pagesStr = input.value.trim();
+
+            if (!pagesStr || !currentPreviewData) return;
+
+            clearSelection();
+
+            try {
+                const pageNumbers = parsePageRanges(pagesStr, currentPreviewData.total_pages);
+                pageNumbers.forEach(pageNum => {
+                    if (pageNum >= 1 && pageNum <= currentPreviewData.total_pages) {
+                        selectedPages.add(pageNum);
+                        const pageDiv = document.querySelector(`[data-page-num="${pageNum}"]`);
+                        if (pageDiv) {
+                            const checkbox = pageDiv.querySelector('.page-checkbox');
+                            pageDiv.classList.add('selected');
+                            checkbox.checked = true;
+                        }
+                    }
+                });
+
+                updateSelectedPagesDisplay();
+            } catch (error) {
+                showAlert('error', 'ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: ' + error.message);
+            }
+        }
+
+        function parsePageRanges(pagesStr, totalPages) {
+            const pages = [];
+            const parts = pagesStr.split(',');
+
+            for (let part of parts) {
+                part = part.trim();
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(x => parseInt(x.trim()));
+                    if (isNaN(start) || isNaN(end) || start > end) {
+                        throw new Error(`ಅಮಾನ್ಯ ವ್ಯಾಪ್ತಿ: ${part}`);
+                    }
+                    for (let i = start; i <= Math.min(end, totalPages); i++) {
+                        if (i >= 1) pages.push(i);
+                    }
+                } else {
+                    const pageNum = parseInt(part);
+                    if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+                        throw new Error(`ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆ: ${part}`);
+                    }
+                    pages.push(pageNum);
+                }
+            }
+
+            return [...new Set(pages)].sort((a, b) => a - b);
+        }
+
+        function updateSelectedPagesDisplay() {
+            const selectedCount = document.getElementById('selectedCount');
+            const selectedPagesList = document.getElementById('selectedPagesList');
+            const confirmBtn = document.getElementById('confirmSelectionBtn');
+
+            selectedCount.textContent = selectedPages.size;
+
+            if (selectedPages.size === 0) {
+                selectedPagesList.innerHTML = `
+                    <div style="text-align: center; color: var(--light-brown); padding: 1rem; font-size: 0.9rem;">
+                        ಯಾವುದೇ ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿಲ್ಲ
+                    </div>
+                `;
+                confirmBtn.disabled = true;
+            } else {
+                const sortedPages = Array.from(selectedPages).sort((a, b) => a - b);
+                selectedPagesList.innerHTML = sortedPages.map(pageNum => `
+                    <div class="selected-page-item">
+                        <span>ಪುಟ ${pageNum}</span>
+                        <span class="remove-page" onclick="togglePageSelection(${pageNum})">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    </div>
+                `).join('');
+                confirmBtn.disabled = false;
+            }
+        }
+
+        function confirmPageSelection() {
+            if (selectedPages.size === 0) {
+                showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಪುಟವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+
+            const sortedPages = Array.from(selectedPages).sort((a, b) => a - b);
+            const pagesStr = formatPageRanges(sortedPages);
+
+            // Update the pages input in the main modal
+            const pagesInput = document.getElementById('pagesInput');
+            if (pagesInput) {
+                pagesInput.value = pagesStr;
+            }
+
+            // Store selected pages in hidden input
+            const selectedPagesInput = document.getElementById('selectedPagesInput');
+            if (selectedPagesInput) {
+                selectedPagesInput.value = pagesStr;
+            }
+
+            closePreviewModal();
+            showAlert('success', `${selectedPages.size} ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿವೆ: ${pagesStr}`);
+        }
+
+        function formatPageRanges(pages) {
+            if (pages.length === 0) return '';
+
+            const ranges = [];
+            let start = pages[0];
+            let end = pages[0];
+
+            for (let i = 1; i < pages.length; i++) {
+                if (pages[i] === end + 1) {
+                    end = pages[i];
+                } else {
+                    if (start === end) {
+                        ranges.push(`${start}`);
+                    } else {
+                        ranges.push(`${start}-${end}`);
+                    }
+                    start = end = pages[i];
+                }
+            }
+
+            if (start === end) {
+                ranges.push(`${start}`);
+            } else {
+                ranges.push(`${start}-${end}`);
+            }
+
+            return ranges.join(',');
         }
 
         function displaySelectedFiles() {
             const filesList = document.getElementById('filesList');
             
-            if (selectedFiles.length === 0) {
-                filesList.style.display = 'none';
+            if (!filesList || selectedFiles.length === 0) {
+                if (filesList) filesList.style.display = 'none';
                 return;
             }
             
@@ -834,15 +1569,20 @@
             selectedFiles.splice(index, 1);
             displaySelectedFiles();
             updateProcessButton();
+            updatePreviewSection();
             
-            // Update the file input
             const dt = new DataTransfer();
             selectedFiles.forEach(file => dt.items.add(file));
-            document.getElementById('fileInput').files = dt.files;
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.files = dt.files;
+            }
         }
 
         function updateProcessButton() {
             const processBtn = document.getElementById('processBtn');
+            if (!processBtn) return;
+            
             const config = operationConfigs[currentOperation];
             const hasEnoughFiles = selectedFiles.length >= (config.minFiles || 1);
             
@@ -859,26 +1599,7 @@
             }
         }
 
-        function getFileIcon(filename) {
-            const extension = filename.split('.').pop().toLowerCase();
-            const icons = {
-                'pdf': 'pdf', 'doc': 'word', 'docx': 'word',
-                'jpg': 'image', 'jpeg': 'image', 'png': 'image',
-                'bmp': 'image', 'tiff': 'image'
-            };
-            return icons[extension] || 'alt';
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 ಬೈಟ್‌ಗಳು';
-            const k = 1024;
-            const sizes = ['ಬೈಟ್‌ಗಳು', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // Form submission
-        document.getElementById('operationForm').addEventListener('submit', async function(e) {
+        async function handleFormSubmission(e) {
             e.preventDefault();
             
             const config = operationConfigs[currentOperation];
@@ -898,17 +1619,22 @@
                 formData.append('files', file);
             });
             
-            const pages = document.getElementById('pagesInput');
-            if (pages && pages.value) {
-                formData.append('pages', pages.value);
+            // Use selected pages from preview or manual input
+            const selectedPagesInput = document.getElementById('selectedPagesInput');
+            const pagesInput = document.getElementById('pagesInput');
+            
+            if (selectedPagesInput && selectedPagesInput.value) {
+                formData.append('selected_pages', selectedPagesInput.value);
+            } else if (pagesInput && pagesInput.value) {
+                formData.append('pages', pagesInput.value);
             }
             
-            const compression = document.getElementById('compressionSelect');
-            if (compression && compression.value) {
-                formData.append('compression', compression.value);
+            const compressionSelect = document.getElementById('compressionSelect');
+            if (compressionSelect && compressionSelect.value) {
+                formData.append('compression', compressionSelect.value);
             }
             
-            closeModal();
+            document.getElementById('operationModal').style.display = 'none';
             showLoadingModal();
             
             try {
@@ -927,7 +1653,7 @@
             } catch (error) {
                 showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
             }
-        });
+        }
 
         function showLoadingModal() {
             document.getElementById('loadingModal').style.display = 'block';
@@ -947,6 +1673,10 @@
                            download="${result.filename}" style="margin-right: 1rem;">
                             <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
                         </a>
+                        <button class="btn" onclick="selectOperation('${currentOperation}')" 
+                                style="background: #6c757d; color: white; margin-right: 1rem;">
+                            <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
+                        </button>
                         <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
                             ಮುಚ್ಚಿ
                         </button>
@@ -968,7 +1698,7 @@
                     <h3>ದೋಷ ಸಂಭವಿಸಿದೆ</h3>
                     <p style="margin: 1rem 0;">${errorMessage}</p>
                     <div style="margin-top: 2rem;">
-                        <button class="btn btn-primary" onclick="location.reload()">
+                        <button class="btn btn-primary" onclick="selectOperation('${currentOperation}')">
                             <i class="fas fa-redo"></i> ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ
                         </button>
                         <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white; margin-left: 1rem;">
@@ -982,6 +1712,24 @@
             modal.style.display = 'block';
         }
 
+        function getFileIcon(filename) {
+            const extension = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': 'pdf', 'doc': 'word', 'docx': 'word',
+                'jpg': 'image', 'jpeg': 'image', 'png': 'image',
+                'bmp': 'image', 'tiff': 'image'
+            };
+            return icons[extension] || 'alt';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 ಬೈಟ್‌ಗಳು';
+            const k = 1024;
+            const sizes = ['ಬೈಟ್‌ಗಳು', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
         function showAlert(type, message) {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type}`;
@@ -990,20 +1738,28 @@
                 ${message}
             `;
             
-            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
-            
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 5000);
+            const container = document.querySelector('.container');
+            if (container) {
+                container.insertBefore(alertDiv, container.firstChild);
+                
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
         }
 
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
-            const modal = document.getElementById('operationModal');
-            if (e.target === modal) {
+            const operationModal = document.getElementById('operationModal');
+            const previewModal = document.getElementById('previewModal');
+            
+            if (e.target === operationModal) {
                 closeModal();
+            }
+            if (e.target === previewModal) {
+                closePreviewModal();
             }
         });
 
@@ -1011,7 +1767,13 @@
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
+                closePreviewModal();
             }
+        });
+
+        // Initialize modal content restoration on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            bindEventListeners();
         });
     </script>
 </body>
