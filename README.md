@@ -1,2 +1,2 @@
 # kannada-pdftoolkit
-initail project
+
