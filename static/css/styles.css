@@ -1,0 +1,594 @@
+/* Kannada PDF Toolkit - Old Manuscript Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Uncial+Antiqua&display=swap');
+
+:root {
+    --parchment-bg: #f4f1e8;
+    --parchment-dark: #e8e2d4;
+    --ink-black: #2c1810;
+    --ink-brown: #5d4037;
+    --gold-accent: #d4af37;
+    --copper-accent: #b87333;
+    --manuscript-shadow: rgba(60, 40, 20, 0.3);
+    --border-ornate: #8d6e63;
+    --error-red: #d32f2f;
+    --success-green: #388e3c;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif;
+    background: linear-gradient(135deg, var(--parchment-bg) 0%, var(--parchment-dark) 100%);
+    background-attachment: fixed;
+    color: var(--ink-black);
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Parchment texture overlay */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(139, 110, 99, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(121, 85, 72, 0.05) 0%, transparent 50%),
+        linear-gradient(45deg, transparent 49%, rgba(139, 110, 99, 0.02) 50%, transparent 51%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, var(--ink-brown) 0%, var(--ink-black) 100%);
+    padding: 2rem 0;
+    box-shadow: 0 4px 20px var(--manuscript-shadow);
+    border-bottom: 3px solid var(--gold-accent);
+    position: relative;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 2px,
+            rgba(212, 175, 55, 0.1) 2px,
+            rgba(212, 175, 55, 0.1) 4px
+        );
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.app-title {
+    font-family: 'Uncial Antiqua', 'Noto Sans Kannada', cursive;
+    font-size: 3rem;
+    color: var(--gold-accent);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.app-subtitle {
+    font-size: 1.2rem;
+    color: var(--parchment-bg);
+    font-weight: 300;
+    opacity: 0.9;
+}
+
+/* Decorative elements */
+.ornament {
+    display: inline-block;
+    width: 60px;
+    height: 20px;
+    background: var(--gold-accent);
+    margin: 1rem 0;
+    position: relative;
+    opacity: 0.8;
+}
+
+.ornament::before,
+.ornament::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--gold-accent);
+    border-radius: 50%;
+    top: 0;
+}
+
+.ornament::before {
+    left: -30px;
+}
+
+.ornament::after {
+    right: -30px;
+}
+
+/* Main container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Operation cards */
+.operations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.operation-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--border-ornate);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 
+        0 8px 25px var(--manuscript-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.operation-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--gold-accent), var(--copper-accent), var(--gold-accent));
+    border-radius: 15px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.operation-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+        0 15px 35px var(--manuscript-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.operation-card:hover::before {
+    opacity: 1;
+}
+
+.operation-icon {
+    font-size: 3rem;
+    color: var(--gold-accent);
+    margin-bottom: 1rem;
+    display: block;
+    text-align: center;
+    text-shadow: 1px 1px 2px var(--manuscript-shadow);
+}
+
+.operation-title {
+    font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--ink-black);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.operation-description {
+    font-size: 0.95rem;
+    color: var(--ink-brown);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Buttons */
+.btn {
+    font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+    font-weight: 500;
+    padding: 12px 24px;
+    border: 2px solid var(--gold-accent);
+    background: linear-gradient(135deg, var(--gold-accent) 0%, var(--copper-accent) 100%);
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    font-size: 1rem;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    background: linear-gradient(135deg, var(--copper-accent) 0%, var(--gold-accent) 100%);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--ink-brown) 0%, var(--ink-black) 100%);
+    border-color: var(--ink-brown);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--ink-black) 0%, var(--ink-brown) 100%);
+}
+
+/* File upload area */
+.upload-area {
+    border: 3px dashed var(--border-ornate);
+    border-radius: 15px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.7);
+    margin: 2rem 0;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.upload-area:hover {
+    border-color: var(--gold-accent);
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.02);
+}
+
+.upload-area.dragover {
+    border-color: var(--gold-accent);
+    background: rgba(212, 175, 55, 0.1);
+    transform: scale(1.05);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: var(--gold-accent);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.upload-text {
+    font-size: 1.2rem;
+    color: var(--ink-brown);
+    margin-bottom: 1rem;
+}
+
+.upload-subtext {
+    font-size: 0.9rem;
+    color: var(--ink-brown);
+    opacity: 0.7;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: var(--ink-black);
+    margin-bottom: 0.5rem;
+    font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-ornate);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: 'Noto Sans Kannada', sans-serif;
+    font-size: 1rem;
+    color: var(--ink-black);
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--gold-accent);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-ornate);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: 'Noto Sans Kannada', sans-serif;
+    font-size: 1rem;
+    color: var(--ink-black);
+    cursor: pointer;
+}
+
+/* Progress bar */
+.progress-container {
+    width: 100%;
+    height: 20px;
+    background: var(--parchment-dark);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+    border: 1px solid var(--border-ornate);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, var(--gold-accent) 0%, var(--copper-accent) 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(44, 24, 16, 0.8);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: var(--parchment-bg);
+    margin: 5% auto;
+    padding: 2rem;
+    border: 3px solid var(--gold-accent);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px var(--manuscript-shadow);
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-ornate);
+}
+
+.modal-title {
+    font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+    font-size: 1.5rem;
+    color: var(--ink-black);
+}
+
+.close {
+    color: var(--ink-brown);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: var(--gold-accent);
+}
+
+/* Alert messages */
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: rgba(56, 142, 60, 0.1);
+    border-left-color: var(--success-green);
+    color: var(--success-green);
+}
+
+.alert-error {
+    background: rgba(211, 47, 47, 0.1);
+    border-left-color: var(--error-red);
+    color: var(--error-red);
+}
+
+.alert-info {
+    background: rgba(212, 175, 55, 0.1);
+    border-left-color: var(--gold-accent);
+    color: var(--ink-brown);
+}
+
+/* File list */
+.file-list {
+    list-style: none;
+    margin: 1rem 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--border-ornate);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: background 0.3s ease;
+}
+
+.file-item:hover {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.file-icon {
+    font-size: 1.5rem;
+    color: var(--gold-accent);
+    margin-right: 1rem;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 500;
+    color: var(--ink-black);
+    margin-bottom: 0.25rem;
+}
+
+.file-size {
+    font-size: 0.85rem;
+    color: var(--ink-brown);
+    opacity: 0.8;
+}
+
+.file-remove {
+    color: var(--error-red);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.file-remove:hover {
+    background: rgba(211, 47, 47, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-title {
+        font-size: 2rem;
+    }
+    
+    .operations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .operation-card {
+        padding: 1.5rem;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-title {
+        font-size: 1.5rem;
+    }
+    
+    .app-subtitle {
+        font-size: 1rem;
+    }
+    
+    .operation-card {
+        padding: 1rem;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.slide-up {
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid var(--parchment-dark);
+    border-top: 3px solid var(--gold-accent);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 1rem auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

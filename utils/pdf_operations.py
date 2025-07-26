@@ -40,7 +40,8 @@ class PDFOperations:
             with open(output_path, 'wb') as output_file:
                 writer.write(output_file)
             
-            return output_files[0] if output_files else None
+            return output_path
+
         
         except Exception as e:
             raise Exception(f"PDF ನಿಂದ JPEG ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
@@ -151,7 +152,7 @@ class PDFOperations:
             }
             return info
         except Exception as e:
-            return {'error': str(e)} output_path
+            return {'error': str(e)} 
         
         except Exception as e:
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
@@ -372,4 +373,7 @@ class PDFOperations:
                         os.remove(file_path)
                 return zip_path
             
-            return
+            return output_files[0]  # return the single image path if only one
+        except Exception as e:
+            print(f"[ERROR] Failed to convert PDF to images: {str(e)}")
+            return None 
