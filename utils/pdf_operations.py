@@ -18,6 +18,7 @@ from pathlib import Path
 import fitz  # PyMuPDF
 from PIL import Image
 import os
+import io
 
 class PDFOperations:
     def __init__(self):
