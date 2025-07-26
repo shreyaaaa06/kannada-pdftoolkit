@@ -5,10 +5,10 @@ from werkzeug.utils import secure_filename
 from utils.pdf_operations import PDFOperations
 from utils.file_handler import FileHandler
 from utils.validators import validate_file
-import config
+from config import Config 
 
 app = Flask(__name__)
-app.config.from_object(config)
+app.config.from_object(Config) 
 
 # Initialize utility classes
 pdf_ops = PDFOperations()

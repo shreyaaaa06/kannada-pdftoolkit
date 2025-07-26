@@ -1,0 +1,1351 @@
+{% extends "base.html" %}
+
+{% block title %}ಫೈಲ್ ಅಪ್‌ಲೋಡ್ - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Back Navigation -->
+    <div class="navigation-section fade-in">
+        <a href="{{ url_for('index') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            ಮುಖ್ಯ ಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ
+        </a>
+    </div>
+
+    <!-- Upload Section -->
+    <section class="upload-section slide-up">
+        <div class="upload-header">
+            <h2 class="section-title">
+                <i class="fas fa-cloud-upload-alt"></i>
+                ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ
+            </h2>
+            <div class="ornament"></div>
+            <p class="section-description">
+                ನಿಮ್ಮ ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ಅವುಗಳ ಮೇಲೆ ಕಾರ್ಯಗಳನ್ನು ನಿರ್ವಹಿಸಿ
+            </p>
+        </div>
+
+        <!-- Operation Selection -->
+        <div class="operation-selection">
+            <div class="form-group">
+                <label class="form-label" for="operationSelect">
+                    <i class="fas fa-cogs"></i>
+                    ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ
+                </label>
+                <select id="operationSelect" class="form-select" onchange="updateOperation()">
+                    <option value="">-- ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ --</option>
+                    <optgroup label="PDF ಕಾರ್ಯಗಳು">
+                        <option value="merge">PDF ಗಳನ್ನು ವಿಲೀನಗೊಳಿಸಿ</option>
+                        <option value="split">PDF ಅನ್ನು ವಿಭಾಗಿಸಿ</option>
+                        <option value="extract">ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ</option>
+                        <option value="delete">ಪುಟಗಳನ್ನು ಅಳಿಸಿ</option>
+                        <option value="crop">ಪುಟಗಳನ್ನು ಕತ್ತರಿಸಿ</option>
+                        <option value="rotate">ಪುಟಗಳನ್ನು ತಿರುಗಿಸಿ</option>
+                        <option value="compress">PDF ಸಂಕುಚಿಸಿ</option>
+                    </optgroup>
+                    <optgroup label="ರೂಪಾಂತರ ಕಾರ್ಯಗಳು">
+                        <option value="pdf_to_word">PDF ನಿಂದ Word ಗೆ</option>
+                        <option value="word_to_pdf">Word ನಿಂದ PDF ಗೆ</option>
+                        <option value="pdf_to_jpeg">PDF ನಿಂದ ಚಿತ್ರಗಳಿಗೆ</option>
+                        <option value="jpeg_to_pdf">ಚಿತ್ರಗಳಿಂದ PDF ಗೆ</option>
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+
+        <!-- Upload Form -->
+        <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" style="display: none;">
+            <input type="hidden" name="operation" id="selectedOperation">
+            
+            <!-- File Upload Area -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
+                <div class="upload-subtext" id="uploadSubtext">ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF, Word, ಚಿತ್ರಗಳು</div>
+                <input type="file" name="files" id="fileInput" multiple style="display: none;">
+                
+                <!-- Upload Guidelines -->
+                <div class="upload-guidelines">
+                    <div class="guideline-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>ಗರಿಷ್ಠ ಫೈಲ್ ಗಾತ್ರ: 100MB</span>
+                    </div>
+                    <div class="guideline-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>ನಿಮ್ಮ ಫೈಲ್‌ಗಳು ಸುರಕ್ಷಿತವಾಗಿರುತ್ತವೆ</span>
+                    </div>
+                    <div class="guideline-item">
+                        <i class="fas fa-clock"></i>
+                        <span>ಫೈಲ್‌ಗಳು 1 ಗಂಟೆ ನಂತರ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Files Display -->
+            <div id="selectedFilesSection" style="display: none;">
+                <h3 class="subsection-title">
+                    <i class="fas fa-list"></i>
+                    ಆಯ್ಕೆ ಮಾಡಿದ ಫೈಲ್‌ಗಳು
+                </h3>
+                <div id="filesList" class="files-grid"></div>
+                
+                <div class="files-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">ಒಟ್ಟು ಫೈಲ್‌ಗಳು:</span>
+                        <span id="totalFiles" class="summary-value">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">ಒಟ್ಟು ಗಾತ್ರ:</span>
+                        <span id="totalSize" class="summary-value">0 KB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operation Parameters -->
+            <div id="operationParameters" style="display: none;">
+                <h3 class="subsection-title">
+                    <i class="fas fa-sliders-h"></i>
+                    ಕಾರ್ಯಾಚರಣೆ ನಿಯತಾಂಕಗಳು
+                </h3>
+
+                <!-- Pages Selection -->
+                <div class="form-group" id="pagesGroup" style="display: none;">
+                    <label class="form-label" for="pagesInput">
+                        <i class="fas fa-file-alt"></i>
+                        ಪುಟ ಸಂಖ್ಯೆಗಳು
+                    </label>
+                    <input type="text" name="pages" id="pagesInput" class="form-input" 
+                           placeholder="ಉದಾ: 1,3,5-10">
+                    <div class="input-help">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</span>
+                    </div>
+                </div>
+
+                <!-- Rotation Angle -->
+                <div class="form-group" id="angleGroup" style="display: none;">
+                    <label class="form-label" for="angleSelect">
+                        <i class="fas fa-redo"></i>
+                        ತಿರುಗುವ ಕೋನ
+                    </label>
+                    <div class="angle-options">
+                        <div class="angle-option">
+                            <input type="radio" name="angle" value="90" id="angle90" checked>
+                            <label for="angle90" class="angle-label">
+                                <i class="fas fa-redo"></i>
+                                <span>90° ಬಲಕ್ಕೆ</span>
+                            </label>
+                        </div>
+                        <div class="angle-option">
+                            <input type="radio" name="angle" value="180" id="angle180">
+                            <label for="angle180" class="angle-label">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>180° ತಿರುಗಿಸಿ</span>
+                            </label>
+                        </div>
+                        <div class="angle-option">
+                            <input type="radio" name="angle" value="270" id="angle270">
+                            <label for="angle270" class="angle-label">
+                                <i class="fas fa-undo"></i>
+                                <span>270° ಎಡಕ್ಕೆ</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crop Settings -->
+                <div id="cropGroup" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-crop"></i>
+                            ಅಂಚುಗಳನ್ನು ಕತ್ತರಿಸಿ (ಪಿಕ್ಸೆಲ್‌ಗಳಲ್ಲಿ)
+                        </label>
+                        <div class="crop-grid">
+                            <div class="crop-input-group">
+                                <label for="cropTop" class="crop-label">ಮೇಲೆ</label>
+                                <input type="number" name="top" id="cropTop" class="form-input" 
+                                       placeholder="0" min="0" value="0">
+                            </div>
+                            <div class="crop-row">
+                                <div class="crop-input-group">
+                                    <label for="cropLeft" class="crop-label">ಎಡ</label>
+                                    <input type="number" name="left" id="cropLeft" class="form-input" 
+                                           placeholder="0" min="0" value="0">
+                                </div>
+                                <div class="crop-preview">
+                                    <div class="crop-preview-box">
+                                        <span>ಪೂರ್ವವೀಕ್ಷಣೆ</span>
+                                    </div>
+                                </div>
+                                <div class="crop-input-group">
+                                    <label for="cropRight" class="crop-label">ಬಲ</label>
+                                    <input type="number" name="right" id="cropRight" class="form-input" 
+                                           placeholder="0" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="crop-input-group">
+                                <label for="cropBottom" class="crop-label">ಕೆಳಗೆ</label>
+                                <input type="number" name="bottom" id="cropBottom" class="form-input" 
+                                       placeholder="0" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="input-help">
+                            <i class="fas fa-info-circle"></i>
+                            <span>ಪ್ರತಿ ಬದಿಯಿಂದ ಕತ್ತರಿಸಬೇಕಾದ ಪಿಕ್ಸೆಲ್‌ಗಳ ಸಂಖ್ಯೆ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compression Level -->
+                <div class="form-group" id="compressionGroup" style="display: none;">
+                    <label class="form-label">
+                        <i class="fas fa-compress-arrows-alt"></i>
+                        ಸಂಕುಚನ ಮಟ್ಟ
+                    </label>
+                    <div class="compression-options">
+                        <div class="compression-option">
+                            <input type="radio" name="compression" value="low" id="compLow">
+                            <label for="compLow" class="compression-label">
+                                <div class="compression-info">
+                                    <span class="compression-name">ಕಡಿಮೆ</span>
+                                    <span class="compression-desc">ಉತ್ತಮ ಗುಣಮಟ್ಟ, ದೊಡ್ಡ ಗಾತ್ರ</span>
+                                </div>
+                                <div class="compression-bar">
+                                    <div class="compression-level" style="width: 30%;"></div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="compression-option">
+                            <input type="radio" name="compression" value="medium" id="compMedium" checked>
+                            <label for="compMedium" class="compression-label">
+                                <div class="compression-info">
+                                    <span class="compression-name">ಮಧ್ಯಮ</span>
+                                    <span class="compression-desc">ಸಮತೋಲಿತ ಗುಣಮಟ್ಟ ಮತ್ತು ಗಾತ್ರ</span>
+                                </div>
+                                <div class="compression-bar">
+                                    <div class="compression-level" style="width: 60%;"></div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="compression-option">
+                            <input type="radio" name="compression" value="high" id="compHigh">
+                            <label for="compHigh" class="compression-label">
+                                <div class="compression-info">
+                                    <span class="compression-name">ಹೆಚ್ಚು</span>
+                                    <span class="compression-desc">ಚಿಕ್ಕ ಗಾತ್ರ, ಕಡಿಮೆ ಗುಣಮಟ್ಟ</span>
+                                </div>
+                                <div class="compression-bar">
+                                    <div class="compression-level" style="width: 90%;"></div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    <i class="fas fa-undo"></i>
+                    ಮರುಹೊಂದಿಸಿ
+                </button>
+                <button type="submit" class="btn btn-primary" id="processBtn" disabled>
+                    <i class="fas fa-cog"></i>
+                    ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Processing Status -->
+    <div id="processingStatus" class="processing-status" style="display: none;">
+        <div class="status-card">
+            <div class="status-icon">
+                <i class="fas fa-cog fa-spin"></i>
+            </div>
+            <h3 class="status-title">ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗುತ್ತಿದೆ...</h3>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p class="status-text" id="statusText">ಕೃಪಯೆ ಕಾಯಿರಿ...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .navigation-section {
+        margin-bottom: 2rem;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 2px solid var(--border-ornate);
+        border-radius: 25px;
+        color: var(--ink-brown);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateX(-5px);
+        box-shadow: 0 4px 15px rgba(141, 110, 99, 0.3);
+    }
+
+    .btn-back i {
+        margin-right: 0.5rem;
+    }
+
+    .upload-section {
+        background: rgba(255, 255, 255, 0.7);
+        border: 2px solid var(--border-ornate);
+        border-radius: 20px;
+        padding: 3rem;
+        margin: 2rem 0;
+    }
+
+    .upload-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .operation-selection {
+        margin-bottom: 2rem;
+    }
+
+    .upload-guidelines {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .guideline-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--ink-brown);
+        font-size: 0.9rem;
+    }
+
+    .guideline-item i {
+        color: var(--gold-accent);
+    }
+
+    .subsection-title {
+        font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+        font-size: 1.4rem;
+        color: var(--ink-black);
+        margin: 2rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--gold-accent);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .files-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .file-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--border-ornate);
+        border-radius: 10px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .file-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(141, 110, 99, 0.2);
+    }
+
+    .file-card-icon {
+        font-size: 2rem;
+        color: var(--gold-accent);
+        flex-shrink: 0;
+    }
+
+    .file-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-card-name {
+        font-weight: 500;
+        color: var(--ink-black);
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .file-card-size {
+        font-size: 0.85rem;
+        color: var(--ink-brown);
+        opacity: 0.8;
+    }
+
+    .file-card-remove {
+        color: var(--error-red);
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: background 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .file-card-remove:hover {
+        background: rgba(211, 47, 47, 0.1);
+    }
+
+    .files-summary {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: rgba(212, 175, 55, 0.1);
+        border-radius: 10px;
+        border: 1px solid var(--gold-accent);
+    }
+
+    .summary-item {
+        text-align: center;
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--ink-brown);
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-value {
+        display: block;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--ink-black);
+    }
+
+    .angle-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .angle-option {
+        position: relative;
+    }
+
+    .angle-option input[type="radio"] {
+        display: none;
+    }
+
+    .angle-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 2px solid var(--border-ornate);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .angle-option input[type="radio"]:checked + .angle-label {
+        background: rgba(212, 175, 55, 0.2);
+        border-color: var(--gold-accent);
+        transform: scale(1.02);
+    }
+
+    .angle-label:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-2px);
+    }
+
+    .crop-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .crop-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr 1fr;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .crop-input-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .crop-label {
+        font-size: 0.9rem;
+        color: var(--ink-brown);
+        font-weight: 500;
+    }
+
+    .crop-preview {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .crop-preview-box {
+        width: 120px;
+        height: 80px;
+        border: 2px dashed var(--gold-accent);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-brown);
+        font-size: 0.8rem;
+        background: rgba(212, 175, 55, 0.1);
+    }
+
+    .compression-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .compression-option {
+        position: relative;
+    }
+
+    .compression-option input[type="radio"] {
+        display: none;
+    }
+
+    .compression-label {
+        display: block;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 2px solid var(--border-ornate);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .compression-option input[type="radio"]:checked + .compression-label {
+        background: rgba(212, 175, 55, 0.2);
+        border-color: var(--gold-accent);
+        transform: scale(1.02);
+    }
+
+    .compression-label:hover {
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .compression-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .compression-name {
+        font-weight: 600;
+        color: var(--ink-black);
+        font-size: 1.1rem;
+    }
+
+    .compression-desc {
+        font-size: 0.9rem;
+        color: var(--ink-brown);
+        opacity: 0.8;
+    }
+
+    .compression-bar {
+        height: 6px;
+        background: var(--parchment-dark);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .compression-level {
+        height: 100%;
+        background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
+        transition: width 0.3s ease;
+    }
+
+    .input-help {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--ink-brown);
+        opacity: 0.8;
+    }
+
+    .input-help i {
+        color: var(--gold-accent);
+    }
+
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 2px solid var(--border-ornate);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: var(--border-ornate);
+        color: var(--ink-brown);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: var(--ink-brown);
+    }
+
+    .processing-status {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(44, 24, 16, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        backdrop-filter: blur(5px);
+    }
+
+    .status-card {
+        background: var(--parchment-bg);
+        border: 3px solid var(--gold-accent);
+        border-radius: 20px;
+        padding: 3rem;
+        text-align: center;
+        min-width: 400px;
+        box-shadow: 0 20px 60px var(--manuscript-shadow);
+    }
+
+    .status-icon {
+        font-size: 4rem;
+        color: var(--gold-accent);
+        margin-bottom: 1.5rem;
+    }
+
+    .status-title {
+        font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+        font-size: 1.5rem;
+        color: var(--ink-black);
+        margin-bottom: 2rem;
+    }
+
+    .status-text {
+        color: var(--ink-brown);
+        margin-top: 1rem;
+        font-size: 1.1rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .upload-section {
+            padding: 2rem 1rem;
+        }
+
+        .upload-guidelines {
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .files-summary {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .crop-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .crop-preview {
+            order: -1;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .status-card {
+            min-width: 300px;
+            padding: 2rem;
+        }
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let selectedFiles = [];
+    let currentOperation = '';
+
+    // Operation configurations (same as in index.html)
+    const operationConfigs = {
+        'merge': { accept: '.pdf', multiple: true, options: [] },
+        'split': { accept: '.pdf', multiple: false, options: ['pages'] },
+        'extract': { accept: '.pdf', multiple: false, options: ['pages'] },
+        'delete': { accept: '.pdf', multiple: false, options: ['pages'] },
+        'crop': { accept: '.pdf', multiple: false, options: ['crop'] },
+        'rotate': { accept: '.pdf', multiple: true, options: ['angle'] },
+        'pdf_to_word': { accept: '.pdf', multiple: true, options: [] },
+        'word_to_pdf': { accept: '.doc,.docx', multiple: true, options: [] },
+        'pdf_to_jpeg': { accept: '.pdf', multiple: true, options: [] },
+        'jpeg_to_pdf': { accept: '.jpg,.jpeg,.png,.bmp,.tiff', multiple: true, options: [] },
+        'compress': { accept: '.pdf', multiple: true, options: ['compression'] }
+    };
+
+    function updateOperation() {
+        const operationSelect = document.getElementById('operationSelect');
+        const operation = operationSelect.value;
+        
+        if (!operation) {
+            document.getElementById('uploadForm').style.display = 'none';
+            return;
+        }
+        
+        currentOperation = operation;
+        const config = operationConfigs[operation];
+        
+        // Update form
+        document.getElementById('selectedOperation').value = operation;
+        document.getElementById('uploadForm').style.display = 'block';
+        
+        // Update file input
+        const fileInput = document.getElementById('fileInput');
+        fileInput.accept = config.accept;
+        fileInput.multiple = config.multiple;
+        
+        // Update upload text
+        const supportText = getSupportText(config.accept);
+        document.getElementById('uploadSubtext').textContent = supportText;
+        
+        // Show/hide operation parameters
+        showOperationParameters(config.options);
+        
+        // Reset form
+        resetForm();
+    }
+
+    function getSupportText(accept) {
+        const extensions = accept.toLowerCase();
+        if (extensions.includes('.pdf') && extensions.includes('.doc')) {
+            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF, Word ದಾಖಲೆಗಳು';
+        } else if (extensions.includes('.pdf')) {
+            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF ಫೈಲ್‌ಗಳು';
+        } else if (extensions.includes('.doc')) {
+            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: Word ದಾಖಲೆಗಳು';
+        } else if (extensions.includes('.jpg')) {
+            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: ಚಿತ್ರ ಫೈಲ್‌ಗಳು';
+        }
+        return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು ಮಾತ್ರ';
+    }
+
+    function showOperationParameters(options) {
+        const parameterSection = document.getElementById('operationParameters');
+        const groups = ['pagesGroup', 'angleGroup', 'cropGroup', 'compressionGroup'];
+        
+        // Hide all groups
+        groups.forEach(group => {
+            document.getElementById(group).style.display = 'none';
+        });
+        
+        if (options.length > 0) {
+            parameterSection.style.display = 'block';
+            options.forEach(option => {
+                if (option === 'pages') {
+                    document.getElementById('pagesGroup').style.display = 'block';
+                } else if (option === 'angle') {
+                    document.getElementById('angleGroup').style.display = 'block';
+                } else if (option === 'crop') {
+                    document.getElementById('cropGroup').style.display = 'block';
+                } else if (option === 'compression') {
+                    document.getElementById('compressionGroup').style.display = 'block';
+                }
+            });
+        } else {
+            parameterSection.style.display = 'none';
+        }
+    }
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadArea.addEventListener('click', () => {
+        if (currentOperation) {
+            fileInput.click();
+        }
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (currentOperation) {
+            uploadArea.classList.add('dragover');
+        }
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (currentOperation) {
+            const files = Array.from(e.dataTransfer.files);
+            handleFileSelection(files);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        handleFileSelection(files);
+    });
+
+    function handleFileSelection(files) {
+        if (!currentOperation) return;
+        
+        const config = operationConfigs[currentOperation];
+        
+        // Check multiple files restriction
+        if (!config.multiple && files.length > 1) {
+            showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
+            return;
+        }
+        
+        // Validate file types
+        const validFiles = files.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return config.accept.split(',').includes(extension);
+        });
+        
+        if (validFiles.length !== files.length) {
+            showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
+        }
+        
+        if (validFiles.length === 0) {
+            return;
+        }
+        
+        selectedFiles = validFiles;
+        displaySelectedFiles();
+        updateProcessButton();
+    }
+
+    function displaySelectedFiles() {
+        const filesSection = document.getElementById('selectedFilesSection');
+        const filesList = document.getElementById('filesList');
+        
+        if (selectedFiles.length === 0) {
+            filesSection.style.display = 'none';
+            return;
+        }
+        
+        filesSection.style.display = 'block';
+        
+        filesList.innerHTML = selectedFiles.map((file, index) => `
+            <div class="file-card">
+                <div class="file-card-icon">
+                    <i class="fas fa-file-${getFileIcon(file.name)}"></i>
+                </div>
+                <div class="file-card-info">
+                    <div class="file-card-name" title="${file.name}">${file.name}</div>
+                    <div class="file-card-size">${formatFileSize(file.size)}</div>
+                </div>
+                <div class="file-card-remove" onclick="removeFile(${index})" title="ಫೈಲ್ ತೆಗೆದುಹಾಕಿ">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        `).join('');
+        
+        // Update summary
+        document.getElementById('totalFiles').textContent = selectedFiles.length;
+        document.getElementById('totalSize').textContent = formatFileSize(
+            selectedFiles.reduce((total, file) => total + file.size, 0)
+        );
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        displaySelectedFiles();
+        updateProcessButton();
+        
+        // Update file input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+
+    function updateProcessButton() {
+        const processBtn = document.getElementById('processBtn');
+        processBtn.disabled = selectedFiles.length === 0;
+    }
+
+    function resetForm() {
+        selectedFiles = [];
+        displaySelectedFiles();
+        updateProcessButton();
+        fileInput.value = '';
+        
+        // Reset form inputs
+        document.getElementById('pagesInput').value = '';
+        document.querySelectorAll('input[name="angle"]')[0].checked = true;
+        document.querySelectorAll('input[name="compression"]')[1].checked = true;
+        document.querySelectorAll('#cropGroup input').forEach(input => input.value = '0');
+    }
+
+    function getFileIcon(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        const icons = {
+            'pdf': 'pdf',
+            'doc': 'word', 'docx': 'word',
+            'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'bmp': 'image', 'tiff': 'image'
+        };
+        return icons[extension] || 'alt';
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 ಬೈಟ್‌ಗಳು';
+        const k = 1024;
+        const sizes = ['ಬೈಟ್‌ಗಳು', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} fade-in`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            ${message}
+        `;
+        
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    // Form submission
+    // Replace the problematic section in your form submission event listener:
+// Remove the duplicate .then() chain and fix the syntax error
+
+// Find this section and replace it:
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (selectedFiles.length === 0) {
+        showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+        return;
+    }
+    
+    // Update file input with selected files
+    const dt = new DataTransfer();
+    selectedFiles.forEach(file => dt.items.add(file));
+    fileInput.files = dt.files;
+    
+    // Show processing status
+    document.getElementById('processingStatus').style.display = 'flex';
+    
+    // Submit form via AJAX
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('processingStatus').style.display = 'none';
+        
+        if (data.success) {
+            // Redirect to download or show success
+            if (data.download_url) {
+                window.location.href = data.download_url;
+            } else {
+                window.location.href = "{{ url_for('index') }}";
+            }
+            showAlert('success', 'ಫೈಲ್‌ಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗಿದೆ!');
+        } else {
+            showAlert('error', data.error || 'ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ ದೋಷ ಸಂಭವಿಸಿದೆ');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('processingStatus').style.display = 'none';
+        showAlert('error', 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ ಸಂಭವಿಸಿದೆ');
+    });
+});
+
+    // Progress simulation for better UX
+    function simulateProgress() {
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        let progress = 0;
+        
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            
+            progressBar.style.width = progress + '%';
+            
+            if (progress < 30) {
+                statusText.textContent = 'ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...';
+            } else if (progress < 60) {
+                statusText.textContent = 'ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗುತ್ತಿದೆ...';
+            } else {
+                statusText.textContent = 'ಫಲಿತಾಂಶವನ್ನು ತಯಾರಿಸಲಾಗುತ್ತಿದೆ...';
+            }
+        }, 500);
+        
+        // Clear interval when form processing is complete
+        document.getElementById('uploadForm').addEventListener('formComplete', () => {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+        });
+    }
+
+    // Start progress simulation when processing begins
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        setTimeout(simulateProgress, 100);
+    });
+
+    // CSS for drag and drop effects
+    const uploadAreaStyles = `
+        .upload-area {
+            border: 3px dashed var(--border-ornate);
+            border-radius: 15px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: var(--gold-accent);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--gold-accent);
+            background: rgba(212, 175, 55, 0.2);
+            transform: scale(1.02);
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .upload-area:hover::before {
+            opacity: 1;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--gold-accent);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+            color: var(--copper-accent);
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--ink-black);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--ink-brown);
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: var(--parchment-dark);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1.5rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progressShine 2s infinite;
+        }
+
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            border: 2px solid #4CAF50;
+            color: #2E7D32;
+        }
+
+        .alert-error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 2px solid #F44336;
+            color: #C62828;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease;
+        }
+
+        .slide-up {
+            animation: slideUp 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Enhanced button styles */
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 25px;
+            border: 2px solid;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
+            border-color: var(--gold-accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary:disabled::before {
+            display: none;
+        }
+    `;
+
+    // Inject additional styles
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = uploadAreaStyles;
+    document.head.appendChild(styleSheet);
+
+    // Initialize tooltips for better UX
+    function initializeTooltips() {
+        const tooltipElements = document.querySelectorAll('[title]');
+        tooltipElements.forEach(element => {
+            let tooltip;
+            
+            element.addEventListener('mouseenter', (e) => {
+                tooltip = document.createElement('div');
+                tooltip.className = 'custom-tooltip';
+                tooltip.textContent = element.getAttribute('title');
+                tooltip.style.cssText = `
+                    position: absolute;
+                    background: var(--ink-black);
+                    color: white;
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 6px;
+                    font-size: 0.875rem;
+                    pointer-events: none;
+                    z-index: 1000;
+                    opacity: 0;
+                    transform: translateY(5px);
+                    transition: all 0.2s ease;
+                `;
+                
+                document.body.appendChild(tooltip);
+                
+                const rect = element.getBoundingClientRect();
+                tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+                tooltip.style.top = rect.bottom + 5 + 'px';
+                
+                setTimeout(() => {
+                    tooltip.style.opacity = '1';
+                    tooltip.style.transform = 'translateY(0)';
+                }, 10);
+                
+                // Remove original title to prevent default tooltip
+                element.setAttribute('data-title', element.getAttribute('title'));
+                element.removeAttribute('title');
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                if (tooltip) {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transform = 'translateY(5px)';
+                    setTimeout(() => tooltip.remove(), 200);
+                }
+                
+                // Restore original title
+                if (element.getAttribute('data-title')) {
+                    element.setAttribute('title', element.getAttribute('data-title'));
+                    element.removeAttribute('data-title');
+                }
+            });
+        });
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTooltips();
+        
+        // Add keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('processingStatus').style.display === 'flex') {
+                // Allow users to cancel operation with Escape key
+                if (confirm('ಪ್ರಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಬೇಕೇ?')) {
+                    document.getElementById('processingStatus').style.display = 'none';
+                    showAlert('info', 'ಪ್ರಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ');
+                }
+            }
+        });
+    });
+</script>   
+{% endblock %}
+
+{% block content %}};
