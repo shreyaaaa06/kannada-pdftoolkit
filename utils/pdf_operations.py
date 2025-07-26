@@ -6,16 +6,32 @@ from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfbase import pdfutils
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
-from pdf2image import convert_from_path
 from PIL import Image, ImageEnhance
 import docx
-from docx2pdf import convert as docx_to_pdf_convert
-import fitz  # PyMuPDF for better PDF handling
-import config
+from config import Config
+
+# Optional imports with fallbacks
+try:
+    from pdf2image import convert_from_path
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    PDF2IMAGE_AVAILABLE = False
+
+try:
+    import fitz  # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except ImportError:
+    PYMUPDF_AVAILABLE = False
+
+try:
+    from docx2pdf import convert as docx_to_pdf_convert
+    DOCX2PDF_AVAILABLE = True
+except ImportError:
+    DOCX2PDF_AVAILABLE = False
 
 class PDFOperations:
     def __init__(self):
-        self.config = config.Config()
+        self.config = Config()
         self.setup_fonts()
     
     def setup_fonts(self):
@@ -41,118 +57,6 @@ class PDFOperations:
                 writer.write(output_file)
             
             return output_path
-
-        
-        except Exception as e:
-            raise Exception(f"PDF ನಿಂದ JPEG ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
-    
-    def jpeg_to_pdf(self, files, session_id, **kwargs):
-        """Convert JPEG images to PDF"""
-        try:
-            images = []
-            for file_path in files:
-                img = Image.open(file_path)
-                # Convert to RGB if necessary
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                images.append(img)
-            
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, 
-                                     f"{session_id}_images_to_pdf.pdf")
-            
-            # Save as PDF
-            if images:
-                images[0].save(output_path, save_all=True, append_images=images[1:])
-            
-            return output_path
-        
-        except Exception as e:
-            raise Exception(f"JPEG ನಿಂದ PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
-    
-    def compress_pdf(self, files, session_id, quality='medium', **kwargs):
-        """Compress PDF file to reduce size"""
-        try:
-            file_path = files[0]
-            doc = fitz.open(file_path)
-            
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, 
-                                     f"{session_id}_compressed.pdf")
-            
-            # Compression settings
-            compression_level = self.config.COMPRESSION_LEVELS.get(quality, 0.7)
-            
-            # Create new document with compression
-            new_doc = fitz.open()
-            
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                
-                # Get page as image and compress
-                mat = fitz.Matrix(compression_level, compression_level)
-                pix = page.get_pixmap(matrix=mat)
-                img_data = pix.tobytes("jpeg")
-                
-                # Create new page with compressed image
-                img_rect = fitz.Rect(0, 0, pix.width / compression_level, 
-                                   pix.height / compression_level)
-                new_page = new_doc.new_page(width=img_rect.width, 
-                                          height=img_rect.height)
-                new_page.insert_image(img_rect, stream=img_data)
-            
-            new_doc.save(output_path, garbage=4, deflate=True)
-            new_doc.close()
-            doc.close()
-            
-            return output_path
-        
-        except Exception as e:
-            raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
-    
-    def _parse_page_ranges(self, pages_str, total_pages):
-        """Parse page range string like '1-3,5,7-9' into list of ranges"""
-        ranges = []
-        parts = pages_str.split(',')
-        
-        for part in parts:
-            part = part.strip()
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                ranges.append(list(range(start-1, min(end, total_pages))))
-            else:
-                page_num = int(part) - 1
-                if 0 <= page_num < total_pages:
-                    ranges.append([page_num])
-        
-        return ranges
-    
-    def _parse_page_numbers(self, pages_str):
-        """Parse page numbers string into list of integers"""
-        pages = []
-        parts = pages_str.split(',')
-        
-        for part in parts:
-            part = part.strip()
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                pages.extend(range(start-1, end))
-            else:
-                pages.append(int(part) - 1)
-        
-        return sorted(set(pages))  # Remove duplicates and sort
-    
-    def get_pdf_info(self, file_path):
-        """Get PDF information like page count, size, etc."""
-        try:
-            reader = PdfReader(file_path)
-            info = {
-                'pages': len(reader.pages),
-                'title': reader.metadata.title if reader.metadata else 'Unknown',
-                'author': reader.metadata.author if reader.metadata else 'Unknown',
-                'size': os.path.getsize(file_path)
-            }
-            return info
-        except Exception as e:
-            return {'error': str(e)} 
         
         except Exception as e:
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
@@ -247,6 +151,9 @@ class PDFOperations:
     def crop_pages(self, files, session_id, left=0, top=0, right=0, bottom=0, **kwargs):
         """Crop pages with specified margins"""
         try:
+            if not PYMUPDF_AVAILABLE:
+                raise Exception("PyMuPDF ಲೈಬ್ರರಿ ಲಭ್ಯವಿಲ್ಲ")
+            
             file_path = files[0]
             doc = fitz.open(file_path)
             
@@ -299,6 +206,9 @@ class PDFOperations:
     def pdf_to_word(self, files, session_id, **kwargs):
         """Convert PDF to Word document"""
         try:
+            if not PYMUPDF_AVAILABLE:
+                raise Exception("PyMuPDF ಲೈಬ್ರರಿ ಲಭ್ಯವಿಲ್ಲ")
+            
             file_path = files[0]
             doc = fitz.open(file_path)
             
@@ -333,6 +243,9 @@ class PDFOperations:
     def word_to_pdf(self, files, session_id, **kwargs):
         """Convert Word document to PDF"""
         try:
+            if not DOCX2PDF_AVAILABLE:
+                raise Exception("docx2pdf ಲೈಬ್ರರಿ ಲಭ್ಯವಿಲ್ಲ")
+            
             file_path = files[0]
             output_path = os.path.join(self.config.OUTPUT_FOLDER, 
                                      f"{session_id}_converted.pdf")
@@ -348,6 +261,9 @@ class PDFOperations:
     def pdf_to_jpeg(self, files, session_id, **kwargs):
         """Convert PDF pages to JPEG images"""
         try:
+            if not PDF2IMAGE_AVAILABLE:
+                raise Exception("pdf2image ಲೈಬ್ರರಿ ಲಭ್ಯವಿಲ್ಲ")
+            
             file_path = files[0]
             
             # Convert PDF to images
@@ -373,7 +289,118 @@ class PDFOperations:
                         os.remove(file_path)
                 return zip_path
             
-            return output_files[0]  # return the single image path if only one
+            return output_files[0] if output_files else None
+        
         except Exception as e:
-            print(f"[ERROR] Failed to convert PDF to images: {str(e)}")
-            return None 
+            raise Exception(f"PDF ನಿಂದ JPEG ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
+    
+    def jpeg_to_pdf(self, files, session_id, **kwargs):
+        """Convert JPEG images to PDF"""
+        try:
+            images = []
+            for file_path in files:
+                img = Image.open(file_path)
+                # Convert to RGB if necessary
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                images.append(img)
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, 
+                                     f"{session_id}_images_to_pdf.pdf")
+            
+            # Save as PDF
+            if images:
+                images[0].save(output_path, save_all=True, append_images=images[1:])
+            
+            return output_path
+        
+        except Exception as e:
+            raise Exception(f"JPEG ನಿಂದ PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
+    
+    def compress_pdf(self, files, session_id, quality='medium', **kwargs):
+        """Compress PDF file to reduce size"""
+        try:
+            if not PYMUPDF_AVAILABLE:
+                raise Exception("PyMuPDF ಲೈಬ್ರರಿ ಲಭ್ಯವಿಲ್ಲ")
+            
+            file_path = files[0]
+            doc = fitz.open(file_path)
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, 
+                                     f"{session_id}_compressed.pdf")
+            
+            # Compression settings
+            compression_level = self.config.COMPRESSION_LEVELS.get(quality, 0.7)
+            
+            # Create new document with compression
+            new_doc = fitz.open()
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Get page as image and compress
+                mat = fitz.Matrix(compression_level, compression_level)
+                pix = page.get_pixmap(matrix=mat)
+                img_data = pix.tobytes("jpeg")
+                
+                # Create new page with compressed image
+                img_rect = fitz.Rect(0, 0, pix.width / compression_level, 
+                                   pix.height / compression_level)
+                new_page = new_doc.new_page(width=img_rect.width, 
+                                          height=img_rect.height)
+                new_page.insert_image(img_rect, stream=img_data)
+            
+            new_doc.save(output_path, garbage=4, deflate=True)
+            new_doc.close()
+            doc.close()
+            
+            return output_path
+        
+        except Exception as e:
+            raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
+    
+    def _parse_page_ranges(self, pages_str, total_pages):
+        """Parse page range string like '1-3,5,7-9' into list of ranges"""
+        ranges = []
+        parts = pages_str.split(',')
+        
+        for part in parts:
+            part = part.strip()
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                ranges.append(list(range(start-1, min(end, total_pages))))
+            else:
+                page_num = int(part) - 1
+                if 0 <= page_num < total_pages:
+                    ranges.append([page_num])
+        
+        return ranges
+    
+    def _parse_page_numbers(self, pages_str):
+        """Parse page numbers string into list of integers"""
+        pages = []
+        parts = pages_str.split(',')
+        
+        for part in parts:
+            part = part.strip()
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                pages.extend(range(start-1, end))
+            else:
+                pages.append(int(part) - 1)
+        
+        return sorted(set(pages))  # Remove duplicates and sort
+    
+    def get_pdf_info(self, file_path):
+        """Get PDF information like page count, size, etc."""
+        try:
+            reader = PdfReader(file_path)
+            info = {
+                'pages': len(reader.pages),
+                'title': reader.metadata.title if reader.metadata else 'Unknown',
+                'author': reader.metadata.author if reader.metadata else 'Unknown',
+                'size': os.path.getsize(file_path)
+            }
+            return info
+        except Exception as e:
+            return {'error': str(e)}
