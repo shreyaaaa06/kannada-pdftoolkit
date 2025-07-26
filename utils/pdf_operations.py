@@ -15,7 +15,9 @@ import platform
 import subprocess
 import shutil
 from pathlib import Path
-
+import fitz  # PyMuPDF
+from PIL import Image
+import os
 
 class PDFOperations:
     def __init__(self):
@@ -826,3 +828,162 @@ class PDFOperations:
             'failure_count': len(failed_conversions)
         }
 
+    # Add this method to your existing PDFOperations class in utils/pdf_operations.py
+
+
+
+    def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=50):
+        """
+    Generate thumbnail previews for PDF pages
+    
+    Args:
+        pdf_path (str): Path to the PDF file
+        session_id (str): Session identifier for organizing previews
+        preview_folder (str): Base folder for storing preview images
+        max_pages (int): Maximum number of pages to generate previews for
+    
+    Returns:
+        dict: Preview data with page information and image paths
+        """
+        try:
+        # Create session-specific preview directory
+            session_preview_dir = os.path.join(preview_folder, session_id)
+            os.makedirs(session_preview_dir, exist_ok=True)
+        
+        # Open the PDF
+            pdf_document = fitz.open(pdf_path)
+            total_pages = len(pdf_document)
+        
+        # Limit the number of pages for performance
+            pages_to_process = min(total_pages, max_pages)
+        
+            previews = []
+        
+            for page_num in range(pages_to_process):
+                try:
+                # Get the page
+                    page = pdf_document[page_num]
+                
+                # Set zoom factor for good quality thumbnails
+                    zoom = 1.5  # Increase for higher quality, decrease for smaller files
+                    mat = fitz.Matrix(zoom, zoom)
+                
+                # Render page as image
+                    pix = page.get_pixmap(matrix=mat)
+                
+                # Convert to PIL Image
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                
+                # Resize to thumbnail size (maintain aspect ratio)
+                    thumbnail_size = (200, 280)  # Width, Height
+                    img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+                
+                # Save thumbnail
+                    filename = f"page_{page_num + 1}.png"
+                    file_path = os.path.join(session_preview_dir, filename)
+                    img.save(file_path, "PNG", optimize=True)
+                
+                # Add to previews list
+                    previews.append({
+                        'page_num': page_num + 1,
+                        'image_path': file_path,
+                        'width': img.width,
+                        'height': img.height
+                    })
+                
+                except Exception as e:
+                    print(f"Error generating preview for page {page_num + 1}: {str(e)}")
+                    continue
+        
+            pdf_document.close()
+        
+            return {
+                'total_pages': total_pages,
+                'previews': previews,
+                'session_id': session_id
+            }
+        
+        except Exception as e:
+            print(f"Error generating PDF previews: {str(e)}")
+            return None
+
+# Alternative method using pdf2image if PyMuPDF is not available
+    def generate_page_previews_pdf2image(self, pdf_path, session_id, preview_folder, max_pages=50):
+        """
+    Alternative method using pdf2image library
+    Requires: pip install pdf2image
+    Also requires poppler-utils (system dependency)
+    """
+        try:
+            from pdf2image import convert_from_path
+        
+        # Create session-specific preview directory
+            session_preview_dir = os.path.join(preview_folder, session_id)
+            os.makedirs(session_preview_dir, exist_ok=True)
+        
+        # Convert PDF pages to images
+        # Use first_page and last_page to limit conversion for performance
+            images = convert_from_path(
+                pdf_path,
+            dpi=150,  # Lower DPI for thumbnails
+            first_page=1,
+            last_page=min(max_pages, self.get_pdf_page_count(pdf_path)),
+            thread_count=2
+        )
+        
+            previews = []
+        
+            for i, image in enumerate(images):
+                try:
+                    # Resize to thumbnail
+                    thumbnail_size = (200, 280)
+                    image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+                
+                # Save thumbnail
+                    filename = f"page_{i + 1}.png"
+                    file_path = os.path.join(session_preview_dir, filename)
+                    image.save(file_path, "PNG", optimize=True)
+                
+                    previews.append({
+                        'page_num': i + 1,
+                        'image_path': file_path,
+                        'width': image.width,
+                        'height': image.height
+                    })
+                
+                except Exception as e:
+                    print(f"Error processing preview for page {i + 1}: {str(e)}")
+                    continue
+        
+            total_pages = self.get_pdf_page_count(pdf_path)
+        
+            return {
+                'total_pages': total_pages,
+                'previews': previews,
+                'session_id': session_id
+            }
+        
+        except ImportError:
+            print("pdf2image not installed. Please install: pip install pdf2image")
+            return None
+        except Exception as e:
+            print(f"Error generating PDF previews with pdf2image: {str(e)}")
+            return None
+
+    def get_pdf_page_count(self, pdf_path):
+        """Get the total number of pages in a PDF"""
+        try:
+            import fitz
+            doc = fitz.open(pdf_path)
+            count = len(doc)
+            doc.close()
+            return count
+        except:
+            try:
+                from PyPDF2 import PdfReader
+                reader = PdfReader(pdf_path)
+                return len(reader.pages)
+            except:
+                return 0
+    
