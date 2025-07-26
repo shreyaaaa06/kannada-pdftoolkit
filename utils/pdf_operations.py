@@ -396,433 +396,433 @@ class PDFOperations:
         except Exception as e:
             raise Exception(f"PDF Word ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
     
-    # Replace your existing word_to_pdf method with this complete version:
-def word_to_pdf(self, file_path, session_id):
-    """
-    Enhanced Word document to PDF conversion with Kannada font support
-    Tries multiple methods in order of reliability for Kannada text
-    """
-    try:
-        output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+    def _parse_page_ranges(self, pages_str, total_pages):
+        """Parse page ranges like '1,3,5-10' into list of page numbers"""
+        pages = []
+        
+        for part in pages_str.split(','):
+            part = part.strip()
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                pages.extend(range(start, min(end + 1, total_pages + 1)))
+            else:
+                page_num = int(part)
+                if 1 <= page_num <= total_pages:
+                    pages.append(page_num)
+        
+            return sorted(list(set(pages)))
+        # Replace your existing word_to_pdf method with this complete version:
+    def word_to_pdf(self, file_path, session_id):
+        """
+        Enhanced Word document to PDF conversion with Kannada font support
+        Tries multiple methods in order of reliability for Kannada text
+        """
+        try:
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
         
         # Ensure input file exists
-        if not os.path.exists(file_path):
-            raise Exception(f"Input file not found: {file_path}")
+            if not os.path.exists(file_path):
+                raise Exception(f"Input file not found: {file_path}")
         
         # Method 1: LibreOffice (Best for Kannada support)
-        if self._convert_with_libreoffice(file_path, output_path):
-            return output_path
+            if self._convert_with_libreoffice(file_path, output_path):
+                return output_path
         
         # Method 2: Windows COM (if on Windows and Word is available)
-        if platform.system() == "Windows":
-            try:
-                return self._word_to_pdf_windows_com(file_path, session_id)
-            except Exception as e:
-                print(f"Windows COM method failed: {e}")
+            if platform.system() == "Windows":
+                try:
+                    return self._word_to_pdf_windows_com(file_path, session_id)
+                except Exception as e:
+                    print(f"Windows COM method failed: {e}")
         
         # Method 3: docx2pdf (Simple but may have font issues)
-        if self._convert_with_docx2pdf(file_path, output_path):
-            return output_path
+            if self._convert_with_docx2pdf(file_path, output_path):
+                return output_path
         
         # Method 4: Advanced python-docx + ReportLab with Kannada font support
-        return self._word_to_pdf_advanced_kannada(file_path, session_id)
+            return self._word_to_pdf_advanced_kannada(file_path, session_id)
         
-    except Exception as e:
-        raise Exception(f"Word to PDF conversion failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Word to PDF conversion failed: {str(e)}")
 
-def _convert_with_libreoffice(self, input_path, output_path):
-    """
-    LibreOffice conversion - Best method for Kannada documents
-    Preserves fonts and formatting accurately
-    """
-    try:
-        # Find LibreOffice installation
-        libreoffice_cmd = self._find_libreoffice()
-        if not libreoffice_cmd:
-            return False
+    def _convert_with_libreoffice(self, input_path, output_path):
+        """
+        LibreOffice conversion - Best method for Kannada documents
+        Preserves fonts and formatting accurately
+        """
+        try:
+            # Find LibreOffice installation
+            libreoffice_cmd = self._find_libreoffice()
+            if not libreoffice_cmd:
+                return False
         
         # Prepare conversion command
-        output_dir = os.path.dirname(output_path)
-        os.makedirs(output_dir, exist_ok=True)
+            output_dir = os.path.dirname(output_path)
+            os.makedirs(output_dir, exist_ok=True)
         
         # Convert using LibreOffice
-        cmd = [
-            libreoffice_cmd,
-            '--headless',
-            '--convert-to', 'pdf',
-            '--outdir', output_dir,
-            input_path
-        ]
+            cmd = [
+                libreoffice_cmd,
+                '--headless',
+                '--convert-to', 'pdf',
+                '--outdir', output_dir,
+                input_path
+            ]
         
         # Run conversion with proper encoding
-        result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
-            timeout=60,
-            encoding='utf-8'
-        )
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                timeout=60,
+                encoding='utf-8'
+            )
         
         # LibreOffice creates PDF with same base name
-        input_name = Path(input_path).stem
-        generated_pdf = os.path.join(output_dir, f"{input_name}.pdf")
+            input_name = Path(input_path).stem
+            generated_pdf = os.path.join(output_dir, f"{input_name}.pdf")
         
         # Move to expected output path if different
-        if os.path.exists(generated_pdf):
-            if generated_pdf != output_path:
-                if os.path.exists(output_path):
-                    os.remove(output_path)
-                os.rename(generated_pdf, output_path)
-            return True
+            if os.path.exists(generated_pdf):
+                if generated_pdf != output_path:
+                    if os.path.exists(output_path):
+                        os.remove(output_path)
+                    os.rename(generated_pdf, output_path)
+                return True
         
-        return False
+            return False
         
-    except Exception as e:
-        print(f"LibreOffice conversion failed: {e}")
-        return False
+        except Exception as e:
+            print(f"LibreOffice conversion failed: {e}")
+            return False
 
-def _find_libreoffice(self):
-    """Find LibreOffice installation across different platforms"""
-    # Try common command names first
-    for cmd in ['soffice', 'libreoffice']:
-        if shutil.which(cmd):
-            return cmd
+    def _find_libreoffice(self):
+        """Find LibreOffice installation across different platforms"""
+        # Try common command names first
+        for cmd in ['soffice', 'libreoffice']:
+            if shutil.which(cmd):
+                return cmd
     
     # Platform-specific paths
-    if platform.system() == "Windows":
-        paths = [
-            r"C:\Program Files\LibreOffice\program\soffice.exe",
-            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-            r"C:\Program Files\LibreOffice\program\soffice.com",
-            r"C:\Program Files (x86)\LibreOffice\program\soffice.com"
-        ]
-    elif platform.system() == "Darwin":  # macOS
-        paths = [
-            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
-            "/usr/local/bin/soffice"
-        ]
-    else:  # Linux
-        paths = [
+        if platform.system() == "Windows":
+            paths = [
+                r"C:\Program Files\LibreOffice\program\soffice.exe",
+                r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+                r"C:\Program Files\LibreOffice\program\soffice.com",
+                r"C:\Program Files (x86)\LibreOffice\program\soffice.com"
+            ]
+        elif platform.system() == "Darwin":  # macOS
+            paths = [
+                "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+                "/usr/local/bin/soffice"
+            ]
+        else:  # Linux
+            paths = [
             "/usr/bin/soffice",
             "/usr/bin/libreoffice",
             "/snap/bin/libreoffice",
             "/usr/local/bin/soffice"
-        ]
+            ]
     
-    for path in paths:
-        if os.path.exists(path):
-            return path
+        for path in paths:
+            if os.path.exists(path):
+                return path
     
-    return None
+        return None
 
-def _convert_with_docx2pdf(self, input_path, output_path):
-    """Simple docx2pdf conversion - fallback method"""
-    try:
-        from docx2pdf import convert
-        convert(input_path, output_path)
-        return os.path.exists(output_path) and os.path.getsize(output_path) > 0
-    except ImportError:
-        print("docx2pdf not installed. Install with: pip install docx2pdf")
-        return False
-    except Exception as e:
-        print(f"docx2pdf conversion failed: {e}")
-        return False
-
-def _word_to_pdf_windows_com(self, file_path, session_id):
-    """Windows COM method with enhanced error handling"""
-    try:
-        import pythoncom
-        import win32com.client
-        
-        pythoncom.CoInitialize()
-        
+    def _convert_with_docx2pdf(self, input_path, output_path):
+        """Simple docx2pdf conversion - fallback method"""
         try:
+            from docx2pdf import convert
+            convert(input_path, output_path)
+            return os.path.exists(output_path) and os.path.getsize(output_path) > 0
+        except ImportError:
+            print("docx2pdf not installed. Install with: pip install docx2pdf")
+            return False
+        except Exception as e:
+            print(f"docx2pdf conversion failed: {e}")
+            return False
+
+    def _word_to_pdf_windows_com(self, file_path, session_id):
+        """Windows COM method with enhanced error handling"""
+        try:
+            import pythoncom
+            import win32com.client
+        
+            pythoncom.CoInitialize()
+        
+            try:
             # Create Word application
-            word = win32com.client.Dispatch("Word.Application")
-            word.Visible = False
-            word.DisplayAlerts = 0  # Disable alerts
+                word = win32com.client.Dispatch("Word.Application")
+                word.Visible = False
+                word.DisplayAlerts = 0  # Disable alerts
             
             # Open document
-            doc = word.Documents.Open(os.path.abspath(file_path))
+                doc = word.Documents.Open(os.path.abspath(file_path))
             
             # Export as PDF with high quality settings
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
-            doc.ExportAsFixedFormat(
-                OutputFileName=os.path.abspath(output_path),
-                ExportFormat=17,  # PDF format
-                OpenAfterExport=False,
-                OptimizeFor=0,  # Print optimization
-                Range=0,  # Export entire document
-                Item=7,  # Export document contents
-                IncludeDocProps=True,
-                KeepIRM=True,
-                CreateBookmarks=0,
-                DocStructureTags=True,
-                BitmapMissingFonts=True,
-                UseDocumentImageQuality=False
-            )
+                output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+                doc.ExportAsFixedFormat(
+                    OutputFileName=os.path.abspath(output_path),
+                    ExportFormat=17,  # PDF format
+                    OpenAfterExport=False,
+                    OptimizeFor=0,  # Print optimization
+                    Range=0,  # Export entire document
+                    Item=7,  # Export document contents
+                    IncludeDocProps=True,
+                    KeepIRM=True,
+                    CreateBookmarks=0,
+                    DocStructureTags=True,
+                    BitmapMissingFonts=True,
+                    UseDocumentImageQuality=False
+                )
             
             # Close document and Word
-            doc.Close()
-            word.Quit()
+                doc.Close()
+                word.Quit()
             
-            return output_path
+                return output_path
             
-        finally:
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                pass
+            finally:
+                try:
+                    pythoncom.CoUninitialize()
+                except:
+                    pass
                 
-    except ImportError:
-        raise Exception("pywin32 not installed. Install with: pip install pywin32")
-    except Exception as e:
-        raise Exception(f"Microsoft Word COM failed: {str(e)}")
+        except ImportError:
+            raise Exception("pywin32 not installed. Install with: pip install pywin32")
+        except Exception as e:
+            raise Exception(f"Microsoft Word COM failed: {str(e)}")
 
-def _word_to_pdf_advanced_kannada(self, file_path, session_id):
-    """
+    def _word_to_pdf_advanced_kannada(self, file_path, session_id):
+        """
     Advanced conversion using python-docx + ReportLab with Kannada font support
-    """
-    try:
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-        from reportlab.lib import colors
-        from reportlab.lib.units import inch
-        from reportlab.lib.pagesizes import letter, A4
-        from docx import Document
-        import html
+     """
+        try:
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
+            from reportlab.lib.pagesizes import letter, A4
+            from docx import Document
+            import html
         
         # Register Kannada fonts if available
-        self._register_kannada_fonts()
+            self._register_kannada_fonts()
         
         # Read Word document
-        doc = Document(file_path)
+            doc = Document(file_path)
         
         # Create PDF with proper page size
-        output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
-        pdf_doc = SimpleDocTemplate(
-            output_path,
-            pagesize=A4,
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+            pdf_doc = SimpleDocTemplate(
+                output_path,
+                pagesize=A4,
             leftMargin=0.75*inch,
             rightMargin=0.75*inch,
             topMargin=1*inch,
             bottomMargin=1*inch
-        )
+            )
         
-        story = []
-        styles = getSampleStyleSheet()
+            story = []
+            styles = getSampleStyleSheet()
         
         # Create custom styles with Kannada font support
-        kannada_font = self._get_kannada_font_name()
+            kannada_font = self._get_kannada_font_name()
         
         # Enhanced paragraph styles
-        custom_styles = {
-            'KannadaTitle': ParagraphStyle(
+            custom_styles = {
+                'KannadaTitle': ParagraphStyle(
                 'KannadaTitle',
                 parent=styles['Title'],
                 fontName=kannada_font,
                 fontSize=18,
                 spaceAfter=20,
                 alignment=TA_CENTER
-            ),
-            'KannadaHeading1': ParagraphStyle(
+                ),
+                'KannadaHeading1': ParagraphStyle(
                 'KannadaHeading1',
                 parent=styles['Heading1'],
                 fontName=kannada_font,
                 fontSize=16,
                 spaceAfter=12,
                 spaceBefore=12
-            ),
-            'KannadaHeading2': ParagraphStyle(
+                ),
+                'KannadaHeading2': ParagraphStyle(
                 'KannadaHeading2',
                 parent=styles['Heading2'],
                 fontName=kannada_font,
                 fontSize=14,
                 spaceAfter=10,
                 spaceBefore=10
-            ),
-            'KannadaNormal': ParagraphStyle(
+                ),
+                'KannadaNormal': ParagraphStyle(
                 'KannadaNormal',
                 parent=styles['Normal'],
                 fontName=kannada_font,
                 fontSize=12,
                 spaceAfter=6,
                 alignment=TA_JUSTIFY
-            )
-        }
+                )
+            }
         
         # Process paragraphs
-        for para in doc.paragraphs:
-            if para.text.strip():
-                # Clean and escape text
-                text = html.escape(para.text.strip())
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    # Clean and escape text
+                    text = html.escape(para.text.strip())
                 
                 # Determine style based on Word style
-                if 'Title' in para.style.name:
-                    style = custom_styles['KannadaTitle']
-                elif 'Heading 1' in para.style.name:
-                    style = custom_styles['KannadaHeading1']
-                elif 'Heading 2' in para.style.name:
-                    style = custom_styles['KannadaHeading2']
-                elif 'Heading' in para.style.name:
-                    style = custom_styles['KannadaHeading2']
-                else:
-                    style = custom_styles['KannadaNormal']
+                    if 'Title' in para.style.name:
+                        style = custom_styles['KannadaTitle']
+                    elif 'Heading 1' in para.style.name:
+                        style = custom_styles['KannadaHeading1']
+                    elif 'Heading 2' in para.style.name:
+                        style = custom_styles['KannadaHeading2']
+                    elif 'Heading' in para.style.name:
+                        style = custom_styles['KannadaHeading2']
+                    else:
+                        style = custom_styles['KannadaNormal']
                 
                 # Create paragraph with proper encoding
-                try:
-                    pdf_para = Paragraph(text, style)
-                    story.append(pdf_para)
-                    story.append(Spacer(1, 6))
-                except Exception as e:
-                    # Fallback for problematic text
-                    fallback_text = text.encode('ascii', 'ignore').decode('ascii')
-                    if fallback_text.strip():
-                        pdf_para = Paragraph(fallback_text, styles['Normal'])
+                    try:
+                        pdf_para = Paragraph(text, style)
                         story.append(pdf_para)
                         story.append(Spacer(1, 6))
+                    except Exception as e:
+                    # Fallback for problematic text
+                        fallback_text = text.encode('ascii', 'ignore').decode('ascii')
+                        if fallback_text.strip():
+                            pdf_para = Paragraph(fallback_text, styles['Normal'])
+                            story.append(pdf_para)
+                            story.append(Spacer(1, 6))
         
         # Process tables
-        for table in doc.tables:
-            table_data = []
-            for row in table.rows:
-                row_data = []
-                for cell in row.cells:
-                    cell_text = html.escape(cell.text.strip())
-                    row_data.append(cell_text)
-                table_data.append(row_data)
+            for table in doc.tables:
+                table_data = []
+                for row in table.rows:
+                    row_data = []
+                    for cell in row.cells:
+                        cell_text = html.escape(cell.text.strip())
+                        row_data.append(cell_text)
+                    table_data.append(row_data)
             
-            if table_data:
-                # Create PDF table
-                pdf_table = Table(table_data, hAlign='LEFT')
-                pdf_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTNAME', (0, 1), (-1, -1), kannada_font),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP')
-                ]))
+                if table_data:
+                    # Create PDF table
+                    pdf_table = Table(table_data, hAlign='LEFT')
+                    pdf_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTNAME', (0, 1), (-1, -1), kannada_font),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP')
+                    ]))
                 
-                story.append(Spacer(1, 12))
-                story.append(pdf_table)
-                story.append(Spacer(1, 12))
+                    story.append(Spacer(1, 12))
+                    story.append(pdf_table)
+                    story.append(Spacer(1, 12))
         
         # Add default content if document is empty
-        if not story:
-            story.append(Paragraph("ದಾಖಲೆಯಲ್ಲಿ ಯಾವುದೇ ವಿಷಯ ಕಂಡುಬಂದಿಲ್ಲ", custom_styles['KannadaNormal']))
+            if not story:
+                story.append(Paragraph("ದಾಖಲೆಯಲ್ಲಿ ಯಾವುದೇ ವಿಷಯ ಕಂಡುಬಂದಿಲ್ಲ", custom_styles['KannadaNormal']))
         
         # Build PDF
-        pdf_doc.build(story)
+            pdf_doc.build(story)
         
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            return output_path
-        else:
-            raise Exception("PDF generation failed - output file is empty or not created")
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
+            else:
+                raise Exception("PDF generation failed - output file is empty or not created")
         
-    except Exception as e:
-        raise Exception(f"Advanced ReportLab conversion failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Advanced ReportLab conversion failed: {str(e)}")
 
-def _register_kannada_fonts(self):
-    """Register Kannada fonts for ReportLab"""
-    try:
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
+    def _register_kannada_fonts(self):
+        """Register Kannada fonts for ReportLab"""
+        try:
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
         
         # Common Kannada font paths
-        font_paths = []
+            font_paths = []
         
-        if platform.system() == "Windows":
-            font_paths = [
+            if platform.system() == "Windows":
+                font_paths = [
                 "C:/Windows/Fonts/Noto Sans Kannada Regular.ttf",
                 "C:/Windows/Fonts/tunga.ttf",
                 "C:/Windows/Fonts/Kalimati.ttf"
-            ]
-        elif platform.system() == "Darwin":  # macOS
-            font_paths = [
+             ]
+            elif platform.system() == "Darwin":  # macOS
+                font_paths = [
                 "/System/Library/Fonts/Noto Sans Kannada.ttc",
                 "/Library/Fonts/Noto Sans Kannada Regular.ttf"
-            ]
-        else:  # Linux
-            font_paths = [
+                ]
+            else:  # Linux
+                font_paths = [
                 "/usr/share/fonts/truetype/noto/NotoSansKannada-Regular.ttf",
                 "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
             ]
         
         # Try to register available fonts
-        for font_path in font_paths:
-            if os.path.exists(font_path):
-                try:
-                    pdfmetrics.registerFont(TTFont('KannadaFont', font_path))
-                    return
-                except Exception as e:
-                    continue
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        pdfmetrics.registerFont(TTFont('KannadaFont', font_path))
+                        return
+                    except Exception as e:
+                        continue
         
         # If no Kannada font found, use default
-        print("No Kannada fonts found, using default font")
+            print("No Kannada fonts found, using default font")
         
-    except Exception as e:
-        print(f"Font registration failed: {e}")
+        except Exception as e:
+            print(f"Font registration failed: {e}")
 
-def _get_kannada_font_name(self):
-    """Get the best available font name for Kannada text"""
-    try:
-        # Check if our custom Kannada font is registered
-        return 'KannadaFont'
-    except:
-        # Fall back to Helvetica which handles Unicode reasonably
-        return 'Helvetica'
+    def _get_kannada_font_name(self):
+        """Get the best available font name for Kannada text"""
+        try:
+            # Check if our custom Kannada font is registered
+            return 'KannadaFont'
+        except:
+            # Fall back to Helvetica which handles Unicode reasonably
+            return 'Helvetica'
 
 # Additional utility function for batch conversion
-def convert_multiple_word_files(self, file_paths, session_id_prefix="batch"):
-    """
-    Convert multiple Word files to PDF
+    def convert_multiple_word_files(self, file_paths, session_id_prefix="batch"):
+        """
+        Convert multiple Word files to PDF
     Returns list of successful conversions
     """
-    successful_conversions = []
-    failed_conversions = []
+        successful_conversions = []
+        failed_conversions = []
     
-    for i, file_path in enumerate(file_paths):
-        try:
-            session_id = f"{session_id_prefix}_{i+1}"
-            output_path = self.word_to_pdf(file_path, session_id)
-            successful_conversions.append({
+        for i, file_path in enumerate(file_paths):
+            try:
+                session_id = f"{session_id_prefix}_{i+1}"
+                output_path = self.word_to_pdf(file_path, session_id)
+                successful_conversions.append({
                 'input': file_path,
                 'output': output_path,
                 'status': 'success'
-            })
-        except Exception as e:
-            failed_conversions.append({
-                'input': file_path,
-                'error': str(e),
-                'status': 'failed'
-            })
+                })
+            except Exception as e:
+                failed_conversions.append({
+                    'input': file_path,
+                    'error': str(e),
+                    'status': 'failed'
+                })
     
-    return {
-        'successful': successful_conversions,
-        'failed': failed_conversions,
-        'total_processed': len(file_paths),
-        'success_count': len(successful_conversions),
-        'failure_count': len(failed_conversions)
-    }
+        return {
+            'successful': successful_conversions,
+            'failed': failed_conversions,
+            'total_processed': len(file_paths),
+            'success_count': len(successful_conversions),
+            'failure_count': len(failed_conversions)
+        }
 
-def _parse_page_ranges(self, pages_str, total_pages):
-    """Parse page ranges like '1,3,5-10' into list of page numbers"""
-    pages = []
-        
-    for part in pages_str.split(','):
-        part = part.strip()
-        if '-' in part:
-            start, end = map(int, part.split('-'))
-            pages.extend(range(start, min(end + 1, total_pages + 1)))
-        else:
-            page_num = int(part)
-            if 1 <= page_num <= total_pages:
-                pages.append(page_num)
-        
-        return sorted(list(set(pages)))
