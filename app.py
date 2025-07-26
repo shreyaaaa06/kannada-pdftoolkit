@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_file, session
+from flask import Flask, request, render_template, jsonify, send_file, session, url_for
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -10,10 +10,13 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
+app.config['PREVIEW_FOLDER'] = 'static/previews'  # New folder for preview images
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
+# Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
 
 file_handler = FileHandler()
 pdf_ops = PDFOperations()
@@ -21,6 +24,52 @@ pdf_ops = PDFOperations()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/generate-preview', methods=['POST'])
+def generate_preview():
+    """Generate page previews for PDF files"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಫೈಲ್ ಕಳುಹಿಸಲಾಗಿಲ್ಲ'})
+        
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'error': 'ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ'})
+        
+        if not file.filename.lower().endswith('.pdf'):
+            return jsonify({'success': False, 'error': 'PDF ಫೈಲ್ ಮಾತ್ರ ಬೆಂಬಲಿತ'})
+        
+        # Generate session ID if not exists
+        if 'session_id' not in session:
+            session['session_id'] = str(uuid.uuid4())
+        
+        session_id = session['session_id']
+        
+        # Save uploaded file temporarily
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_{filename}")
+        file.save(temp_path)
+        
+        # Generate page previews
+        preview_data = pdf_ops.generate_page_previews(temp_path, session_id, app.config['PREVIEW_FOLDER'])
+        
+        if preview_data:
+            # Convert file paths to URLs
+            for preview in preview_data['previews']:
+                # Convert absolute path to relative URL
+                relative_path = os.path.relpath(preview['image_path'], 'static')
+                preview['image_path'] = url_for('static', filename=relative_path)
+            
+            return jsonify({
+                'success': True,
+                'total_pages': preview_data['total_pages'],
+                'previews': preview_data['previews']
+            })
+        else:
+            return jsonify({'success': False, 'error': 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ದೋಷ: {str(e)}'})
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -52,7 +101,7 @@ def upload_file():
             return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಸರಿಯಾದ ಫೈಲ್‌ಗಳು ಅಪ್‌ಲೋಡ್ ಆಗಿಲ್ಲ'})
         
         # Process operation
-        pages = request.form.get('pages', '')
+        pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
         result_path = None
         
@@ -99,6 +148,11 @@ def upload_file():
     except Exception as e:
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
 
+@app.route('/process', methods=['POST'])
+def process_files():
+    """Alternative endpoint for processing files (matches main.js expectations)"""
+    return upload_file()
+
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
     try:
@@ -111,8 +165,103 @@ def download_file(session_id, filename):
 
 @app.route('/reset', methods=['POST'])
 def reset_session():
+    """Reset session and clear processed files"""
     session.pop('processed_files', None)
+    
+    # Optional: Clean up old preview files for this session
+    if 'session_id' in session:
+        session_id = session['session_id']
+        try:
+            preview_dir = os.path.join(app.config['PREVIEW_FOLDER'], session_id)
+            if os.path.exists(preview_dir):
+                import shutil
+                shutil.rmtree(preview_dir)
+        except Exception as e:
+            pass  # Ignore cleanup errors
+    
     return jsonify({'success': True})
 
+@app.route('/cleanup-session', methods=['POST'])
+def cleanup_session():
+    """Clean up session files and previews"""
+    if 'session_id' not in session:
+        return jsonify({'success': True})
+    
+    session_id = session['session_id']
+    
+    try:
+        # Clean up preview files
+        preview_dir = os.path.join(app.config['PREVIEW_FOLDER'], session_id)
+        if os.path.exists(preview_dir):
+            import shutil
+            shutil.rmtree(preview_dir)
+        
+        # Clean up uploaded files
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename.startswith(session_id):
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+        
+        # Clean up output files older than current session
+        for filename in os.listdir(app.config['OUTPUT_FOLDER']):
+            if filename.startswith(session_id):
+                file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+                try:
+                    # Keep recent files, remove older ones
+                    import time
+                    if os.path.getctime(file_path) < time.time() - 3600:  # 1 hour old
+                        os.remove(file_path)
+                except:
+                    pass
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 100MB ಅನುಮತಿ'}), 413
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'success': False, 'error': 'ವಿನಂತಿಸಿದ ಸಂಪನ್ಮೂಲ ಸಿಗಲಿಲ್ಲ'}), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'success': False, 'error': 'ಸರ್ವರ್ ದೋಷ ಸಂಭವಿಸಿದೆ'}), 500
+
+# Cleanup old files on startup
+def cleanup_old_files():
+    """Clean up old files on server startup"""
+    import time
+    current_time = time.time()
+    
+    # Clean up files older than 24 hours
+    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], app.config['PREVIEW_FOLDER']]:
+        if not os.path.exists(folder):
+            continue
+            
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                file_path = os.path.join(root, file)
+                try:
+                    if os.path.getctime(file_path) < current_time - 86400:  # 24 hours
+                        os.remove(file_path)
+                except:
+                    continue
+            
+            # Remove empty directories
+            for dir in dirs:
+                dir_path = os.path.join(root, dir)
+                try:
+                    if not os.listdir(dir_path):
+                        os.rmdir(dir_path)
+                except:
+                    continue
+
 if __name__ == '__main__':
+    cleanup_old_files()
     app.run(debug=True)
