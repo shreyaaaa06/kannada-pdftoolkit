@@ -1,6 +1,9 @@
 from flask import Flask, request, render_template, jsonify, send_file, session
 import os
 import uuid
+import tempfile
+import atexit
+import threading
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
@@ -10,7 +13,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -18,6 +21,33 @@ os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 file_handler = FileHandler()
 pdf_ops = PDFOperations()
+
+# FIXED: File cleanup system
+def cleanup_old_files():
+    """Clean up files older than 1 hour"""
+    import time
+    current_time = time.time()
+    
+    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            if os.path.isfile(file_path):
+                # Delete files older than 1 hour
+                if current_time - os.path.getctime(file_path) > 3600:
+                    try:
+                        os.remove(file_path)
+                    except:
+                        pass
+
+def cleanup_session_files(session_id):
+    """Clean up files for a specific session"""
+    for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
+        for filename in os.listdir(folder):
+            if filename.startswith(session_id):
+                try:
+                    os.remove(os.path.join(folder, filename))
+                except:
+                    pass
 
 @app.route('/')
 def index():
@@ -32,6 +62,9 @@ def upload_file():
         
         session_id = session['session_id']
         operation = request.form.get('operation')
+        
+        # FIXED: Clean up previous session files first
+        cleanup_session_files(session_id)
         
         # Get uploaded files
         files = request.files.getlist('files')
@@ -105,6 +138,15 @@ def upload_file():
             print(f"Operation error: {e}")
             return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(e)}'})
         
+        # FIXED: Clean up uploaded files after processing
+        finally:
+            for file_path in file_paths:
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except:
+                    pass
+        
         # Check if result file exists
         if result_path and os.path.exists(result_path):
             filename = os.path.basename(result_path)
@@ -128,12 +170,52 @@ def download_file(session_id, filename):
     try:
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
         if os.path.exists(file_path) and filename.startswith(session_id):
+            # FIXED: Schedule file cleanup after download
+            def cleanup_after_download():
+                import time
+                time.sleep(10)  # Wait 10 seconds after download
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except:
+                    pass
+            
+            # Start cleanup in background
+            threading.Thread(target=cleanup_after_download).start()
+            
             return send_file(file_path, as_attachment=True, download_name=filename)
         else:
             return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
     except Exception as e:
         print(f"Download error: {e}")
         return jsonify({'error': str(e)}), 500
+
+# FIXED: Add cleanup route for manual cleanup
+@app.route('/cleanup', methods=['POST'])
+def cleanup():
+    try:
+        session_id = session.get('session_id')
+        if session_id:
+            cleanup_session_files(session_id)
+        return jsonify({'success': True})
+    except:
+        return jsonify({'success': False})
+
+# FIXED: Periodic cleanup
+import threading
+import time
+
+def periodic_cleanup():
+    while True:
+        time.sleep(1800)  # Run every 30 minutes
+        cleanup_old_files()
+
+# Start cleanup thread
+cleanup_thread = threading.Thread(target=periodic_cleanup, daemon=True)
+cleanup_thread.start()
+
+# Clean up on exit
+atexit.register(cleanup_old_files)
 
 if __name__ == '__main__':
     app.run(debug=True)
