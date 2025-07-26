@@ -1,1351 +1,1096 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಕನ್ನಡ PDF ಟೂಲ್ಕಿಟ್ - ಅಪ್ಲೋಡ್</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans Kannada', sans-serif;
+            background: linear-gradient(135deg, #f4f1e8 0%, #e8dcc0 100%);
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(160, 82, 45, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="paper" patternUnits="userSpaceOnUse" width="100" height="100"><rect fill="%23f9f6f0" width="100" height="100"/><path d="M0 0h100v1H0zM0 20h100v1H0zM0 40h100v1H0zM0 60h100v1H0zM0 80h100v1H0z" fill="%23e6dcc0" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23paper)"/></svg>') repeat;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(139, 69, 19, 0.2);
+            border: 2px solid #d4af37;
+            position: relative;
+        }
+
+        .header::before {
+            content: '🕉️';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f4f1e8;
+            padding: 5px 15px;
+            font-size: 24px;
+            border-radius: 50px;
+            border: 2px solid #d4af37;
+        }
+
+        .header h1 {
+            color: #8b4513;
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.3);
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #a0522d;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
 
-{% block title %}ಫೈಲ್ ಅಪ್‌ಲೋಡ್ - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು{% endblock %}
-
-{% block content %}
-<div class="container">
-    <!-- Back Navigation -->
-    <div class="navigation-section fade-in">
-        <a href="{{ url_for('index') }}" class="btn-back">
-            <i class="fas fa-arrow-left"></i>
-            ಮುಖ್ಯ ಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ
-        </a>
-    </div>
-
-    <!-- Upload Section -->
-    <section class="upload-section slide-up">
-        <div class="upload-header">
-            <h2 class="section-title">
-                <i class="fas fa-cloud-upload-alt"></i>
-                ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ
-            </h2>
-            <div class="ornament"></div>
-            <p class="section-description">
-                ನಿಮ್ಮ ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಮತ್ತು ಅವುಗಳ ಮೇಲೆ ಕಾರ್ಯಗಳನ್ನು ನಿರ್ವಹಿಸಿ
-            </p>
-        </div>
-
-        <!-- Operation Selection -->
-        <div class="operation-selection">
-            <div class="form-group">
-                <label class="form-label" for="operationSelect">
-                    <i class="fas fa-cogs"></i>
-                    ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ
-                </label>
-                <select id="operationSelect" class="form-select" onchange="updateOperation()">
-                    <option value="">-- ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ --</option>
-                    <optgroup label="PDF ಕಾರ್ಯಗಳು">
-                        <option value="merge">PDF ಗಳನ್ನು ವಿಲೀನಗೊಳಿಸಿ</option>
-                        <option value="split">PDF ಅನ್ನು ವಿಭಾಗಿಸಿ</option>
-                        <option value="extract">ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ</option>
-                        <option value="delete">ಪುಟಗಳನ್ನು ಅಳಿಸಿ</option>
-                        <option value="crop">ಪುಟಗಳನ್ನು ಕತ್ತರಿಸಿ</option>
-                        <option value="rotate">ಪುಟಗಳನ್ನು ತಿರುಗಿಸಿ</option>
-                        <option value="compress">PDF ಸಂಕುಚಿಸಿ</option>
-                    </optgroup>
-                    <optgroup label="ರೂಪಾಂತರ ಕಾರ್ಯಗಳು">
-                        <option value="pdf_to_word">PDF ನಿಂದ Word ಗೆ</option>
-                        <option value="word_to_pdf">Word ನಿಂದ PDF ಗೆ</option>
-                        <option value="pdf_to_jpeg">PDF ನಿಂದ ಚಿತ್ರಗಳಿಗೆ</option>
-                        <option value="jpeg_to_pdf">ಚಿತ್ರಗಳಿಂದ PDF ಗೆ</option>
-                    </optgroup>
-                </select>
-            </div>
-        </div>
-
-        <!-- Upload Form -->
-        <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" style="display: none;">
-            <input type="hidden" name="operation" id="selectedOperation">
-            
-            <!-- File Upload Area -->
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </div>
-                <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
-                <div class="upload-subtext" id="uploadSubtext">ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF, Word, ಚಿತ್ರಗಳು</div>
-                <input type="file" name="files" id="fileInput" multiple style="display: none;">
-                
-                <!-- Upload Guidelines -->
-                <div class="upload-guidelines">
-                    <div class="guideline-item">
-                        <i class="fas fa-info-circle"></i>
-                        <span>ಗರಿಷ್ಠ ಫೈಲ್ ಗಾತ್ರ: 100MB</span>
-                    </div>
-                    <div class="guideline-item">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>ನಿಮ್ಮ ಫೈಲ್‌ಗಳು ಸುರಕ್ಷಿತವಾಗಿರುತ್ತವೆ</span>
-                    </div>
-                    <div class="guideline-item">
-                        <i class="fas fa-clock"></i>
-                        <span>ಫೈಲ್‌ಗಳು 1 ಗಂಟೆ ನಂತರ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Selected Files Display -->
-            <div id="selectedFilesSection" style="display: none;">
-                <h3 class="subsection-title">
-                    <i class="fas fa-list"></i>
-                    ಆಯ್ಕೆ ಮಾಡಿದ ಫೈಲ್‌ಗಳು
-                </h3>
-                <div id="filesList" class="files-grid"></div>
-                
-                <div class="files-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">ಒಟ್ಟು ಫೈಲ್‌ಗಳು:</span>
-                        <span id="totalFiles" class="summary-value">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">ಒಟ್ಟು ಗಾತ್ರ:</span>
-                        <span id="totalSize" class="summary-value">0 KB</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Operation Parameters -->
-            <div id="operationParameters" style="display: none;">
-                <h3 class="subsection-title">
-                    <i class="fas fa-sliders-h"></i>
-                    ಕಾರ್ಯಾಚರಣೆ ನಿಯತಾಂಕಗಳು
-                </h3>
-
-                <!-- Pages Selection -->
-                <div class="form-group" id="pagesGroup" style="display: none;">
-                    <label class="form-label" for="pagesInput">
-                        <i class="fas fa-file-alt"></i>
-                        ಪುಟ ಸಂಖ್ಯೆಗಳು
-                    </label>
-                    <input type="text" name="pages" id="pagesInput" class="form-input" 
-                           placeholder="ಉದಾ: 1,3,5-10">
-                    <div class="input-help">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</span>
-                    </div>
-                </div>
-
-                <!-- Rotation Angle -->
-                <div class="form-group" id="angleGroup" style="display: none;">
-                    <label class="form-label" for="angleSelect">
-                        <i class="fas fa-redo"></i>
-                        ತಿರುಗುವ ಕೋನ
-                    </label>
-                    <div class="angle-options">
-                        <div class="angle-option">
-                            <input type="radio" name="angle" value="90" id="angle90" checked>
-                            <label for="angle90" class="angle-label">
-                                <i class="fas fa-redo"></i>
-                                <span>90° ಬಲಕ್ಕೆ</span>
-                            </label>
-                        </div>
-                        <div class="angle-option">
-                            <input type="radio" name="angle" value="180" id="angle180">
-                            <label for="angle180" class="angle-label">
-                                <i class="fas fa-sync-alt"></i>
-                                <span>180° ತಿರುಗಿಸಿ</span>
-                            </label>
-                        </div>
-                        <div class="angle-option">
-                            <input type="radio" name="angle" value="270" id="angle270">
-                            <label for="angle270" class="angle-label">
-                                <i class="fas fa-undo"></i>
-                                <span>270° ಎಡಕ್ಕೆ</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Crop Settings -->
-                <div id="cropGroup" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-crop"></i>
-                            ಅಂಚುಗಳನ್ನು ಕತ್ತರಿಸಿ (ಪಿಕ್ಸೆಲ್‌ಗಳಲ್ಲಿ)
-                        </label>
-                        <div class="crop-grid">
-                            <div class="crop-input-group">
-                                <label for="cropTop" class="crop-label">ಮೇಲೆ</label>
-                                <input type="number" name="top" id="cropTop" class="form-input" 
-                                       placeholder="0" min="0" value="0">
-                            </div>
-                            <div class="crop-row">
-                                <div class="crop-input-group">
-                                    <label for="cropLeft" class="crop-label">ಎಡ</label>
-                                    <input type="number" name="left" id="cropLeft" class="form-input" 
-                                           placeholder="0" min="0" value="0">
-                                </div>
-                                <div class="crop-preview">
-                                    <div class="crop-preview-box">
-                                        <span>ಪೂರ್ವವೀಕ್ಷಣೆ</span>
-                                    </div>
-                                </div>
-                                <div class="crop-input-group">
-                                    <label for="cropRight" class="crop-label">ಬಲ</label>
-                                    <input type="number" name="right" id="cropRight" class="form-input" 
-                                           placeholder="0" min="0" value="0">
-                                </div>
-                            </div>
-                            <div class="crop-input-group">
-                                <label for="cropBottom" class="crop-label">ಕೆಳಗೆ</label>
-                                <input type="number" name="bottom" id="cropBottom" class="form-input" 
-                                       placeholder="0" min="0" value="0">
-                            </div>
-                        </div>
-                        <div class="input-help">
-                            <i class="fas fa-info-circle"></i>
-                            <span>ಪ್ರತಿ ಬದಿಯಿಂದ ಕತ್ತರಿಸಬೇಕಾದ ಪಿಕ್ಸೆಲ್‌ಗಳ ಸಂಖ್ಯೆ</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Compression Level -->
-                <div class="form-group" id="compressionGroup" style="display: none;">
-                    <label class="form-label">
-                        <i class="fas fa-compress-arrows-alt"></i>
-                        ಸಂಕುಚನ ಮಟ್ಟ
-                    </label>
-                    <div class="compression-options">
-                        <div class="compression-option">
-                            <input type="radio" name="compression" value="low" id="compLow">
-                            <label for="compLow" class="compression-label">
-                                <div class="compression-info">
-                                    <span class="compression-name">ಕಡಿಮೆ</span>
-                                    <span class="compression-desc">ಉತ್ತಮ ಗುಣಮಟ್ಟ, ದೊಡ್ಡ ಗಾತ್ರ</span>
-                                </div>
-                                <div class="compression-bar">
-                                    <div class="compression-level" style="width: 30%;"></div>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="compression-option">
-                            <input type="radio" name="compression" value="medium" id="compMedium" checked>
-                            <label for="compMedium" class="compression-label">
-                                <div class="compression-info">
-                                    <span class="compression-name">ಮಧ್ಯಮ</span>
-                                    <span class="compression-desc">ಸಮತೋಲಿತ ಗುಣಮಟ್ಟ ಮತ್ತು ಗಾತ್ರ</span>
-                                </div>
-                                <div class="compression-bar">
-                                    <div class="compression-level" style="width: 60%;"></div>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="compression-option">
-                            <input type="radio" name="compression" value="high" id="compHigh">
-                            <label for="compHigh" class="compression-label">
-                                <div class="compression-info">
-                                    <span class="compression-name">ಹೆಚ್ಚು</span>
-                                    <span class="compression-desc">ಚಿಕ್ಕ ಗಾತ್ರ, ಕಡಿಮೆ ಗುಣಮಟ್ಟ</span>
-                                </div>
-                                <div class="compression-bar">
-                                    <div class="compression-level" style="width: 90%;"></div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button type="button" class="btn btn-secondary" onclick="resetForm()">
-                    <i class="fas fa-undo"></i>
-                    ಮರುಹೊಂದಿಸಿ
-                </button>
-                <button type="submit" class="btn btn-primary" id="processBtn" disabled>
-                    <i class="fas fa-cog"></i>
-                    ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
-                </button>
-            </div>
-        </form>
-    </section>
-
-    <!-- Processing Status -->
-    <div id="processingStatus" class="processing-status" style="display: none;">
-        <div class="status-card">
-            <div class="status-icon">
-                <i class="fas fa-cog fa-spin"></i>
-            </div>
-            <h3 class="status-title">ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗುತ್ತಿದೆ...</h3>
-            <div class="progress-container">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <p class="status-text" id="statusText">ಕೃಪಯೆ ಕಾಯಿರಿ...</p>
-        </div>
-    </div>
-</div>
-
-<style>
-    .navigation-section {
-        margin-bottom: 2rem;
-    }
-
-    .btn-back {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.75rem 1.5rem;
-        background: rgba(255, 255, 255, 0.8);
-        border: 2px solid var(--border-ornate);
-        border-radius: 25px;
-        color: var(--ink-brown);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .btn-back:hover {
-        background: rgba(255, 255, 255, 0.95);
-        transform: translateX(-5px);
-        box-shadow: 0 4px 15px rgba(141, 110, 99, 0.3);
-    }
-
-    .btn-back i {
-        margin-right: 0.5rem;
-    }
-
-    .upload-section {
-        background: rgba(255, 255, 255, 0.7);
-        border: 2px solid var(--border-ornate);
-        border-radius: 20px;
-        padding: 3rem;
-        margin: 2rem 0;
-    }
-
-    .upload-header {
-        text-align: center;
-        margin-bottom: 3rem;
-    }
-
-    .operation-selection {
-        margin-bottom: 2rem;
-    }
-
-    .upload-guidelines {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        margin-top: 1.5rem;
-        flex-wrap: wrap;
-    }
-
-    .guideline-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--ink-brown);
-        font-size: 0.9rem;
-    }
-
-    .guideline-item i {
-        color: var(--gold-accent);
-    }
-
-    .subsection-title {
-        font-family: 'Cinzel', 'Noto Sans Kannada', serif;
-        font-size: 1.4rem;
-        color: var(--ink-black);
-        margin: 2rem 0 1rem 0;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid var(--gold-accent);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .files-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 1rem;
-        margin: 1rem 0;
-    }
-
-    .file-card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid var(--border-ornate);
-        border-radius: 10px;
-        padding: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .file-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(141, 110, 99, 0.2);
-    }
-
-    .file-card-icon {
-        font-size: 2rem;
-        color: var(--gold-accent);
-        flex-shrink: 0;
-    }
-
-    .file-card-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .file-card-name {
-        font-weight: 500;
-        color: var(--ink-black);
-        margin-bottom: 0.25rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .file-card-size {
-        font-size: 0.85rem;
-        color: var(--ink-brown);
-        opacity: 0.8;
-    }
-
-    .file-card-remove {
-        color: var(--error-red);
-        cursor: pointer;
-        padding: 0.25rem;
-        border-radius: 4px;
-        transition: background 0.3s ease;
-        flex-shrink: 0;
-    }
-
-    .file-card-remove:hover {
-        background: rgba(211, 47, 47, 0.1);
-    }
-
-    .files-summary {
-        display: flex;
-        justify-content: center;
-        gap: 3rem;
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: rgba(212, 175, 55, 0.1);
-        border-radius: 10px;
-        border: 1px solid var(--gold-accent);
-    }
-
-    .summary-item {
-        text-align: center;
-    }
-
-    .summary-label {
-        display: block;
-        font-size: 0.9rem;
-        color: var(--ink-brown);
-        margin-bottom: 0.25rem;
-    }
-
-    .summary-value {
-        display: block;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--ink-black);
-    }
-
-    .angle-options {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-    }
-
-    .angle-option {
-        position: relative;
-    }
-
-    .angle-option input[type="radio"] {
-        display: none;
-    }
-
-    .angle-label {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.8);
-        border: 2px solid var(--border-ornate);
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .angle-option input[type="radio"]:checked + .angle-label {
-        background: rgba(212, 175, 55, 0.2);
-        border-color: var(--gold-accent);
-        transform: scale(1.02);
-    }
-
-    .angle-label:hover {
-        background: rgba(255, 255, 255, 0.95);
-        transform: translateY(-2px);
-    }
-
-    .crop-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .crop-row {
-        display: grid;
-        grid-template-columns: 1fr 2fr 1fr;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .crop-input-group {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .crop-label {
-        font-size: 0.9rem;
-        color: var(--ink-brown);
-        font-weight: 500;
-    }
-
-    .crop-preview {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .crop-preview-box {
-        width: 120px;
-        height: 80px;
-        border: 2px dashed var(--gold-accent);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--ink-brown);
-        font-size: 0.8rem;
-        background: rgba(212, 175, 55, 0.1);
-    }
-
-    .compression-options {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .compression-option {
-        position: relative;
-    }
-
-    .compression-option input[type="radio"] {
-        display: none;
-    }
-
-    .compression-label {
-        display: block;
-        padding: 1.5rem;
-        background: rgba(255, 255, 255, 0.8);
-        border: 2px solid var(--border-ornate);
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .compression-option input[type="radio"]:checked + .compression-label {
-        background: rgba(212, 175, 55, 0.2);
-        border-color: var(--gold-accent);
-        transform: scale(1.02);
-    }
-
-    .compression-label:hover {
-        background: rgba(255, 255, 255, 0.95);
-    }
-
-    .compression-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
-    }
-
-    .compression-name {
-        font-weight: 600;
-        color: var(--ink-black);
-        font-size: 1.1rem;
-    }
-
-    .compression-desc {
-        font-size: 0.9rem;
-        color: var(--ink-brown);
-        opacity: 0.8;
-    }
-
-    .compression-bar {
-        height: 6px;
-        background: var(--parchment-dark);
-        border-radius: 3px;
-        overflow: hidden;
-    }
-
-    .compression-level {
-        height: 100%;
-        background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
-        transition: width 0.3s ease;
-    }
-
-    .input-help {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: var(--ink-brown);
-        opacity: 0.8;
-    }
-
-    .input-help i {
-        color: var(--gold-accent);
-    }
-
-    .action-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-top: 3rem;
-        padding-top: 2rem;
-        border-top: 2px solid var(--border-ornate);
-    }
-
-    .btn-secondary {
-        background: rgba(255, 255, 255, 0.8);
-        border-color: var(--border-ornate);
-        color: var(--ink-brown);
-    }
-
-    .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: var(--ink-brown);
-    }
-
-    .processing-status {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(44, 24, 16, 0.9);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2000;
-        backdrop-filter: blur(5px);
-    }
-
-    .status-card {
-        background: var(--parchment-bg);
-        border: 3px solid var(--gold-accent);
-        border-radius: 20px;
-        padding: 3rem;
-        text-align: center;
-        min-width: 400px;
-        box-shadow: 0 20px 60px var(--manuscript-shadow);
-    }
-
-    .status-icon {
-        font-size: 4rem;
-        color: var(--gold-accent);
-        margin-bottom: 1.5rem;
-    }
-
-    .status-title {
-        font-family: 'Cinzel', 'Noto Sans Kannada', serif;
-        font-size: 1.5rem;
-        color: var(--ink-black);
-        margin-bottom: 2rem;
-    }
-
-    .status-text {
-        color: var(--ink-brown);
-        margin-top: 1rem;
-        font-size: 1.1rem;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
         .upload-section {
-            padding: 2rem 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(139, 69, 19, 0.15);
+            border: 2px solid #ddd;
+            position: relative;
         }
 
-        .upload-guidelines {
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #d4af37, #b8860b, #d4af37);
+            border-radius: 22px;
+            z-index: -1;
         }
 
-        .files-summary {
-            flex-direction: column;
-            gap: 1rem;
+        .operation-selector {
+            margin-bottom: 30px;
         }
 
-        .crop-row {
-            grid-template-columns: 1fr;
-            gap: 1rem;
+        .operation-selector h3 {
+            color: #8b4513;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
-        .crop-preview {
-            order: -1;
+        .operation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
 
-        .action-buttons {
-            flex-direction: column;
-        }
-
-        .status-card {
-            min-width: 300px;
-            padding: 2rem;
-        }
-    }
-</style>
-
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-    let selectedFiles = [];
-    let currentOperation = '';
-
-    // Operation configurations (same as in index.html)
-    const operationConfigs = {
-        'merge': { accept: '.pdf', multiple: true, options: [] },
-        'split': { accept: '.pdf', multiple: false, options: ['pages'] },
-        'extract': { accept: '.pdf', multiple: false, options: ['pages'] },
-        'delete': { accept: '.pdf', multiple: false, options: ['pages'] },
-        'crop': { accept: '.pdf', multiple: false, options: ['crop'] },
-        'rotate': { accept: '.pdf', multiple: true, options: ['angle'] },
-        'pdf_to_word': { accept: '.pdf', multiple: true, options: [] },
-        'word_to_pdf': { accept: '.doc,.docx', multiple: true, options: [] },
-        'pdf_to_jpeg': { accept: '.pdf', multiple: true, options: [] },
-        'jpeg_to_pdf': { accept: '.jpg,.jpeg,.png,.bmp,.tiff', multiple: true, options: [] },
-        'compress': { accept: '.pdf', multiple: true, options: ['compression'] }
-    };
-
-    function updateOperation() {
-        const operationSelect = document.getElementById('operationSelect');
-        const operation = operationSelect.value;
-        
-        if (!operation) {
-            document.getElementById('uploadForm').style.display = 'none';
-            return;
-        }
-        
-        currentOperation = operation;
-        const config = operationConfigs[operation];
-        
-        // Update form
-        document.getElementById('selectedOperation').value = operation;
-        document.getElementById('uploadForm').style.display = 'block';
-        
-        // Update file input
-        const fileInput = document.getElementById('fileInput');
-        fileInput.accept = config.accept;
-        fileInput.multiple = config.multiple;
-        
-        // Update upload text
-        const supportText = getSupportText(config.accept);
-        document.getElementById('uploadSubtext').textContent = supportText;
-        
-        // Show/hide operation parameters
-        showOperationParameters(config.options);
-        
-        // Reset form
-        resetForm();
-    }
-
-    function getSupportText(accept) {
-        const extensions = accept.toLowerCase();
-        if (extensions.includes('.pdf') && extensions.includes('.doc')) {
-            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF, Word ದಾಖಲೆಗಳು';
-        } else if (extensions.includes('.pdf')) {
-            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: PDF ಫೈಲ್‌ಗಳು';
-        } else if (extensions.includes('.doc')) {
-            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: Word ದಾಖಲೆಗಳು';
-        } else if (extensions.includes('.jpg')) {
-            return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು: ಚಿತ್ರ ಫೈಲ್‌ಗಳು';
-        }
-        return 'ಬೆಂಬಲಿತ ಫೈಲ್‌ಗಳು ಮಾತ್ರ';
-    }
-
-    function showOperationParameters(options) {
-        const parameterSection = document.getElementById('operationParameters');
-        const groups = ['pagesGroup', 'angleGroup', 'cropGroup', 'compressionGroup'];
-        
-        // Hide all groups
-        groups.forEach(group => {
-            document.getElementById(group).style.display = 'none';
-        });
-        
-        if (options.length > 0) {
-            parameterSection.style.display = 'block';
-            options.forEach(option => {
-                if (option === 'pages') {
-                    document.getElementById('pagesGroup').style.display = 'block';
-                } else if (option === 'angle') {
-                    document.getElementById('angleGroup').style.display = 'block';
-                } else if (option === 'crop') {
-                    document.getElementById('cropGroup').style.display = 'block';
-                } else if (option === 'compression') {
-                    document.getElementById('compressionGroup').style.display = 'block';
-                }
-            });
-        } else {
-            parameterSection.style.display = 'none';
-        }
-    }
-
-    // File upload handling
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
-
-    uploadArea.addEventListener('click', () => {
-        if (currentOperation) {
-            fileInput.click();
-        }
-    });
-
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        if (currentOperation) {
-            uploadArea.classList.add('dragover');
-        }
-    });
-
-    uploadArea.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        
-        if (currentOperation) {
-            const files = Array.from(e.dataTransfer.files);
-            handleFileSelection(files);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        handleFileSelection(files);
-    });
-
-    function handleFileSelection(files) {
-        if (!currentOperation) return;
-        
-        const config = operationConfigs[currentOperation];
-        
-        // Check multiple files restriction
-        if (!config.multiple && files.length > 1) {
-            showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
-            return;
-        }
-        
-        // Validate file types
-        const validFiles = files.filter(file => {
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-            return config.accept.split(',').includes(extension);
-        });
-        
-        if (validFiles.length !== files.length) {
-            showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
-        }
-        
-        if (validFiles.length === 0) {
-            return;
-        }
-        
-        selectedFiles = validFiles;
-        displaySelectedFiles();
-        updateProcessButton();
-    }
-
-    function displaySelectedFiles() {
-        const filesSection = document.getElementById('selectedFilesSection');
-        const filesList = document.getElementById('filesList');
-        
-        if (selectedFiles.length === 0) {
-            filesSection.style.display = 'none';
-            return;
-        }
-        
-        filesSection.style.display = 'block';
-        
-        filesList.innerHTML = selectedFiles.map((file, index) => `
-            <div class="file-card">
-                <div class="file-card-icon">
-                    <i class="fas fa-file-${getFileIcon(file.name)}"></i>
-                </div>
-                <div class="file-card-info">
-                    <div class="file-card-name" title="${file.name}">${file.name}</div>
-                    <div class="file-card-size">${formatFileSize(file.size)}</div>
-                </div>
-                <div class="file-card-remove" onclick="removeFile(${index})" title="ಫೈಲ್ ತೆಗೆದುಹಾಕಿ">
-                    <i class="fas fa-times"></i>
-                </div>
-            </div>
-        `).join('');
-        
-        // Update summary
-        document.getElementById('totalFiles').textContent = selectedFiles.length;
-        document.getElementById('totalSize').textContent = formatFileSize(
-            selectedFiles.reduce((total, file) => total + file.size, 0)
-        );
-    }
-
-    function removeFile(index) {
-        selectedFiles.splice(index, 1);
-        displaySelectedFiles();
-        updateProcessButton();
-        
-        // Update file input
-        const dt = new DataTransfer();
-        selectedFiles.forEach(file => dt.items.add(file));
-        fileInput.files = dt.files;
-    }
-
-    function updateProcessButton() {
-        const processBtn = document.getElementById('processBtn');
-        processBtn.disabled = selectedFiles.length === 0;
-    }
-
-    function resetForm() {
-        selectedFiles = [];
-        displaySelectedFiles();
-        updateProcessButton();
-        fileInput.value = '';
-        
-        // Reset form inputs
-        document.getElementById('pagesInput').value = '';
-        document.querySelectorAll('input[name="angle"]')[0].checked = true;
-        document.querySelectorAll('input[name="compression"]')[1].checked = true;
-        document.querySelectorAll('#cropGroup input').forEach(input => input.value = '0');
-    }
-
-    function getFileIcon(filename) {
-        const extension = filename.split('.').pop().toLowerCase();
-        const icons = {
-            'pdf': 'pdf',
-            'doc': 'word', 'docx': 'word',
-            'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'bmp': 'image', 'tiff': 'image'
-        };
-        return icons[extension] || 'alt';
-    }
-
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 ಬೈಟ್‌ಗಳು';
-        const k = 1024;
-        const sizes = ['ಬೈಟ್‌ಗಳು', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    function showAlert(type, message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} fade-in`;
-        alertDiv.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            ${message}
-        `;
-        
-        const container = document.querySelector('.container');
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        setTimeout(() => alertDiv.remove(), 5000);
-    }
-
-    // Form submission
-    // Replace the problematic section in your form submission event listener:
-// Remove the duplicate .then() chain and fix the syntax error
-
-// Find this section and replace it:
-document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (selectedFiles.length === 0) {
-        showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
-        return;
-    }
-    
-    // Update file input with selected files
-    const dt = new DataTransfer();
-    selectedFiles.forEach(file => dt.items.add(file));
-    fileInput.files = dt.files;
-    
-    // Show processing status
-    document.getElementById('processingStatus').style.display = 'flex';
-    
-    // Submit form via AJAX
-    const formData = new FormData(this);
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('processingStatus').style.display = 'none';
-        
-        if (data.success) {
-            // Redirect to download or show success
-            if (data.download_url) {
-                window.location.href = data.download_url;
-            } else {
-                window.location.href = "{{ url_for('index') }}";
-            }
-            showAlert('success', 'ಫೈಲ್‌ಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗಿದೆ!');
-        } else {
-            showAlert('error', data.error || 'ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ ದೋಷ ಸಂಭವಿಸಿದೆ');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('processingStatus').style.display = 'none';
-        showAlert('error', 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ ಸಂಭವಿಸಿದೆ');
-    });
-});
-
-    // Progress simulation for better UX
-    function simulateProgress() {
-        const progressBar = document.getElementById('progressBar');
-        const statusText = document.getElementById('statusText');
-        let progress = 0;
-        
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress > 90) progress = 90;
-            
-            progressBar.style.width = progress + '%';
-            
-            if (progress < 30) {
-                statusText.textContent = 'ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...';
-            } else if (progress < 60) {
-                statusText.textContent = 'ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆ ಮಾಡಲಾಗುತ್ತಿದೆ...';
-            } else {
-                statusText.textContent = 'ಫಲಿತಾಂಶವನ್ನು ತಯಾರಿಸಲಾಗುತ್ತಿದೆ...';
-            }
-        }, 500);
-        
-        // Clear interval when form processing is complete
-        document.getElementById('uploadForm').addEventListener('formComplete', () => {
-            clearInterval(progressInterval);
-            progressBar.style.width = '100%';
-        });
-    }
-
-    // Start progress simulation when processing begins
-    document.getElementById('uploadForm').addEventListener('submit', function() {
-        setTimeout(simulateProgress, 100);
-    });
-
-    // CSS for drag and drop effects
-    const uploadAreaStyles = `
-        .upload-area {
-            border: 3px dashed var(--border-ornate);
+        .operation-card {
+            background: linear-gradient(135deg, #fff 0%, #f9f6f0 100%);
+            border: 2px solid #e6dcc0;
             border-radius: 15px;
-            padding: 3rem 2rem;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.5);
             position: relative;
             overflow: hidden;
         }
 
-        .upload-area:hover {
-            border-color: var(--gold-accent);
-            background: rgba(212, 175, 55, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .upload-area.dragover {
-            border-color: var(--gold-accent);
-            background: rgba(212, 175, 55, 0.2);
-            transform: scale(1.02);
-        }
-
-        .upload-area::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
-            transform: rotate(45deg);
-            transition: all 0.5s ease;
-            opacity: 0;
-        }
-
-        .upload-area:hover::before {
-            opacity: 1;
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .upload-icon {
-            font-size: 4rem;
-            color: var(--gold-accent);
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .upload-area:hover .upload-icon {
-            transform: scale(1.1);
-            color: var(--copper-accent);
-        }
-
-        .upload-text {
-            font-size: 1.3rem;
-            font-weight: 500;
-            color: var(--ink-black);
-            margin-bottom: 0.5rem;
-        }
-
-        .upload-subtext {
-            color: var(--ink-brown);
-            opacity: 0.8;
-            margin-bottom: 1.5rem;
-        }
-
-        .progress-container {
-            width: 100%;
-            height: 8px;
-            background: var(--parchment-dark);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 1.5rem 0;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            width: 0%;
-            position: relative;
-        }
-
-        .progress-bar::after {
+        .operation-card::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
-            height: 100%;
+            left: -100%;
             width: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: progressShine 2s infinite;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+            transition: left 0.5s;
         }
 
-        @keyframes progressShine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        .operation-card:hover::before {
+            left: 100%;
         }
 
-        .alert {
-            padding: 1rem 1.5rem;
+        .operation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(139, 69, 19, 0.2);
+            border-color: #d4af37;
+        }
+
+        .operation-card.active {
+            background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(139, 69, 19, 0.3);
+        }
+
+        .operation-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .operation-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .operation-card p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .file-upload-area {
+            border: 3px dashed #d4af37;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .file-upload-area.drag-over {
+            border-color: #b8860b;
+            background: linear-gradient(135deg, #f9f6f0 0%, #e8dcc0 100%);
+            transform: scale(1.02);
+        }
+
+        .file-upload-area .upload-icon {
+            font-size: 4rem;
+            color: #d4af37;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .file-upload-area h3 {
+            color: #8b4513;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-area p {
+            color: #a0522d;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(139, 69, 19, 0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 69, 19, 0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: white;
+            border: 1px solid #e6dcc0;
             border-radius: 10px;
-            margin-bottom: 1rem;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            box-shadow: 0 5px 15px rgba(139, 69, 19, 0.1);
+        }
+
+        .file-info {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            font-weight: 500;
-            animation: slideDown 0.3s ease;
+            gap: 10px;
         }
 
-        .alert-success {
-            background: rgba(76, 175, 80, 0.1);
-            border: 2px solid #4CAF50;
-            color: #2E7D32;
+        .file-icon {
+            font-size: 1.5rem;
+            color: #d4af37;
         }
 
-        .alert-error {
-            background: rgba(244, 67, 54, 0.1);
-            border: 2px solid #F44336;
-            color: #C62828;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease;
-        }
-
-        .slide-up {
-            animation: slideUp 0.8s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Enhanced button styles */
-        .btn {
-            padding: 0.875rem 2rem;
-            border-radius: 25px;
-            border: 2px solid;
-            font-weight: 600;
+        .file-details h5 {
+            color: #8b4513;
             font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .file-details p {
+            color: #a0522d;
+            font-size: 0.85rem;
+        }
+
+        .remove-file {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .remove-file:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+
+        .options-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 1px solid #e6dcc0;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .option-group {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e6dcc0;
+        }
+
+        .option-group h4 {
+            color: #8b4513;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #8b4513;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e6dcc0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        .process-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+            display: block;
+            margin: 30px auto 0;
+            min-width: 200px;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: all 0.5s ease;
+        .process-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(40, 167, 69, 0.4);
         }
 
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--gold-accent), var(--copper-accent));
-            border-color: var(--gold-accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
+        .process-btn:disabled {
+            background: #ccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
 
-        .btn-primary:disabled::before {
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e6dcc0;
+            border-radius: 4px;
+            margin-top: 20px;
+            overflow: hidden;
             display: none;
         }
-    `;
 
-    // Inject additional styles
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = uploadAreaStyles;
-    document.head.appendChild(styleSheet);
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d4af37, #b8860b);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
 
-    // Initialize tooltips for better UX
-    function initializeTooltips() {
-        const tooltipElements = document.querySelectorAll('[title]');
-        tooltipElements.forEach(element => {
-            let tooltip;
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
             
-            element.addEventListener('mouseenter', (e) => {
-                tooltip = document.createElement('div');
-                tooltip.className = 'custom-tooltip';
-                tooltip.textContent = element.getAttribute('title');
-                tooltip.style.cssText = `
-                    position: absolute;
-                    background: var(--ink-black);
-                    color: white;
-                    padding: 0.5rem 0.75rem;
-                    border-radius: 6px;
-                    font-size: 0.875rem;
-                    pointer-events: none;
-                    z-index: 1000;
-                    opacity: 0;
-                    transform: translateY(5px);
-                    transition: all 0.2s ease;
-                `;
-                
-                document.body.appendChild(tooltip);
-                
-                const rect = element.getBoundingClientRect();
-                tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
-                tooltip.style.top = rect.bottom + 5 + 'px';
-                
-                setTimeout(() => {
-                    tooltip.style.opacity = '1';
-                    tooltip.style.transform = 'translateY(0)';
-                }, 10);
-                
-                // Remove original title to prevent default tooltip
-                element.setAttribute('data-title', element.getAttribute('title'));
-                element.removeAttribute('title');
-            });
+            .header h1 {
+                font-size: 2rem;
+            }
             
-            element.addEventListener('mouseleave', () => {
-                if (tooltip) {
-                    tooltip.style.opacity = '0';
-                    tooltip.style.transform = 'translateY(5px)';
-                    setTimeout(() => tooltip.remove(), 200);
-                }
-                
-                // Restore original title
-                if (element.getAttribute('data-title')) {
-                    element.setAttribute('title', element.getAttribute('data-title'));
-                    element.removeAttribute('data-title');
-                }
+            .operation-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 15px;
+            }
+            
+            .upload-section {
+                padding: 20px;
+            }
+            
+            .file-upload-area {
+                padding: 30px 20px;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ಕನ್ನಡ PDF ಟೂಲ್ಕಿಟ್</h1>
+            <p>ಪ್ರಾಚೀನ ಪಾಂಡುಲಿಪಿಯ ಶೈಲಿಯಲ್ಲಿ ನಿಮ್ಮ PDF ಫೈಲ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಿ</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="operation-selector">
+                <h3>ಕಾರ್ಯಾಚರಣೆಯನ್ನು ಆಯ್ಕೆ ಮಾಡಿ</h3>
+                <div class="operation-grid">
+                    <div class="operation-card" data-operation="merge">
+                        <span class="icon">📄</span>
+                        <h4>PDF ಮರ್ಜ್</h4>
+                        <p>ಅನೇಕ PDF ಫೈಲ್‌ಗಳನ್ನು ಒಂದಾಗಿ ಸೇರಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="split">
+                        <span class="icon">✂️</span>
+                        <h4>PDF ಸ್ಪ್ಲಿಟ್</h4>
+                        <p>PDF ಅನ್ನು ಪ್ರತ್ಯೇಕ ಪುಟಗಳಾಗಿ ವಿಭಜಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="extract">
+                        <span class="icon">📤</span>
+                        <h4>ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ</h4>
+                        <p>ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="delete">
+                        <span class="icon">🗑️</span>
+                        <h4>ಪುಟಗಳನ್ನು ಅಳಿಸಿ</h4>
+                        <p>ಅನಗತ್ಯ ಪುಟಗಳನ್ನು ತೆಗೆದುಹಾಕಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="rotate">
+                        <span class="icon">🔄</span>
+                        <h4>ಪುಟಗಳನ್ನು ತಿರುಗಿಸಿ</h4>
+                        <p>ಪುಟಗಳನ್ನು 90°, 180°, 270° ತಿರುಗಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="crop">
+                        <span class="icon">✂️</span>
+                        <h4>ಪುಟಗಳನ್ನು ಕ್ರಾಪ್ ಮಾಡಿ</h4>
+                        <p>ಪುಟದ ಅಂಚುಗಳನ್ನು ಟ್ರಿಮ್ ಮಾಡಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="compress">
+                        <span class="icon">🗜️</span>
+                        <h4>PDF ಕಂಪ್ರೆಸ್</h4>
+                        <p>ಫೈಲ್ ಗಾತ್ರವನ್ನು ಕಡಿಮೆ ಮಾಡಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="pdf-to-word">
+                        <span class="icon">📝</span>
+                        <h4>PDF ನಿಂದ Word</h4>
+                        <p>PDF ಅನ್ನು DOCX ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="word-to-pdf">
+                        <span class="icon">📄</span>
+                        <h4>Word ನಿಂದ PDF</h4>
+                        <p>DOCX ಅನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="pdf-to-image">
+                        <span class="icon">🖼️</span>
+                        <h4>PDF ನಿಂದ ಚಿತ್ರ</h4>
+                        <p>PDF ಪುಟಗಳನ್ನು JPEG ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="image-to-pdf">
+                        <span class="icon">📷</span>
+                        <h4>ಚಿತ್ರದಿಂದ PDF</h4>
+                        <p>ಚಿತ್ರಗಳನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
+                    </div>
+                    <div class="operation-card" data-operation="batch">
+                        <span class="icon">📦</span>
+                        <h4>ಬ್ಯಾಚ್ ಆಪರೇಷನ್</h4>
+                        <p>ಅನೇಕ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಿ</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-upload-area" id="uploadArea">
+                <span class="upload-icon">📁</span>
+                <h3>ಫೈಲ್‌ಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ</h3>
+                <p>ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಡ್ರ್ಯಾಗ್ ಮತ್ತು ಡ್ರಾಪ್ ಮಾಡಿ ಅಥವಾ ಬ್ರೌಸ್ ಮಾಡಿ</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ
+                </button>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.docx,.jpg,.jpeg,.png">
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="options-section" id="optionsSection" style="display: none;">
+                <div class="options-grid">
+                    <div class="option-group" id="pageOptions">
+                        <h4>ಪುಟ ಆಯ್ಕೆಗಳು</h4>
+                        <div class="form-group">
+                            <label for="pageRange">ಪುಟ ವ್ಯಾಪ್ತಿ (ಉದಾ: 1-5, 8, 10-15)</label>
+                            <input type="text" id="pageRange" placeholder="1-10 ಅಥವಾ 1,3,5">
+                        </div>
+                    </div>
+                    
+                    <div class="option-group" id="rotationOptions">
+                        <h4>ತಿರುಗುವಿಕೆ ಆಯ್ಕೆಗಳು</h4>
+                        <div class="form-group">
+                            <label for="rotationAngle">ಕೋನ</label>
+                            <select id="rotationAngle">
+                                <option value="90">90° ಬಲಕ್ಕೆ</option>
+                                <option value="180">180°</option>
+                                <option value="270">270° ಎಡಕ್ಕೆ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="option-group" id="compressionOptions">
+                        <h4>ಸಂಕೋಚನ ಆಯ್ಕೆಗಳು</h4>
+                        <div class="form-group">
+                            <label for="compressionLevel">ಗುಣಮಟ್ಟ</label>
+                            <select id="compressionLevel">
+                                <option value="high">ಹೆಚ್ಚಿನ ಗುಣಮಟ್ಟ</option>
+                                <option value="medium" selected>ಮಧ್ಯಮ ಗುಣಮಟ್ಟ</option>
+                                <option value="low">ಕಡಿಮೆ ಗುಣಮಟ್ಟ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="option-group" id="imageOptions">
+                        <h4>ಚಿತ್ರ ಆಯ್ಕೆಗಳು</h4>
+                        <div class="form-group">
+                            <label for="imageFormat">ಫಾರ್ಮ್ಯಾಟ್</label>
+                            <select id="imageFormat">
+                                <option value="jpeg">JPEG</option>
+                                <option value="png">PNG</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="imageDPI">DPI ಗುಣಮಟ್ಟ</label>
+                            <select id="imageDPI">
+                                <option value="150">150 DPI</option>
+                                <option value="300" selected>300 DPI</option>
+                                <option value="600">600 DPI</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="process-btn" id="processBtn" disabled onclick="processFiles()">
+                ಪ್ರಕ್ರಿಯೆ ಪ್ರಾರಂಭಿಸಿ
+            </button>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedOperation = '';
+        let uploadedFiles = [];
+
+        // Operation selection
+        document.querySelectorAll('.operation-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.operation-card').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                selectedOperation = this.dataset.operation;
+                updateOptionsDisplay();
+                updateProcessButton();
+                updateFileInputAccept();
             });
         });
-    }
 
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeTooltips();
+        // File input accept types based on operation
+        function updateFileInputAccept() {
+            const fileInput = document.getElementById('fileInput');
+            switch(selectedOperation) {
+                case 'word-to-pdf':
+                    fileInput.accept = '.docx,.doc';
+                    break;
+                case 'image-to-pdf':
+                    fileInput.accept = '.jpg,.jpeg,.png,.gif,.bmp';
+                    break;
+                case 'pdf-to-word':
+                case 'pdf-to-image':
+                case 'merge':
+                case 'split':
+                case 'extract':
+                case 'delete':
+                case 'rotate':
+                case 'crop':
+                case 'compress':
+                    fileInput.accept = '.pdf';
+                    break;
+                default:
+                    fileInput.accept = '.pdf,.docx,.jpg,.jpeg,.png';
+            }
+        }
+
+        // Update options display based on selected operation
+        function updateOptionsDisplay() {
+            const optionsSection = document.getElementById('optionsSection');
+            const pageOptions = document.getElementById('pageOptions');
+            const rotationOptions = document.getElementById('rotationOptions');
+            const compressionOptions = document.getElementById('compressionOptions');
+            const imageOptions = document.getElementById('imageOptions');
+
+            // Hide all options first
+            [pageOptions, rotationOptions, compressionOptions, imageOptions].forEach(option => {
+                option.style.display = 'none';
+            });
+
+            // Show relevant options based on operation
+            switch(selectedOperation) {
+                case 'extract':
+                case 'delete':
+                case 'split':
+                    pageOptions.style.display = 'block';
+                    optionsSection.style.display = 'block';
+                    break;
+                case 'rotate':
+                    rotationOptions.style.display = 'block';
+                    pageOptions.style.display = 'block';
+                    optionsSection.style.display = 'block';
+                    break;
+                case 'compress':
+                    compressionOptions.style.display = 'block';
+                    optionsSection.style.display = 'block';
+                    break;
+                case 'pdf-to-image':
+                    imageOptions.style.display = 'block';
+                    pageOptions.style.display = 'block';
+                    optionsSection.style.display = 'block';
+                    break;
+                case 'image-to-pdf':
+                    compressionOptions.style.display = 'block';
+                    optionsSection.style.display = 'block';
+                    break;
+                default:
+                    optionsSection.style.display = 'none';
+            }
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
         
-        // Add keyboard navigation support
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.getElementById('processingStatus').style.display === 'flex') {
-                // Allow users to cancel operation with Escape key
-                if (confirm('ಪ್ರಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಬೇಕೇ?')) {
-                    document.getElementById('processingStatus').style.display = 'none';
-                    showAlert('info', 'ಪ್ರಕ್ರಿಯೆಯನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('drag-over');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('drag-over');
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // File input change event
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+
+        // Handle uploaded files
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (validateFile(file)) {
+                    uploadedFiles.push(file);
+                    displayFile(file);
+                }
+            });
+            updateProcessButton();
+        }
+
+        // Validate file based on selected operation
+        function validateFile(file) {
+            const validTypes = {
+                'merge': ['application/pdf'],
+                'split': ['application/pdf'],
+                'extract': ['application/pdf'],
+                'delete': ['application/pdf'],
+                'rotate': ['application/pdf'],
+                'crop': ['application/pdf'],
+                'compress': ['application/pdf'],
+                'pdf-to-word': ['application/pdf'],
+                'pdf-to-image': ['application/pdf'],
+                'word-to-pdf': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'],
+                'image-to-pdf': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp'],
+                'batch': ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png']
+            };
+
+            if (!selectedOperation) {
+                alert('ದಯವಿಟ್ಟು ಮೊದಲು ಒಂದು ಕಾರ್ಯಾಚರಣೆಯನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+                return false;
+            }
+
+            const allowedTypes = validTypes[selectedOperation] || [];
+            if (!allowedTypes.includes(file.type)) {
+                alert(`ಈ ಕಾರ್ಯಾಚರಣೆಗಾಗಿ ಅಮಾನ್ಯ ಫೈಲ್ ಪ್ರಕಾರ: ${file.name}`);
+                return false;
+            }
+
+            // Check file size (50MB limit)
+            if (file.size > 50 * 1024 * 1024) {
+                alert(`ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ: ${file.name}. ಗರಿಷ್ಠ 50MB ಅನುಮತಿಸಲಾಗಿದೆ.`);
+                return false;
+            }
+
+            return true;
+        }
+
+        // Display uploaded file
+        function displayFile(file) {
+            const fileList = document.getElementById('fileList');
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <span class="file-icon">${getFileIcon(file.type)}</span>
+                    <div class="file-details">
+                        <h5>${file.name}</h5>
+                        <p>${formatFileSize(file.size)} • ${getFileType(file.type)}</p>
+                    </div>
+                </div>
+                <button class="remove-file" onclick="removeFile('${file.name}')" title="ಫೈಲ್ ತೆಗೆದುಹಾಕಿ">×</button>
+            `;
+            fileList.appendChild(fileItem);
+        }
+
+        // Get file icon based on type
+        function getFileIcon(fileType) {
+            if (fileType === 'application/pdf') return '📄';
+            if (fileType.includes('word') || fileType.includes('document')) return '📝';
+            if (fileType.includes('image')) return '🖼️';
+            return '📁';
+        }
+
+        // Get human readable file type
+        function getFileType(fileType) {
+            if (fileType === 'application/pdf') return 'PDF';
+            if (fileType.includes('word') || fileType.includes('document')) return 'Word Document';
+            if (fileType.includes('image')) return 'Image';
+            return 'Unknown';
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Remove file from list
+        function removeFile(fileName) {
+            uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+            const fileItems = document.querySelectorAll('.file-item');
+            fileItems.forEach(item => {
+                if (item.querySelector('h5').textContent === fileName) {
+                    item.remove();
+                }
+            });
+            updateProcessButton();
+        }
+
+        // Update process button state
+        function updateProcessButton() {
+            const processBtn = document.getElementById('processBtn');
+            const hasFiles = uploadedFiles.length > 0;
+            const hasOperation = selectedOperation !== '';
+            
+            // Special validation for merge operation (needs multiple files)
+            if (selectedOperation === 'merge' && uploadedFiles.length < 2) {
+                processBtn.disabled = true;
+                processBtn.textContent = 'ಮರ್ಜ್ ಮಾಡಲು ಕನಿಷ್ಠ 2 ಫೈಲ್‌ಗಳು ಬೇಕು';
+                return;
+            }
+
+            if (hasFiles && hasOperation) {
+                processBtn.disabled = false;
+                processBtn.textContent = 'ಪ್ರಕ್ರಿಯೆ ಪ್ರಾರಂಭಿಸಿ';
+            } else {
+                processBtn.disabled = true;
+                if (!hasOperation) {
+                    processBtn.textContent = 'ದಯವಿಟ್ಟು ಕಾರ್ಯಾಚರಣೆಯನ್ನು ಆಯ್ಕೆ ಮಾಡಿ';
+                } else if (!hasFiles) {
+                    processBtn.textContent = 'ದಯವಿಟ್ಟು ಫೈಲ್‌ಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ';
                 }
             }
-        });
-    });
-</script>   
-{% endblock %}
+        }
 
-{% block content %}};
+        // Process files
+        function processFiles() {
+            if (!selectedOperation || uploadedFiles.length === 0) {
+                alert('ದಯವಿಟ್ಟು ಕಾರ್ಯಾಚರಣೆ ಮತ್ತು ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+
+            // Show progress bar
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const processBtn = document.getElementById('processBtn');
+            
+            progressBar.style.display = 'block';
+            processBtn.disabled = true;
+            processBtn.textContent = 'ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುತ್ತಿದೆ...';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('operation', selectedOperation);
+
+            // Add files
+            uploadedFiles.forEach((file, index) => {
+                formData.append(`file_${index}`, file);
+            });
+
+            // Add operation-specific options
+            addOperationOptions(formData);
+
+            // Simulate progress (replace with actual upload progress)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }, 200);
+
+            // Send request to backend
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ ದೋಷ ಸಂಭವಿಸಿದೆ');
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = getDownloadFileName();
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Reset UI
+                resetUI();
+                alert('ಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗಿದೆ!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('ದೋಷ: ' + error.message);
+                resetUI();
+            });
+        }
+
+        // Add operation-specific options to FormData
+        function addOperationOptions(formData) {
+            switch(selectedOperation) {
+                case 'extract':
+                case 'delete':
+                case 'split':
+                    const pageRange = document.getElementById('pageRange').value;
+                    if (pageRange) formData.append('page_range', pageRange);
+                    break;
+                
+                case 'rotate':
+                    const rotationAngle = document.getElementById('rotationAngle').value;
+                    const rotatePageRange = document.getElementById('pageRange').value;
+                    formData.append('rotation_angle', rotationAngle);
+                    if (rotatePageRange) formData.append('page_range', rotatePageRange);
+                    break;
+                
+                case 'compress':
+                    const compressionLevel = document.getElementById('compressionLevel').value;
+                    formData.append('compression_level', compressionLevel);
+                    break;
+                
+                case 'pdf-to-image':
+                    const imageFormat = document.getElementById('imageFormat').value;
+                    const imageDPI = document.getElementById('imageDPI').value;
+                    const imagePageRange = document.getElementById('pageRange').value;
+                    formData.append('image_format', imageFormat);
+                    formData.append('image_dpi', imageDPI);
+                    if (imagePageRange) formData.append('page_range', imagePageRange);
+                    break;
+                
+                case 'image-to-pdf':
+                    const pdfCompressionLevel = document.getElementById('compressionLevel').value;
+                    formData.append('compression_level', pdfCompressionLevel);
+                    break;
+            }
+        }
+
+        // Get download filename based on operation
+        function getDownloadFileName() {
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+            const operations = {
+                'merge': `merged_${timestamp}.pdf`,
+                'split': `split_pages_${timestamp}.zip`,
+                'extract': `extracted_pages_${timestamp}.pdf`,
+                'delete': `modified_${timestamp}.pdf`,
+                'rotate': `rotated_${timestamp}.pdf`,
+                'crop': `cropped_${timestamp}.pdf`,
+                'compress': `compressed_${timestamp}.pdf`,
+                'pdf-to-word': `converted_${timestamp}.docx`,
+                'word-to-pdf': `converted_${timestamp}.pdf`,
+                'pdf-to-image': `images_${timestamp}.zip`,
+                'image-to-pdf': `converted_${timestamp}.pdf`,
+                'batch': `batch_processed_${timestamp}.zip`
+            };
+            return operations[selectedOperation] || `processed_${timestamp}`;
+        }
+
+        // Reset UI after processing
+        function resetUI() {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const processBtn = document.getElementById('processBtn');
+            
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+                processBtn.disabled = false;
+                processBtn.textContent = 'ಪ್ರಕ್ರಿಯೆ ಪ್ರಾರಂಭಿಸಿ';
+            }, 2000);
+        }
+
+        // Clear all files
+        function clearAllFiles() {
+            uploadedFiles = [];
+            document.getElementById('fileList').innerHTML = '';
+            updateProcessButton();
+        }
+
+        // Add clear all button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileList = document.getElementById('fileList');
+            const clearButton = document.createElement('button');
+            clearButton.innerHTML = '🗑️ ಎಲ್ಲಾ ಫೈಲ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ';
+            clearButton.className = 'upload-btn';
+            clearButton.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)';
+            clearButton.style.margin = '10px 0';
+            clearButton.style.display = 'none';
+            clearButton.onclick = clearAllFiles;
+            
+            // Show/hide clear button based on file count
+            const observer = new MutationObserver(function(mutations) {
+                if (uploadedFiles.length > 0) {
+                    clearButton.style.display = 'inline-block';
+                } else {
+                    clearButton.style.display = 'none';
+                }
+            });
+            
+            fileList.parentNode.insertBefore(clearButton, fileList.nextSibling);
+            observer.observe(fileList, { childList: true });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + O to open file dialog
+            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                document.getElementById('fileInput').click();
+            }
+            
+            // Enter to process files
+            if (e.key === 'Enter' && !document.getElementById('processBtn').disabled) {
+                processFiles();
+            }
+            
+            // Delete to clear all files
+            if (e.key === 'Delete' && uploadedFiles.length > 0) {
+                clearAllFiles();
+            }
+        });
+
+        // Initialize tooltips and help text
+        function initializeTooltips() {
+            const tooltips = {
+                'merge': 'ಎರಡು ಅಥವಾ ಹೆಚ್ಚಿನ PDF ಫೈಲ್‌ಗಳನ್ನು ಒಂದೇ ಫೈಲ್‌ನಲ್ಲಿ ಸೇರಿಸಿ',
+                'split': 'PDF ಅನ್ನು ಪ್ರತ್ಯೇಕ ಪುಟಗಳಾಗಿ ಅಥವಾ ವ್ಯಾಪ್ತಿಗಳಾಗಿ ವಿಭಜಿಸಿ',
+                'extract': 'PDF ನಿಂದ ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಹೊರತೆಗೆದು ಹೊಸ PDF ರಚಿಸಿ',
+                'delete': 'PDF ನಿಂದ ಅನಗತ್ಯ ಪುಟಗಳನ್ನು ಅಳಿಸಿ',
+                'rotate': 'PDF ಪುಟಗಳನ್ನು 90°, 180° ಅಥವಾ 270° ತಿರುಗಿಸಿ',
+                'crop': 'PDF ಪುಟಗಳ ಅಂಚುಗಳನ್ನು ಟ್ರಿಮ್ ಮಾಡಿ',
+                'compress': 'PDF ಫೈಲ್ ಗಾತ್ರವನ್ನು ಗುಣಮಟ್ಟ ಕಾಪಾಡುತ್ತಾ ಕಡಿಮೆ ಮಾಡಿ',
+                'pdf-to-word': 'PDF ಫೈಲ್ ಅನ್ನು ಸಂಪಾದನೆ ಮಾಡಬಹುದಾದ Word ಡಾಕ್ಯುಮೆಂಟ್‌ಗೆ ಪರಿವರ್ತಿಸಿ',
+                'word-to-pdf': 'Word ಡಾಕ್ಯುಮೆಂಟ್ ಅನ್ನು PDF ಫಾರ್ಮ್ಯಾಟ್‌ಗೆ ಪರಿವರ್ತಿಸಿ',
+                'pdf-to-image': 'PDF ಪುಟಗಳನ್ನು JPEG ಅಥವಾ PNG ಚಿತ್ರಗಳಾಗಿ ಪರಿವರ್ತಿಸಿ',
+                'image-to-pdf': 'ಒಂದು ಅಥವಾ ಹೆಚ್ಚಿನ ಚಿತ್ರಗಳನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಿ',
+                'batch': 'ಒಂದೇ ಸಮಯದಲ್ಲಿ ಅನೇಕ ಫೈಲ್‌ಗಳ ಮೇಲೆ ಒಂದೇ ಕಾರ್ಯಾಚರಣೆ ನಡೆಸಿ'
+            };
+
+            document.querySelectorAll('.operation-card').forEach(card => {
+                const operation = card.dataset.operation;
+                if (tooltips[operation]) {
+                    card.title = tooltips[operation];
+                }
+            });
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTooltips();
+            updateProcessButton();
+            
+            // Add some visual enhancements
+            const style = document.createElement('style');
+            style.textContent = `
+                .operation-card:hover .icon {
+                    animation: bounce 0.6s ease-in-out;
+                }
+                
+                @keyframes bounce {
+                    0%, 20%, 60%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    80% { transform: translateY(-5px); }
+                }
+                
+                .file-item {
+                    animation: slideIn 0.3s ease-out;
+                }
+                
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateX(-20px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                
+                .progress-fill {
+                    background: linear-gradient(90deg, #d4af37, #b8860b, #d4af37);
+                    background-size: 200% 100%;
+                    animation: shimmer 2s infinite;
+                }
+                
+                @keyframes shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>
