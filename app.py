@@ -5,6 +5,9 @@ from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
 import config
+import fitz  # PyMuPDF - add this line
+from PIL import Image  # add this line
+import io  # add this line
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -24,6 +27,9 @@ pdf_ops = PDFOperations()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/generate-preview', methods=['POST'])
+@app.route('/generate-preview', methods=['POST'])
 
 @app.route('/generate-preview', methods=['POST'])
 def generate_preview():
@@ -54,11 +60,12 @@ def generate_preview():
         preview_data = pdf_ops.generate_page_previews(temp_path, session_id, app.config['PREVIEW_FOLDER'])
         
         if preview_data:
-            # Convert file paths to URLs
+            # Convert file paths to URLs - FIXED VERSION
             for preview in preview_data['previews']:
-                # Convert absolute path to relative URL
-                relative_path = os.path.relpath(preview['image_path'], 'static')
-                preview['image_path'] = url_for('static', filename=relative_path)
+                # Get the relative path from static folder
+                preview_dir = f"previews/{session_id}"
+                filename = f"page_{preview['page_num']}.png"
+                preview['image_path'] = url_for('static', filename=f"{preview_dir}/{filename}")
             
             return jsonify({
                 'success': True,
@@ -69,8 +76,9 @@ def generate_preview():
             return jsonify({'success': False, 'error': 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ'})
             
     except Exception as e:
+        print(f"Preview generation error: {str(e)}")  # Debug print
         return jsonify({'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ದೋಷ: {str(e)}'})
-
+    
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
