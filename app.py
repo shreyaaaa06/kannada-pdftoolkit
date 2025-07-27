@@ -5,15 +5,15 @@ from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
 import config
-import fitz  # PyMuPDF - add this line
-from PIL import Image  # add this line
-import io  # add this line
+import fitz  # PyMuPDF
+from PIL import Image
+import io
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
-app.config['PREVIEW_FOLDER'] = 'static/previews'  # New folder for preview images
+app.config['PREVIEW_FOLDER'] = 'static/previews'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Create necessary directories
@@ -27,9 +27,6 @@ pdf_ops = PDFOperations()
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/generate-preview', methods=['POST'])
-@app.route('/generate-preview', methods=['POST'])
 
 @app.route('/generate-preview', methods=['POST'])
 def generate_preview():
@@ -60,9 +57,8 @@ def generate_preview():
         preview_data = pdf_ops.generate_page_previews(temp_path, session_id, app.config['PREVIEW_FOLDER'])
         
         if preview_data:
-            # Convert file paths to URLs - FIXED VERSION
+            # Convert file paths to URLs
             for preview in preview_data['previews']:
-                # Get the relative path from static folder
                 preview_dir = f"previews/{session_id}"
                 filename = f"page_{preview['page_num']}.png"
                 preview['image_path'] = url_for('static', filename=f"{preview_dir}/{filename}")
@@ -76,9 +72,9 @@ def generate_preview():
             return jsonify({'success': False, 'error': 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ'})
             
     except Exception as e:
-        print(f"Preview generation error: {str(e)}")  # Debug print
+        print(f"Preview generation error: {str(e)}")
         return jsonify({'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ದೋಷ: {str(e)}'})
-    
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -90,9 +86,15 @@ def upload_file():
         operation = request.form.get('operation')
         use_previous = request.form.get('use_previous') == 'true'
         
+        print(f"=== DEBUG UPLOAD ===")
+        print(f"Operation: {operation}")
+        print(f"Session ID: {session_id}")
+        print(f"Use previous: {use_previous}")
+        
         # Get files - from upload or previous results
         if use_previous and session.get('processed_files'):
             file_paths = [f['path'] for f in session['processed_files']]
+            print(f"Using previous files: {file_paths}")
         else:
             files = request.files.getlist('files')
             if not files or all(not f.filename for f in files):
@@ -104,56 +106,124 @@ def upload_file():
                     file_path = file_handler.save_uploaded_file(file, session_id)
                     if file_path:
                         file_paths.append(file_path)
+                        print(f"Saved file: {file_path}")
         
         if not file_paths:
             return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಸರಿಯಾದ ಫೈಲ್‌ಗಳು ಅಪ್‌ಲೋಡ್ ಆಗಿಲ್ಲ'})
         
-        # Process operation
+        # Get operation parameters
         pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
+        
+        print(f"Pages parameter: '{pages}'")
+        print(f"Compression: {compression}")
+        
         result_path = None
         
-        if operation == 'merge':
-            result_path = pdf_ops.merge_pdfs(file_paths, session_id)
-        elif operation == 'split':
-            result_path = pdf_ops.split_pdf(file_paths[0], session_id, pages)
-        elif operation == 'extract':
-            result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
-        elif operation == 'delete':
-            result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
-        elif operation == 'compress':
-            result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
-        elif operation == 'pdf_to_jpeg':
-            result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
-        elif operation == 'jpeg_to_pdf':
-            result_path = pdf_ops.images_to_pdf(file_paths, session_id)
-        elif operation == 'pdf_to_word':
-            result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
-        elif operation == 'word_to_pdf':
-            result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
+        # Process operations
+        try:
+            if operation == 'merge':
+                print("Processing merge operation")
+                result_path = pdf_ops.merge_pdfs(file_paths, session_id)
+                
+            elif operation == 'split':
+                print("Processing split operation")
+                if not file_paths:
+                    return jsonify({'success': False, 'error': 'ವಿಭಜನೆಗಾಗಿ PDF ಫೈಲ್ ಅಗತ್ಯ'})
+                
+                # Validate PDF file exists and is readable
+                pdf_path = file_paths[0]
+                if not os.path.exists(pdf_path):
+                    return jsonify({'success': False, 'error': 'PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'})
+                
+                # Check if PDF has multiple pages
+                try:
+                    from PyPDF2 import PdfReader
+                    reader = PdfReader(pdf_path)
+                    total_pages = len(reader.pages)
+                    print(f"PDF has {total_pages} pages")
+                    
+                    if total_pages < 2:
+                        return jsonify({'success': False, 'error': 'ವಿಭಜನೆಗೆ ಕನಿಷ್ಠ 2 ಪುಟಗಳು ಬೇಕಾಗುತ್ತವೆ'})
+                        
+                except Exception as pdf_error:
+                    print(f"PDF validation error: {pdf_error}")
+                    return jsonify({'success': False, 'error': f'PDF ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(pdf_error)}'})
+                
+                result_path = pdf_ops.split_pdf(pdf_path, session_id, pages)
+                
+            elif operation == 'extract':
+                print("Processing extract operation")
+                if not pages:
+                    return jsonify({'success': False, 'error': 'ಹೊರತೆಗೆಯಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
+                result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
+                
+            elif operation == 'delete':
+                print("Processing delete operation")
+                if not pages:
+                    return jsonify({'success': False, 'error': 'ಅಳಿಸಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
+                result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
+                
+            elif operation == 'compress':
+                print("Processing compress operation")
+                result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
+                
+            elif operation == 'pdf_to_jpeg':
+                print("Processing PDF to JPEG operation")
+                result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
+                
+            elif operation == 'jpeg_to_pdf':
+                print("Processing JPEG to PDF operation")
+                result_path = pdf_ops.images_to_pdf(file_paths, session_id)
+                
+            elif operation == 'pdf_to_word':
+                print("Processing PDF to Word operation")
+                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+                
+            elif operation == 'word_to_pdf':
+                print("Processing Word to PDF operation")
+                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
+                
+            else:
+                return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
+                
+        except Exception as op_error:
+            print(f"Operation error: {str(op_error)}")
+            return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(op_error)}'})
         
-        if result_path and os.path.exists(result_path):
-            filename = os.path.basename(result_path)
-            
-            # Store result in session for chaining
-            session['processed_files'] = [{
-                'path': result_path,
-                'filename': filename,
-                'operation': operation
-            }]
-            session.modified = True
-            
-            return jsonify({
-                'success': True,
-                'message': 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!',
-                'download_url': f'/download/{session_id}/{filename}',
-                'filename': filename,
-                'can_chain': True
-            })
-        else:
-            return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ'})
+        # Validate result
+        if not result_path:
+            return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ - ಯಾವುದೇ ಫಲಿತಾಂಶ ಇಲ್ಲ'})
+        
+        if not os.path.exists(result_path):
+            return jsonify({'success': False, 'error': f'ಫಲಿತಾಂಶ ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ: {result_path}'})
+        
+        if os.path.getsize(result_path) == 0:
+            return jsonify({'success': False, 'error': 'ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ'})
+        
+        filename = os.path.basename(result_path)
+        print(f"Success! Result file: {filename}, Size: {os.path.getsize(result_path)} bytes")
+        
+        # Store result in session for chaining
+        session['processed_files'] = [{
+            'path': result_path,
+            'filename': filename,
+            'operation': operation
+        }]
+        session.modified = True
+        
+        return jsonify({
+            'success': True,
+            'message': 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!',
+            'download_url': f'/download/{session_id}/{filename}',
+            'filename': filename,
+            'can_chain': True
+        })
             
     except Exception as e:
+        print(f"Upload error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
 
 @app.route('/process', methods=['POST'])
@@ -165,10 +235,19 @@ def process_files():
 def download_file(session_id, filename):
     try:
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        print(f"Download request - Session: {session_id}, File: {filename}")
+        print(f"Looking for file at: {file_path}")
+        print(f"File exists: {os.path.exists(file_path)}")
+        
         if os.path.exists(file_path) and filename.startswith(session_id):
+            print(f"Sending file: {file_path}, Size: {os.path.getsize(file_path)} bytes")
             return send_file(file_path, as_attachment=True, download_name=filename)
+        
+        print(f"File not found or invalid session")
         return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
+        
     except Exception as e:
+        print(f"Download error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/reset', methods=['POST'])

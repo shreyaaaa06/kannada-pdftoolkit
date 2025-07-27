@@ -43,42 +43,266 @@ class PDFOperations:
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
     
     def split_pdf(self, file_path, session_id, pages=""):
-        """Split PDF into individual pages or specified ranges"""
+        """Split PDF based on user specification - CORRECTED VERSION"""
         try:
+            print(f"=== SPLIT PDF DEBUG ===")
+            print(f"File path: {file_path}")
+            print(f"Session ID: {session_id}")
+            print(f"Pages parameter: '{pages}'")
+
             reader = PdfReader(file_path)
+            total_pages = len(reader.pages)
+            print(f"Total pages in PDF: {total_pages}")
+    
+        # Handle edge case: single page PDF
+            if total_pages == 1:
+                raise Exception("ಒಂದೇ ಪುಟದ PDF ಅನ್ನು ವಿಭಜಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ")
+
             output_dir = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_split")
             os.makedirs(output_dir, exist_ok=True)
+            print(f"Output directory: {output_dir}")
+
+        # Parse the pages specification
+            split_info = self._parse_split_specification(pages, total_pages)
+            print(f"Split info: {split_info}")
+        
+            created_files = []
+
+        # Create PDFs based on split type
+            if split_info['type'] == 'single_split':
+                # Split into two parts at specified point
+                split_point = split_info['split_point']
             
-            if pages:
-                # Split by specified pages/ranges
-                page_ranges = self._parse_page_ranges(pages, len(reader.pages))
-                for i, page_num in enumerate(page_ranges):
+            # First PDF: pages 1 to split_point
+                print(f"Creating first PDF: pages 1 to {split_point}")
+                writer1 = PdfWriter()
+                for i in range(split_point):
+                    writer1.add_page(reader.pages[i])
+                    print(f"Added page {i+1} to first PDF")
+        
+                output_path1 = os.path.join(output_dir, f"part_1_pages_1_to_{split_point}.pdf")
+                with open(output_path1, 'wb') as output_file:
+                    writer1.write(output_file)
+                created_files.append(output_path1)
+                print(f"Created first part: {output_path1}")
+            
+            # Second PDF: pages split_point+1 to end
+                print(f"Creating second PDF: pages {split_point+1} to {total_pages}")
+                writer2 = PdfWriter()
+                for i in range(split_point, total_pages):
+                    writer2.add_page(reader.pages[i])
+                    print(f"Added page {i+1} to second PDF")
+        
+                output_path2 = os.path.join(output_dir, f"part_2_pages_{split_point+1}_to_{total_pages}.pdf")
+                with open(output_path2, 'wb') as output_file:
+                    writer2.write(output_file)
+                created_files.append(output_path2)
+                print(f"Created second part: {output_path2}")
+            
+            elif split_info['type'] == 'extract_pages':
+            # Extract specific pages
+                pages_to_extract = split_info['pages']
+                print(f"Extracting pages: {pages_to_extract}")
+            
+                writer = PdfWriter()
+                for page_num in pages_to_extract:
+                    if 1 <= page_num <= total_pages:
+                        writer.add_page(reader.pages[page_num - 1])
+                        print(f"Added page {page_num} to extracted PDF")
+            
+                page_range_str = f"{min(pages_to_extract)}_to_{max(pages_to_extract)}"
+                if len(pages_to_extract) > 2:
+                    page_range_str = f"selected_pages"
+                
+                output_path = os.path.join(output_dir, f"extracted_pages_{page_range_str}.pdf")
+                with open(output_path, 'wb') as output_file:
+                    writer.write(output_file)
+                created_files.append(output_path)
+                print(f"Created extracted pages: {output_path}")
+            
+            elif split_info['type'] == 'multiple_splits':
+            # Split into multiple parts based on page ranges
+                ranges = split_info['ranges']
+                print(f"Creating multiple splits: {ranges}")
+            
+                for i, (start, end) in enumerate(ranges):
                     writer = PdfWriter()
-                    writer.add_page(reader.pages[page_num - 1])
-                    
-                    output_path = os.path.join(output_dir, f"page_{page_num}.pdf")
+                    for page_num in range(start, end + 1):
+                        if 1 <= page_num <= total_pages:
+                            writer.add_page(reader.pages[page_num - 1])
+                            print(f"Added page {page_num} to part {i+1}")
+                
+                    output_path = os.path.join(output_dir, f"part_{i+1}_pages_{start}_to_{end}.pdf")
                     with open(output_path, 'wb') as output_file:
                         writer.write(output_file)
-            else:
-                # Split into individual pages
-                for i, page in enumerate(reader.pages):
-                    writer = PdfWriter()
-                    writer.add_page(page)
-                    
-                    output_path = os.path.join(output_dir, f"page_{i+1}.pdf")
-                    with open(output_path, 'wb') as output_file:
-                        writer.write(output_file)
+                    created_files.append(output_path)
+                    print(f"Created part {i+1}: {output_path}")
+        
+        # Verify files were created and are valid
+            for file_path in created_files:
+                if not os.path.exists(file_path):
+                    raise Exception(f"ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ: {os.path.basename(file_path)}")
+                if os.path.getsize(file_path) == 0:
+                    raise Exception(f"ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ: {os.path.basename(file_path)}")
             
-            # Create ZIP of split files
+            # Test if PDF is readable
+                try:
+                    test_reader = PdfReader(file_path)
+                    if len(test_reader.pages) == 0:
+                        raise Exception(f"ಅಮಾನ್ಯ PDF ರಚಿಸಲಾಗಿದೆ: {os.path.basename(file_path)}")
+                except Exception as e:
+                    raise Exception(f"ದೋಷಪೂರ್ಣ PDF ರಚಿಸಲಾಗಿದೆ: {os.path.basename(file_path)} - {str(e)}")
+        
+            print(f"Total files created: {len(created_files)}")
+            print(f"Created files: {created_files}")
+
+        # Create ZIP of split files
             zip_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_split.zip")
-            with zipfile.ZipFile(zip_path, 'w') as zipf:
-                for root, dirs, files in os.walk(output_dir):
-                    for file in files:
-                        zipf.write(os.path.join(root, file), file)
-            
+            print(f"Creating ZIP at: {zip_path}")
+
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in created_files:
+                    # Add file to zip with just the filename (not full path)
+                    zipf.write(file_path, os.path.basename(file_path))
+                    print(f"Added to ZIP: {os.path.basename(file_path)}")
+        
+        # Verify ZIP was created and has content
+            if not os.path.exists(zip_path):
+                raise Exception("ZIP ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ")
+        
+            with zipfile.ZipFile(zip_path, 'r') as zipf:
+                zip_contents = zipf.namelist()
+                print(f"ZIP contents: {zip_contents}")
+                if not zip_contents:
+                    raise Exception("ZIP ಫೈಲ್ ಖಾಲಿಯಾಗಿದೆ")
+        
+            print(f"ZIP created successfully. Size: {os.path.getsize(zip_path)} bytes")
+            print(f"=== END DEBUG ===")
             return zip_path
+        
         except Exception as e:
+            print(f"Error in split_pdf: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise Exception(f"PDF ವಿಭಾಗ ವಿಫಲ: {str(e)}")
+
+    def _parse_split_specification(self, pages, total_pages):
+        """Parse the pages specification and determine split type - NEW METHOD"""
+        try:
+            if not pages or pages.strip() == "":
+            # Default: split in middle
+                split_point = max(1, total_pages // 2)
+                return {
+                'type': 'single_split',
+                'split_point': split_point
+                }
+        
+            pages_str = pages.strip()
+            print(f"Parsing specification: '{pages_str}'")
+        
+        # Check if it's a simple number (split point)
+            try:
+                split_point = int(pages_str)
+            # Validate split point
+                if split_point < 1:
+                    split_point = 1
+                elif split_point >= total_pages:
+                    split_point = total_pages - 1
+            
+                print(f"Simple split at page {split_point}")
+                return {
+                    'type': 'single_split',
+                    'split_point': split_point
+                }
+            except ValueError:
+                pass
+        
+        # Check for range notation like "1-5" or "3-8"
+            if '-' in pages_str and ',' not in pages_str:
+                parts = pages_str.split('-')
+                if len(parts) == 2:
+                    try:
+                        start = int(parts[0].strip())
+                        end = int(parts[1].strip())
+                    
+                    # Validate range
+                        start = max(1, min(start, total_pages))
+                        end = max(start, min(end, total_pages))
+                    
+                        print(f"Extract pages range: {start} to {end}")
+                        return {
+                        'type': 'extract_pages',
+                        'pages': list(range(start, end + 1))
+                        }
+                    except ValueError:
+                        pass
+        
+        # Check for comma-separated pages/ranges like "1,3,5-7,10"
+            if ',' in pages_str:
+                try:
+                    page_numbers = self._parse_page_ranges(pages_str, total_pages)
+                    if page_numbers:
+                        print(f"Extract specific pages: {page_numbers}")
+                        return {
+                        'type': 'extract_pages',
+                        'pages': page_numbers
+                        }
+                except:
+                    pass
+        
+        # If all parsing fails, default to middle split
+            split_point = max(1, total_pages // 2)
+            print(f"Parsing failed, defaulting to middle split at page {split_point}")
+            return {
+                'type': 'single_split',
+                'split_point': split_point
+            }
+        
+        except Exception as e:
+            print(f"Error in _parse_split_specification: {e}")
+        # Default fallback
+            return {
+                'type': 'single_split',  
+                'split_point': max(1, total_pages // 2)
+            }
+
+    def _parse_page_ranges(self, pages_str, total_pages):
+        """Parse page ranges like '1,3,5-10' into list of page numbers - CORRECTED VERSION"""
+        pages = []
+    
+        try:
+            for part in pages_str.split(','):
+                part = part.strip()
+                if not part:
+                    continue
+                
+                if '-' in part:
+                # Handle range like "5-10"  
+                    range_parts = part.split('-')
+                    if len(range_parts) == 2:
+                        start_str, end_str = range_parts
+                        start = int(start_str.strip())
+                        end = int(end_str.strip())
+                
+                    # Validate range
+                        start = max(1, min(start, total_pages))
+                        end = max(start, min(end, total_pages))
+                
+                        pages.extend(range(start, end + 1))
+                else:
+                # Handle single page
+                    page_num = int(part)
+                    if 1 <= page_num <= total_pages:
+                        pages.append(page_num)
+
+        # Remove duplicates and sort
+            pages = sorted(list(set(pages)))
+            print(f"Parsed page ranges: {pages}")
+            return pages
+        
+        except Exception as e:
+            print(f"Error in _parse_page_ranges: {e}")
+            return []
     
     def extract_pages(self, file_path, pages, session_id):
         """Extract specific pages from PDF"""
@@ -404,7 +628,7 @@ class PDFOperations:
     def _parse_page_ranges(self, pages_str, total_pages):
         """Parse page ranges like '1,3,5-10' into list of page numbers"""
         pages = []
-        
+    
         for part in pages_str.split(','):
             part = part.strip()
             if '-' in part:
@@ -414,8 +638,8 @@ class PDFOperations:
                 page_num = int(part)
                 if 1 <= page_num <= total_pages:
                     pages.append(page_num)
-        
-            return sorted(list(set(pages)))
+    
+        return sorted(list(set(pages)))  # This should be OUTSIDE the for loop
         # Replace your existing word_to_pdf method with this complete version:
     def word_to_pdf(self, file_path, session_id):
         """
