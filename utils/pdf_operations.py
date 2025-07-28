@@ -153,15 +153,17 @@ class PDFOperations:
             traceback.print_exc()
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
     
-    def split_pdf(self, file_path, session_id, pages="", max_file_size_mb=500, chunk_size_mb=50):
-        """Enhanced PDF split function for production use with large file handling"""
+    def split_pdf(self, file_path, session_id, pages="", split_method="pages", target_size_mb=10, pages_per_chunk=20, max_file_size_mb=500):
+        """Enhanced PDF split function with proper split method handling"""
         try:
             print(f"=== ENHANCED PDF SPLIT DEBUG ===")
             print(f"File path: {file_path}")
             print(f"Session ID: {session_id}")
             print(f"Pages parameter: '{pages}'")
+            print(f"Split method: '{split_method}'")
+            print(f"Target size MB: {target_size_mb}")
+            print(f"Pages per chunk: {pages_per_chunk}")
             print(f"Max file size: {max_file_size_mb}MB")
-            print(f"Target chunk size: {chunk_size_mb}MB")
             print(f"Timestamp: {datetime.now()}")
 
             # ===== INPUT VALIDATION =====
@@ -200,7 +202,7 @@ class PDFOperations:
                     raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
                 
                 if reader.is_encrypted:
-                    raise Exception("ಎನ್\u200cಕ್ರಿಪ್ಟ್ ಮಾಡಿದ PDF ಬೆಂಬಲಿತವಾಗಿಲ್ಲ")
+                    raise Exception("ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿದ PDF ಬೆಂಬಲಿತವಾಗಿಲ್ಲ")
                     
             except Exception as pdf_error:
                 print(f"PyPDF2 validation failed: {pdf_error}")
@@ -228,37 +230,61 @@ class PDFOperations:
                 print(f"Output directory: {output_dir}")
                 print(f"Temp directory: {temp_dir}")
                 
-                # ===== PARSE SPLIT SPECIFICATION =====
-                split_info = self._parse_split_specification_enhanced(pages, total_pages, file_size_mb, chunk_size_mb)
-                print(f"Split strategy: {split_info}")
+                # ===== DETERMINE SPLIT STRATEGY BASED ON METHOD =====
+                print(f"Processing split method: {split_method}")
                 
-                # ===== PERFORM SPLIT OPERATION =====
                 created_files = []
                 
-                if split_info['type'] == 'memory_efficient_chunks':
-                    created_files = self._split_large_pdf_chunks(
-                        file_path, temp_dir, split_info, total_pages, session_id
+                if split_method == "size":
+                    print(f"Size-based splitting: target {target_size_mb}MB per file")
+                    created_files = self._split_by_file_size(
+                        file_path, temp_dir, target_size_mb, total_pages, session_id
                     )
                     
-                elif split_info['type'] == 'single_split':
-                    created_files = self._split_pdf_two_parts(
-                        file_path, temp_dir, split_info['split_point'], total_pages, session_id
-                    )
-                    
-                elif split_info['type'] == 'extract_pages':
-                    created_files = self._extract_specific_pages(
-                        file_path, temp_dir, split_info['pages'], session_id
-                    )
-                    
-                elif split_info['type'] == 'multiple_splits':
-                    created_files = self._split_multiple_ranges(
-                        file_path, temp_dir, split_info['ranges'], session_id
-                    )
-                
-                elif split_info['type'] == 'auto_chunk':
+                elif split_method == "auto":
+                    print(f"Auto chunking: {pages_per_chunk} pages per chunk")
                     created_files = self._auto_chunk_pdf(
-                        file_path, temp_dir, split_info['pages_per_chunk'], total_pages, session_id
+                        file_path, temp_dir, pages_per_chunk, total_pages, session_id
                     )
+                    
+                elif split_method == "pages" or not split_method:
+                    print("Page-based splitting")
+                    if not pages or pages.strip() == "":
+                        # Default: split in middle
+                        split_point = max(1, total_pages // 2)
+                        print(f"No pages specified, splitting at page {split_point}")
+                        created_files = self._split_pdf_two_parts(
+                            file_path, temp_dir, split_point, total_pages, session_id
+                        )
+                    else:
+                        # Parse page specification
+                        split_info = self._parse_split_specification_enhanced(pages, total_pages, file_size_mb, target_size_mb)
+                        print(f"Split strategy: {split_info}")
+                        
+                        if split_info['type'] == 'single_split':
+                            created_files = self._split_pdf_two_parts(
+                                file_path, temp_dir, split_info['split_point'], total_pages, session_id
+                            )
+                        elif split_info['type'] == 'extract_pages':
+                            created_files = self._extract_specific_pages(
+                                file_path, temp_dir, split_info['pages'], session_id
+                            )
+                        elif split_info['type'] == 'multiple_splits':
+                            created_files = self._split_multiple_ranges(
+                                file_path, temp_dir, split_info['ranges'], session_id
+                            )
+                        elif split_info['type'] == 'auto_chunk':
+                            created_files = self._auto_chunk_pdf(
+                                file_path, temp_dir, split_info['pages_per_chunk'], total_pages, session_id
+                            )
+                        else:
+                            # Fallback
+                            split_point = max(1, total_pages // 2)
+                            created_files = self._split_pdf_two_parts(
+                                file_path, temp_dir, split_point, total_pages, session_id
+                            )
+                else:
+                    raise Exception(f"ಅಮಾನ್ಯ ವಿಭಾಗ ವಿಧಾನ: {split_method}")
                 
                 # ===== VALIDATION AND CLEANUP =====
                 print(f"Split operation completed. Files created: {len(created_files)}")
@@ -296,7 +322,7 @@ class PDFOperations:
                         continue
                 
                 if not validated_files:
-                    raise Exception("ಯಾವುದೇ ಸರಿಯಾದ PDF ಫೈಲ್\u200cಗಳು ರಚಿಸಲಾಗಿಲ್ಲ")
+                    raise Exception("ಯಾವುದೇ ಸರಿಯಾದ PDF ಫೈಲ್‌ಗಳು ರಚಿಸಲಾಗಿಲ್ಲ")
                 
                 print(f"Validated files: {len(validated_files)}")
                 print(f"Total output size: {total_output_size:,} bytes ({total_output_size/(1024*1024):.2f}MB)")
@@ -328,7 +354,7 @@ class PDFOperations:
                     with zipfile.ZipFile(zip_path, 'r') as zipf:
                         zip_contents = zipf.namelist()
                         if not zip_contents:
-                            raise Exception("ZIP ಫೈಲ್\u200cನಲ್ಲಿ ಯಾವುದೇ ಫೈಲ್\u200cಗಳಿಲ್ಲ")
+                            raise Exception("ZIP ಫೈಲ್‌ನಲ್ಲಿ ಯಾವುದೇ ಫೈಲ್‌ಗಳಿಲ್ಲ")
                         print(f"ZIP verification successful: {len(zip_contents)} files")
                         
                 except Exception as zip_verify_error:
@@ -374,6 +400,63 @@ class PDFOperations:
             traceback.print_exc()
             raise Exception(f"PDF ವಿಭಾಗ ವಿಫಲ: {str(e)}")
 
+    def _split_by_file_size(self, file_path, output_dir, target_size_mb, total_pages, session_id):
+        """Split PDF based on target file size"""
+        print(f"Starting size-based split: target {target_size_mb}MB per file")
+        
+        try:
+            # Calculate approximate pages per chunk based on file size
+            file_size_bytes = os.path.getsize(file_path)
+            file_size_mb = file_size_bytes / (1024 * 1024)
+            
+            # Estimate pages per chunk
+            estimated_pages_per_chunk = max(1, int((target_size_mb / file_size_mb) * total_pages))
+            print(f"Estimated pages per chunk: {estimated_pages_per_chunk}")
+            
+            created_files = []
+            current_page = 1
+            chunk_num = 1
+            
+            reader = PdfReader(file_path)
+            
+            while current_page <= total_pages:
+                end_page = min(current_page + estimated_pages_per_chunk - 1, total_pages)
+                
+                writer = PdfWriter()
+                pages_in_chunk = 0
+                
+                for page_num in range(current_page, end_page + 1):
+                    if page_num <= len(reader.pages):
+                        writer.add_page(reader.pages[page_num - 1])
+                        pages_in_chunk += 1
+                
+                if pages_in_chunk > 0:
+                    output_path = os.path.join(
+                        output_dir, 
+                        f"size_chunk_{chunk_num:03d}_pages_{current_page}_to_{end_page}.pdf"
+                    )
+                    
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    
+                    # Check actual file size
+                    actual_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+                    created_files.append(output_path)
+                    print(f"Created size chunk {chunk_num}: pages {current_page}-{end_page} ({pages_in_chunk} pages, {actual_size_mb:.2f}MB)")
+                
+                current_page = end_page + 1
+                chunk_num += 1
+                
+                writer = None
+                if chunk_num % 10 == 0:
+                    gc.collect()
+            
+            return created_files
+            
+        except Exception as e:
+            print(f"Size-based split error: {e}")
+            raise Exception(f"ಗಾತ್ರದ ಆಧಾರದ ವಿಭಾಗ ವಿಫಲ: {str(e)}")
+    
     def _parse_split_specification_enhanced(self, pages, total_pages, file_size_mb, chunk_size_mb):
         """Enhanced parsing with intelligent split strategy selection"""
         try:
@@ -519,45 +602,6 @@ class PDFOperations:
             print(f"Enhanced page range parsing error: {e}")
             return []
 
-    def _split_large_pdf_chunks(self, file_path, output_dir, split_info, total_pages, session_id):
-        """Memory-efficient chunking for very large PDFs"""
-        print("Starting memory-efficient chunking...")
-        
-        chunk_size = split_info.get('chunk_size', 50)
-        created_files = []
-        
-        try:
-            current_page = 0
-            chunk_num = 1
-            
-            while current_page < total_pages:
-                end_page = min(current_page + chunk_size, total_pages)
-                
-                print(f"Processing chunk {chunk_num}: pages {current_page + 1} to {end_page}")
-                
-                chunk_pages = list(range(current_page + 1, end_page + 1))
-                chunk_file = self._extract_pages_efficient(
-                    file_path, 
-                    output_dir, 
-                    chunk_pages, 
-                    f"chunk_{chunk_num:03d}",
-                    session_id
-                )
-                
-                if chunk_file:
-                    created_files.append(chunk_file)
-                
-                current_page = end_page
-                chunk_num += 1
-                
-                gc.collect()
-            
-            return created_files
-            
-        except Exception as e:
-            print(f"Large PDF chunking error: {e}")
-            raise Exception(f"ದೊಡ್ಡ PDF ಚಂಕಿಂಗ್ ವಿಫಲ: {str(e)}")
-
     def _extract_pages_efficient(self, file_path, output_dir, page_numbers, filename_prefix, session_id):
         """Memory-efficient page extraction"""
         try:
@@ -681,54 +725,54 @@ class PDFOperations:
         except Exception as e:
             print(f"Multiple ranges split error: {e}")
             raise Exception(f"ಬಹು ವ್ಯಾಪ್ತಿ ವಿಭಾಗ ವಿಫಲ: {str(e)}")
-
-    def _auto_chunk_pdf(self, file_path, output_dir, pages_per_chunk, total_pages, session_id):
-        """Automatic chunking based on optimal chunk size"""
-        print(f"Auto-chunking PDF: {pages_per_chunk} pages per chunk")
-        
-        created_files = []
-        current_page = 1
-        chunk_num = 1
-        
-        try:
-            reader = PdfReader(file_path)
-            
-            while current_page <= total_pages:
-                end_page = min(current_page + pages_per_chunk - 1, total_pages)
-                
-                writer = PdfWriter()
-                pages_in_chunk = 0
-                
-                for page_num in range(current_page, end_page + 1):
-                    if page_num <= len(reader.pages):
-                        writer.add_page(reader.pages[page_num - 1])
-                        pages_in_chunk += 1
-                
-                if pages_in_chunk > 0:
-                    output_path = os.path.join(
-                        output_dir, 
-                        f"chunk_{chunk_num:03d}_pages_{current_page}_to_{end_page}.pdf"
-                    )
-                    
-                    with open(output_path, 'wb') as output_file:
-                        writer.write(output_file)
-                    
-                    created_files.append(output_path)
-                    print(f"Created chunk {chunk_num}: pages {current_page}-{end_page} ({pages_in_chunk} pages)")
-                
-                current_page = end_page + 1
-                chunk_num += 1
-                
-                writer = None
-                if chunk_num % 10 == 0:
-                    gc.collect()
-            
-            return created_files
-            
-        except Exception as e:
-            print(f"Auto-chunk error: {e}")
-            raise Exception(f"ಸ್ವಯಂಚಾಲಿತ ಚಂಕಿಂಗ್ ವಿಫಲ: {str(e)}")
     
+    def _auto_chunk_pdf(self, file_path, output_dir, pages_per_chunk, total_pages, session_id):
+            """Automatic chunking based on optimal chunk size"""
+            print(f"Auto-chunking PDF: {pages_per_chunk} pages per chunk")
+            
+            created_files = []
+            current_page = 1
+            chunk_num = 1
+            
+            try:
+                reader = PdfReader(file_path)
+                
+                while current_page <= total_pages:
+                    end_page = min(current_page + pages_per_chunk - 1, total_pages)
+                    
+                    writer = PdfWriter()
+                    pages_in_chunk = 0
+                    
+                    for page_num in range(current_page, end_page + 1):
+                        if page_num <= len(reader.pages):
+                            writer.add_page(reader.pages[page_num - 1])
+                            pages_in_chunk += 1
+                    
+                    if pages_in_chunk > 0:
+                        output_path = os.path.join(
+                            output_dir, 
+                            f"chunk_{chunk_num:03d}_pages_{current_page}_to_{end_page}.pdf"
+                        )
+                        
+                        with open(output_path, 'wb') as output_file:
+                            writer.write(output_file)
+                        
+                        created_files.append(output_path)
+                        print(f"Created chunk {chunk_num}: pages {current_page}-{end_page} ({pages_in_chunk} pages)")
+                    
+                    current_page = end_page + 1
+                    chunk_num += 1
+                    
+                    writer = None
+                    if chunk_num % 10 == 0:
+                        gc.collect()
+                
+                return created_files
+                
+            except Exception as e:
+                print(f"Auto-chunk error: {e}")
+                raise Exception(f"ಸ್ವಯಂಚಾಲಿತ ಚಂಕಿಂಗ್ ವಿಫಲ: {str(e)}")
+
     def extract_pages(self, file_path, pages, session_id):
         """Extract specific pages from PDF"""
         try:

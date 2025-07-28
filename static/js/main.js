@@ -539,78 +539,234 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Form submission handler
-    const operationForm = document.getElementById('operationForm');
-    if (operationForm) {
-        operationForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
+    // Fix for the PDF split operation
+// The issue is that the frontend is not passing the correct split_method parameter
+
+// In the form submission handler, modify the split operation handling:
+const operationForm = document.getElementById('operationForm');
+if (operationForm) {
+    operationForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (selectedFiles.length === 0) {
+            showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+            return;
+        }
+
+        const config = operationConfigs[currentOperation];
+        if (selectedFiles.length < config.minFiles) {
+            showAlert('error', `ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಕನಿಷ್ಠ ${config.minFiles} ಫೈಲ್‌ಗಳು ಬೇಕಾಗುತ್ತವೆ`);
+            return;
+        }
+
+        // Show loading modal
+        document.getElementById('operationModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'block';
+
+        try {
+            const formData = new FormData();
+            formData.append('operation', currentOperation);
             
-            if (selectedFiles.length === 0) {
-                showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
-                return;
-            }
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
 
-            const config = operationConfigs[currentOperation];
-            if (selectedFiles.length < config.minFiles) {
-                showAlert('error', `ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಕನಿಷ್ಠ ${config.minFiles} ಫೈಲ್‌ಗಳು ಬೇಕಾಗುತ್ತವೆ`);
-                return;
-            }
-
-            // Show loading modal
-            document.getElementById('operationModal').style.display = 'none';
-            document.getElementById('loadingModal').style.display = 'block';
-
-            try {
-                const formData = new FormData();
-                formData.append('operation', currentOperation);
+            // Add operation-specific parameters
+            const pagesInput = document.getElementById('pagesInput');
+            const selectedPagesInput = document.getElementById('selectedPagesInput');
+            
+            // Fix for split operation - ensure split_method is included
+            if (currentOperation === 'split' || currentOperation === 'extract' || currentOperation === 'delete') {
+                // Default split method is 'pages'
+                formData.append('split_method', 'pages');
                 
-                selectedFiles.forEach(file => {
-                    formData.append('files', file);
-                });
-
-                // Add operation-specific parameters
-                const pagesInput = document.getElementById('pagesInput');
-                if (pagesInput && pagesInput.value.trim()) {
-                    formData.append('pages', pagesInput.value.trim());
+                // Get pages from either visual selection or manual input
+                let pagesValue = '';
+                if (selectedPagesInput && selectedPagesInput.value.trim()) {
+                    pagesValue = selectedPagesInput.value.trim();
+                } else if (pagesInput && pagesInput.value.trim()) {
+                    pagesValue = pagesInput.value.trim();
                 }
-
-                const compressionLevel = document.getElementById('compressionLevel');
-                if (compressionLevel) {
-                    formData.append('compression_level', compressionLevel.value);
-                }
-
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // Handle successful processing
-                    if (result.download_url) {
-                        showAlert('success', 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
-                        
-                        // Create download link
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = result.download_url;
-                        downloadLink.download = result.filename || 'processed_file';
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
-                    } else {
-                        showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
-                    }
+                
+                if (pagesValue) {
+                    formData.append('pages', pagesValue);
+                    formData.append('selected_pages', pagesValue);
                 } else {
-                    throw new Error(result.error || 'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲವಾಗಿದೆ');
+                    showAlert('error', 'ದಯವಿಟ್ಟು ವಿಭಾಗಿಸಲು ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+                    document.getElementById('loadingModal').style.display = 'none';
+                    document.getElementById('operationModal').style.display = 'block';
+                    return;
                 }
-            } catch (error) {
-                showAlert('error', 'ದೋಷ: ' + error.message);
-            } finally {
-                document.getElementById('loadingModal').style.display = 'none';
-                resetModalForm();
+            }
+
+            const compressionLevel = document.getElementById('compressionLevel');
+            if (compressionLevel) {
+                formData.append('compression_level', compressionLevel.value);
+            }
+
+            const response = await fetch('/process', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Handle successful processing
+                if (result.download_url) {
+                    showAlert('success', 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
+                    
+                    // Create download link
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = result.download_url;
+                    downloadLink.download = result.filename || 'processed_file';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                } else {
+                    showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
+                }
+            } else {
+                throw new Error(result.error || 'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲವಾಗಿದೆ');
+            }
+        } catch (error) {
+            showAlert('error', 'ದೋಷ: ' + error.message);
+        } finally {
+            document.getElementById('loadingModal').style.display = 'none';
+            resetModalForm();
+        }
+    });
+}
+
+// Enhanced page selection confirmation with validation
+window.confirmPageSelection = function() {
+    if (selectedPages.size === 0) {
+        showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಪುಟವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+        return;
+    }
+
+    const sortedPages = Array.from(selectedPages).sort((a, b) => a - b);
+    const pagesStr = formatPageRanges(sortedPages);
+
+    // Update both inputs to ensure backend receives the data
+    const pagesInput = document.getElementById('pagesInput');
+    if (pagesInput) {
+        pagesInput.value = pagesStr;
+    }
+
+    const selectedPagesInput = document.getElementById('selectedPagesInput');
+    if (selectedPagesInput) {
+        selectedPagesInput.value = pagesStr;
+    }
+
+    // Validate the page selection based on operation type
+    let validationMessage = '';
+    if (currentOperation === 'split') {
+        validationMessage = `${selectedPages.size} ಪುಟಗಳನ್ನು ವಿಭಿನ್ನ PDF ಗಳಾಗಿ ವಿಭಜಿಸಲಾಗುತ್ತದೆ: ${pagesStr}`;
+    } else if (currentOperation === 'extract') {
+        validationMessage = `${selectedPages.size} ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಲಾಗುತ್ತದೆ: ${pagesStr}`;
+    } else if (currentOperation === 'delete') {
+        validationMessage = `${selectedPages.size} ಪುಟಗಳನ್ನು ಅಳಿಸಲಾಗುತ್ತದೆ: ${pagesStr}`;
+    }
+
+    closePreviewModal();
+    showAlert('success', validationMessage);
+};
+
+// Enhanced manual page selection with better validation
+window.applyManualSelection = function() {
+    const input = document.getElementById('manualPagesInput');
+    const pagesStr = input.value.trim();
+
+    if (!pagesStr || !currentPreviewData) {
+        showAlert('error', 'ದಯವಿಟ್ಟು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ');
+        return;
+    }
+
+    clearSelection();
+
+    try {
+        const pageNumbers = parsePageRanges(pagesStr, currentPreviewData.total_pages);
+        
+        if (pageNumbers.length === 0) {
+            throw new Error('ಯಾವುದೇ ಸರಿಯಾದ ಪುಟಗಳನ್ನು ಕಂಡುಬಂದಿಲ್ಲ');
+        }
+
+        pageNumbers.forEach(pageNum => {
+            if (pageNum >= 1 && pageNum <= currentPreviewData.total_pages) {
+                selectedPages.add(pageNum);
+                const pageDiv = document.querySelector(`[data-page-num="${pageNum}"]`);
+                if (pageDiv) {
+                    const checkbox = pageDiv.querySelector('.page-checkbox');
+                    pageDiv.classList.add('selected');
+                    checkbox.checked = true;
+                }
             }
         });
+
+        updateSelectedPagesDisplay();
+        showAlert('success', `${pageNumbers.length} ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿವೆ`);
+    } catch (error) {
+        showAlert('error', 'ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: ' + error.message);
     }
+};
+
+// Enhanced page range parsing with better error handling
+function parsePageRanges(pagesStr, totalPages) {
+    const pages = new Set();
+    
+    if (!pagesStr || !pagesStr.trim()) {
+        throw new Error('ಖಾಲಿ ಪುಟ ಶ್ರೇಣಿ');
+    }
+    
+    const parts = pagesStr.split(',');
+    
+    for (let part of parts) {
+        part = part.trim();
+        if (!part) continue;
+        
+        if (part.includes('-')) {
+            // Handle range (e.g., "5-10")
+            const rangeParts = part.split('-');
+            if (rangeParts.length !== 2) {
+                throw new Error(`ಅಮಾನ್ಯ ಶ್ರೇಣಿ ಸ್ವರೂಪ: ${part}`);
+            }
+            
+            const start = parseInt(rangeParts[0].trim());
+            const end = parseInt(rangeParts[1].trim());
+            
+            if (isNaN(start) || isNaN(end)) {
+                throw new Error(`ಅಮಾನ್ಯ ಸಂಖ್ಯೆಗಳು ಶ್ರೇಣಿಯಲ್ಲಿ: ${part}`);
+            }
+            
+            if (start < 1 || end > totalPages) {
+                throw new Error(`ಶ್ರೇಣಿ ಮಿತಿಯ ಹೊರಗೆ (1-${totalPages}): ${part}`);
+            }
+            
+            if (start > end) {
+                throw new Error(`ಅಮಾನ್ಯ ಶ್ರೇಣಿ (ಪ್ರಾರಂಭ > ಅಂತ್ಯ): ${part}`);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                pages.add(i);
+            }
+        } else {
+            // Handle single page
+            const pageNum = parseInt(part);
+            if (isNaN(pageNum)) {
+                throw new Error(`ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆ: ${part}`);
+            }
+            
+            if (pageNum < 1 || pageNum > totalPages) {
+                throw new Error(`ಪುಟ ಸಂಖ್ಯೆ ಮಿತಿಯ ಹೊರಗೆ (1-${totalPages}): ${pageNum}`);
+            }
+            
+            pages.add(pageNum);
+        }
+    }
+    
+    return Array.from(pages).sort((a, b) => a - b);
+}
 
     // Drag and drop functionality
     const uploadArea = document.getElementById('uploadArea');
