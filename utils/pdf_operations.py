@@ -25,21 +25,129 @@ class PDFOperations:
         self.config = config.Config()
     
     def merge_pdfs(self, file_paths, session_id):
-        """Merge multiple PDF files"""
+        """Merge multiple PDF files - FIXED VERSION"""
         try:
+            print(f"=== MERGE PDF DEBUG ===")
+            print(f"Session ID: {session_id}")
+            print(f"File paths: {file_paths}")
+            print(f"Number of files: {len(file_paths)}")
+        
+        # Validate input
+            if not file_paths or len(file_paths) < 2:
+                raise Exception("ವಿಲೀನಕ್ಕೆ ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಅಗತ್ಯ")
+        
+        # Check if all files exist and are valid PDFs
+            valid_files = []
+            for i, file_path in enumerate(file_paths):
+                print(f"Checking file {i+1}: {file_path}")
+            
+                if not os.path.exists(file_path):
+                    print(f"File does not exist: {file_path}")
+                    continue
+                
+                if os.path.getsize(file_path) == 0:
+                    print(f"File is empty: {file_path}")
+                    continue
+            
+            # Test if file is a valid PDF
+                try:
+                    test_reader = PdfReader(file_path)
+                    if len(test_reader.pages) == 0:
+                        print(f"PDF has no pages: {file_path}")
+                        continue
+                    print(f"Valid PDF with {len(test_reader.pages)} pages: {file_path}")
+                    valid_files.append(file_path)
+                except Exception as pdf_error:
+                    print(f"Invalid PDF file {file_path}: {pdf_error}")
+                    continue
+        
+            if len(valid_files) < 2:
+                raise Exception(f"ವಿಲೀನಕ್ಕೆ ಕನಿಷ್ಠ 2 ಸರಿಯಾದ PDF ಫೈಲ್‌ಗಳು ಅಗತ್ಯ. ಸಿಕ್ಕಿದ್ದು: {len(valid_files)}")
+        
+            print(f"Valid files for merging: {len(valid_files)}")
+        
+        # Create PDF writer
             writer = PdfWriter()
-            
-            for file_path in file_paths:
-                reader = PdfReader(file_path)
-                for page in reader.pages:
-                    writer.add_page(page)
-            
+            total_pages_added = 0
+        
+        # Process each valid PDF file
+            for file_path in valid_files:
+                try:
+                    print(f"Processing file: {os.path.basename(file_path)}")
+                    reader = PdfReader(file_path)
+                    pages_in_file = len(reader.pages)
+                    print(f"Pages in file: {pages_in_file}")
+                
+                # Add all pages from this PDF
+                    for page_num, page in enumerate(reader.pages):
+                        try:
+                            writer.add_page(page)
+                            total_pages_added += 1
+                            print(f"Added page {page_num + 1} from {os.path.basename(file_path)}")
+                        except Exception as page_error:
+                            print(f"Error adding page {page_num + 1}: {page_error}")
+                            continue
+                        
+                except Exception as file_error:
+                    print(f"Error processing file {file_path}: {file_error}")
+                    continue
+        
+            if total_pages_added == 0:
+                raise Exception("ಯಾವುದೇ ಪುಟಗಳನ್ನು ವಿಲೀನ ಮಾಡಲಾಗಿಲ್ಲ")
+        
+            print(f"Total pages added to merged PDF: {total_pages_added}")
+        
+        # Create output path
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_merged.pdf")
-            with open(output_path, 'wb') as output_file:
-                writer.write(output_file)
+            print(f"Output path: {output_path}")
+        
+        # Ensure output directory exists
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # Write the merged PDF
+            try:
+                with open(output_path, 'wb') as output_file:
+                    writer.write(output_file)
+                print(f"Merged PDF written successfully")
+            except Exception as write_error:
+                print(f"Error writing merged PDF: {write_error}")
+                raise Exception(f"ವಿಲೀನ PDF ಬರೆಯುವಲ್ಲಿ ದೋಷ: {str(write_error)}")
+        
+        # Verify the output file
+            if not os.path.exists(output_path):
+                raise Exception("ವಿಲೀನ PDF ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ")
+        
+            output_size = os.path.getsize(output_path)
+            if output_size == 0:
+                raise Exception("ಖಾಲಿ ವಿಲೀನ PDF ರಚಿಸಲಾಗಿದೆ")
+        
+            print(f"Merged PDF size: {output_size} bytes")
+        
+        # Final validation - try to read the merged PDF
+            try:
+                validation_reader = PdfReader(output_path)
+                merged_pages = len(validation_reader.pages)
+                print(f"Validation: Merged PDF has {merged_pages} pages")
             
+                if merged_pages == 0:
+                    raise Exception("ವಿಲೀನ PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
+                
+            except Exception as validation_error:
+                print(f"Validation error: {validation_error}")
+                raise Exception(f"ವಿಲೀನ PDF ದೋಷಪೂರ್ಣ: {str(validation_error)}")
+        
+            print(f"=== MERGE SUCCESSFUL ===")
+            print(f"Files merged: {len(valid_files)}")
+            print(f"Total pages: {merged_pages}")
+            print(f"Output file: {output_path}")
+            print(f"=== END DEBUG ===")
+        
             return output_path
+        
         except Exception as e:
+            print(f"Merge error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
     
     def split_pdf(self, file_path, session_id, pages=""):
