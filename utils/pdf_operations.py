@@ -17,30 +17,11 @@ import subprocess
 import shutil
 from pathlib import Path
 import io
-import os
-import sys
-import zipfile
-import logging
-import tempfile
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple, Union
+import psutil
+import gc
 from datetime import datetime
 import json
-import io
-
-# PDF libraries
-from PyPDF2 import PdfReader, PdfWriter
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.pdfbase import pdfutils
-from reportlab.lib.colors import black, red, blue, gray
-from reportlab.lib.units import inch
-
-# For bookmark extraction and password handling
-import fitz  # PyMuPDF for advanced features
-from cryptography.fernet import Fernet
+import tempfile
 
 class PDFOperations:
     def __init__(self):
@@ -172,941 +153,581 @@ class PDFOperations:
             traceback.print_exc()
             raise Exception(f"PDF ವಿಲೀನ ವಿಫಲ: {str(e)}")
     
-    
-    def __init__(self, config=None):
-        self.config = config or self._default_config()
-        self.logger = self._setup_logging()
-        self.temp_dir = tempfile.mkdtemp(prefix="pdf_split_")
-        
-        # Kannada messages
-        self.messages = {
-            'single_page_error': "ಒಂದೇ ಪುಟದ PDF ಅನ್ನು ವಿಭಜಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ",
-            'file_not_created': "ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ",
-            'empty_file': "ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ",
-            'invalid_pdf': "ಅಮಾನ್ಯ PDF ರಚಿಸಲಾಗಿದೆ",
-            'corrupted_pdf': "ದೋಷಪೂರ್ಣ PDF ರಚಿಸಲಾಗಿದೆ",
-            'zip_not_created': "ZIP ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ",
-            'zip_empty': "ZIP ಫೈಲ್ ಖಾಲಿಯಾಗಿದೆ",
-            'split_failed': "PDF ವಿಭಾಗ ವಿಫಲ",
-            'processing': "ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ",
-            'completed': "ಪೂರ್ಣಗೊಂಡಿದೆ",
-            'password_required': "ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯವಿದೆ",
-            'bookmark_split': "ಬುಕ್‌ಮಾರ್ಕ್ ಆಧಾರಿತ ವಿಭಾಗ"
-        }
-    
-    def _default_config(self):
-        """Default configuration"""
-        return {
-            'OUTPUT_FOLDER': './output',
-            'MAX_MEMORY_MB': 512,
-            'CHUNK_SIZE_MB': 50,
-            'MAX_WORKERS': min(4, multiprocessing.cpu_count()),
-            'ENABLE_MULTIPROCESSING': True,
-            'ADD_WATERMARK': False,
-            'ADD_PAGE_NUMBERS': True,
-            'COMPRESSION_LEVEL': 6,
-            'LOG_LEVEL': 'INFO'
-        }
-    
-    def _setup_logging(self):
-        """Setup logging with Kannada support"""
-        logger = logging.getLogger('PDFSplitter')
-        logger.setLevel(getattr(logging, self.config['LOG_LEVEL']))
-        
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-        
-        return logger
+    def split_pdf(self, file_path, session_id, pages="", max_file_size_mb=500, chunk_size_mb=50):
+        """Enhanced PDF split function for production use with large file handling"""
+        try:
+            print(f"=== ENHANCED PDF SPLIT DEBUG ===")
+            print(f"File path: {file_path}")
+            print(f"Session ID: {session_id}")
+            print(f"Pages parameter: '{pages}'")
+            print(f"Max file size: {max_file_size_mb}MB")
+            print(f"Target chunk size: {chunk_size_mb}MB")
+            print(f"Timestamp: {datetime.now()}")
 
-    def split_pdf_advanced(self, file_path: str, session_id: str, 
-                          split_config: Dict[str, Any]) -> str:
-        """
-        Advanced PDF splitting with all pro features
-        
-        split_config options:
-        - type: 'pages', 'size', 'bookmarks', 'every_n', 'custom'
-        - pages: page specification
-        - size_mb: target size per split
-        - every_n: split every N pages  
-        - bookmarks: use PDF bookmarks
-        - password: PDF password if encrypted
-        - add_watermark: bool
-        - watermark_text: string
-        - add_page_numbers: bool
-        - use_multiprocessing: bool
-        """
-        
-        try:
-            self.logger.info(f"=== ಸುಧಾರಿತ PDF ವಿಭಾಗ ಪ್ರಾರಂಭ ===")
-            self.logger.info(f"File: {file_path}")
-            self.logger.info(f"Session: {session_id}")
-            self.logger.info(f"Config: {split_config}")
-            
-            # Validate file
+            # ===== INPUT VALIDATION =====
             if not os.path.exists(file_path):
-                raise FileNotFoundError(f"PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ: {file_path}")
+                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
             
-            # Handle password-protected PDFs
-            pdf_doc = self._open_pdf_with_password(file_path, split_config.get('password'))
-            total_pages = len(pdf_doc.pages) if hasattr(pdf_doc, 'pages') else pdf_doc.page_count
+            file_size_bytes = os.path.getsize(file_path)
+            file_size_mb = file_size_bytes / (1024 * 1024)
+            print(f"Input file size: {file_size_mb:.2f}MB ({file_size_bytes:,} bytes)")
             
-            self.logger.info(f"ಒಟ್ಟು ಪುಟಗಳು: {total_pages}")
+            if file_size_bytes == 0:
+                raise Exception("ಖಾಲಿ PDF ಫೈಲ್")
             
-            if total_pages <= 1:
-                raise ValueError(self.messages['single_page_error'])
+            if file_size_mb > max_file_size_mb:
+                raise Exception(f"ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ ಗಾತ್ರ: {max_file_size_mb}MB")
             
-            # Create output directory
-            output_dir = os.path.join(self.config['OUTPUT_FOLDER'], f"{session_id}_split")
-            os.makedirs(output_dir, exist_ok=True)
+            # Check available memory
+            available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+            required_memory_mb = file_size_mb * 3
+            print(f"Available memory: {available_memory_mb:.0f}MB, Required: {required_memory_mb:.0f}MB")
             
-            # Determine split strategy
-            split_info = self._determine_split_strategy(split_config, total_pages, pdf_doc)
-            self.logger.info(f"ವಿಭಾಗ ತಂತ್ರ: {split_info}")
+            if required_memory_mb > available_memory_mb:
+                print("WARNING: Low memory detected, using memory-efficient processing")
             
-            # Execute splitting based on strategy
-            created_files = []
+            # ===== PDF VALIDATION =====
+            print("Validating PDF structure...")
+            reader = None
+            total_pages = 0
             
-            if split_info['type'] == 'size_based':
-                created_files = self._split_by_size(pdf_doc, file_path, output_dir, split_info)
-            elif split_info['type'] == 'bookmark_based':
-                created_files = self._split_by_bookmarks(pdf_doc, file_path, output_dir, split_info)
-            elif split_info['type'] == 'every_n':
-                created_files = self._split_every_n_pages(pdf_doc, file_path, output_dir, split_info)
-            elif split_info['type'] == 'multiprocessing':
-                created_files = self._split_with_multiprocessing(pdf_doc, file_path, output_dir, split_info)
-            else:
-                # Standard page-based splitting with streaming
-                created_files = self._split_pages_streaming(pdf_doc, file_path, output_dir, split_info)
-            
-            # Post-process files (watermark, page numbers, etc.)
-            if split_config.get('add_watermark') or split_config.get('add_page_numbers'):
-                created_files = self._post_process_files(created_files, split_config)
-            
-            # Validate created files
-            self._validate_created_files(created_files)
-            
-            # Create ZIP with progress
-            zip_path = self._create_zip_with_progress(created_files, session_id)
-            
-            self.logger.info(f"=== ವಿಭಾಗ ಪೂರ್ಣಗೊಂಡಿದೆ ===")
-            return zip_path
-            
-        except Exception as e:
-            self.logger.error(f"Error in advanced split: {str(e)}")
-            raise Exception(f"{self.messages['split_failed']}: {str(e)}")
-        
-        finally:
-            # Cleanup
-            self._cleanup_temp_files()
-    
-    def _open_pdf_with_password(self, file_path: str, password: Optional[str] = None):
-        """Open PDF with password support using both PyPDF2 and PyMuPDF"""
-        try:
-            # Try PyPDF2 first
-            reader = PdfReader(file_path)
-            if reader.is_encrypted:
-                if not password:
-                    raise ValueError(self.messages['password_required'])
-                if not reader.decrypt(password):
-                    raise ValueError("ತಪ್ಪು ಪಾಸ್‌ವರ್ಡ್")
-            return reader
-        except:
-            # Fallback to PyMuPDF for complex PDFs
             try:
-                doc = fitz.open(file_path)
-                if doc.needs_pass:
-                    if not password:
-                        raise ValueError(self.messages['password_required'])
-                    if not doc.authenticate(password):
-                        raise ValueError("ತಪ್ಪು ಪಾಸ್‌ವರ್ಡ್")
-                return doc
-            except Exception as e:
-                raise Exception(f"PDF ತೆರೆಯಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {str(e)}")
-    
-    def _determine_split_strategy(self, config: Dict, total_pages: int, pdf_doc) -> Dict:
-        """Determine the best splitting strategy based on config"""
-        
-        split_type = config.get('type', 'pages')
-        
-        if split_type == 'size':
-            return {
-                'type': 'size_based',
-                'target_size_mb': config.get('size_mb', 10),
-                'total_pages': total_pages
-            }
-        
-        elif split_type == 'bookmarks':
-            bookmarks = self._extract_bookmarks(pdf_doc)
-            if bookmarks:
-                return {
-                    'type': 'bookmark_based',
-                    'bookmarks': bookmarks,
-                    'total_pages': total_pages
-                }
-            else:
-                # Fallback to page-based
-                return {
-                    'type': 'pages',
-                    'split_point': total_pages // 2,
-                    'total_pages': total_pages
-                }
-        
-        elif split_type == 'every_n':
-            return {
-                'type': 'every_n',
-                'n_pages': config.get('every_n', 10),
-                'total_pages': total_pages
-            }
-        
-        elif split_type == 'custom':
-            # Use multiprocessing for large files
-            if total_pages > 100 and config.get('use_multiprocessing', True):
-                return {
-                    'type': 'multiprocessing',
-                    'ranges': self._calculate_ranges(config.get('pages', ''), total_pages),
-                    'total_pages': total_pages
-                }
-        
-        # Default page-based splitting
-        return {
-            'type': 'pages',
-            'pages_spec': config.get('pages', ''),
-            'total_pages': total_pages
-        }
-    
-    def _split_by_size(self, pdf_doc, file_path: str, output_dir: str, split_info: Dict) -> List[str]:
-        """Split PDF based on file size"""
-        created_files = []
-        target_size_bytes = split_info['target_size_mb'] * 1024 * 1024
-        
-        current_writer = PdfWriter()
-        current_size = 0
-        part_num = 1
-        
-        # Use PyMuPDF for better size estimation
-        if hasattr(pdf_doc, 'page_count'):  # PyMuPDF
-            doc = pdf_doc
-            for page_num in range(doc.page_count):
-                page = doc[page_num]
+                reader = PdfReader(file_path)
+                total_pages = len(reader.pages)
+                print(f"PDF validation successful: {total_pages} pages")
                 
-                # Estimate page size (rough approximation)
-                page_size = len(page.get_text().encode('utf-8')) * 2  # Text + formatting estimate
+                if total_pages == 0:
+                    raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
                 
-                if current_size + page_size > target_size_bytes and current_writer.pages:
-                    # Save current part
-                    output_path = os.path.join(output_dir, f"part_{part_num}_size_{split_info['target_size_mb']}MB.pdf")
-                    self._save_writer_streaming(current_writer, output_path)
-                    created_files.append(output_path)
+                if reader.is_encrypted:
+                    raise Exception("ಎನ್\u200cಕ್ರಿಪ್ಟ್ ಮಾಡಿದ PDF ಬೆಂಬಲಿತವಾಗಿಲ್ಲ")
                     
-                    # Start new part
-                    current_writer = PdfWriter()
-                    current_size = 0
-                    part_num += 1
-                
-                # Convert PyMuPDF page to PyPDF2 format
-                temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-                single_page_doc = fitz.open()
-                single_page_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
-                single_page_doc.save(temp_pdf.name)
-                single_page_doc.close()
-                
-                # Add to current writer
-                temp_reader = PdfReader(temp_pdf.name)
-                current_writer.add_page(temp_reader.pages[0])
-                current_size += page_size
-                
-                os.unlink(temp_pdf.name)
-        
-        # Save final part
-        if current_writer.pages:
-            output_path = os.path.join(output_dir, f"part_{part_num}_size_{split_info['target_size_mb']}MB.pdf")
-            self._save_writer_streaming(current_writer, output_path)
-            created_files.append(output_path)
-        
-        return created_files
-    
-    def _split_by_bookmarks(self, pdf_doc, file_path: str, output_dir: str, split_info: Dict) -> List[str]:
-        """Split PDF based on bookmarks/outline"""
-        created_files = []
-        bookmarks = split_info['bookmarks']
-        
-        self.logger.info(f"{self.messages['bookmark_split']}: {len(bookmarks)} ಬುಕ್‌ಮಾರ್ಕ್‌ಗಳು")
-        
-        for i, bookmark in enumerate(bookmarks):
-            start_page = bookmark['page']
-            end_page = bookmarks[i + 1]['page'] - 1 if i + 1 < len(bookmarks) else split_info['total_pages']
-            
-            writer = PdfWriter()
-            
-            # Add pages for this bookmark section
-            if hasattr(pdf_doc, 'pages'):  # PyPDF2
-                for page_num in range(start_page - 1, min(end_page, len(pdf_doc.pages))):
-                    writer.add_page(pdf_doc.pages[page_num])
-            else:  # PyMuPDF
-                temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-                single_section_doc = fitz.open()
-                single_section_doc.insert_pdf(pdf_doc, from_page=start_page-1, to_page=end_page-1)
-                single_section_doc.save(temp_pdf.name)
-                single_section_doc.close()
-                
-                temp_reader = PdfReader(temp_pdf.name)
-                for page in temp_reader.pages:
-                    writer.add_page(page)
-                os.unlink(temp_pdf.name)
-            
-            # Create filename from bookmark title
-            safe_title = "".join(c for c in bookmark['title'] if c.isalnum() or c in (' ', '-', '_')).strip()[:50]
-            output_path = os.path.join(output_dir, f"bookmark_{i+1}_{safe_title}_pages_{start_page}_to_{end_page}.pdf")
-            
-            self._save_writer_streaming(writer, output_path)
-            created_files.append(output_path)
-        
-        return created_files
-    
-    def _split_every_n_pages(self, pdf_doc, file_path: str, output_dir: str, split_info: Dict) -> List[str]:
-        """Split PDF every N pages"""
-        created_files = []
-        n_pages = split_info['n_pages']
-        total_pages = split_info['total_pages']
-        
-        for start_page in range(0, total_pages, n_pages):
-            end_page = min(start_page + n_pages, total_pages)
-            
-            writer = PdfWriter()
-            
-            if hasattr(pdf_doc, 'pages'):  # PyPDF2
-                for page_num in range(start_page, end_page):
-                    writer.add_page(pdf_doc.pages[page_num])
-            else:  # PyMuPDF
-                temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
-                section_doc = fitz.open()
-                section_doc.insert_pdf(pdf_doc, from_page=start_page, to_page=end_page-1)
-                section_doc.save(temp_pdf.name)
-                section_doc.close()
-                
-                temp_reader = PdfReader(temp_pdf.name)
-                for page in temp_reader.pages:
-                    writer.add_page(page)
-                os.unlink(temp_pdf.name)
-            
-            output_path = os.path.join(output_dir, f"every_{n_pages}_pages_{start_page+1}_to_{end_page}.pdf")
-            self._save_writer_streaming(writer, output_path)
-            created_files.append(output_path)
-        
-        return created_files
-    
-    def _split_with_multiprocessing(self, pdf_doc, file_path: str, output_dir: str, split_info: Dict) -> List[str]:
-        """Split PDF using multiprocessing for large files"""
-        ranges = split_info['ranges']
-        max_workers = min(self.config['MAX_WORKERS'], len(ranges))
-        
-        self.logger.info(f"ಮಲ್ಟಿಪ್ರೊಸೆಸಿಂಗ್ ಬಳಸಿ: {max_workers} workers")
-        
-        created_files = []
-        
-        # Prepare tasks for multiprocessing
-        tasks = []
-        for i, (start, end) in enumerate(ranges):
-            task = {
-                'file_path': file_path,
-                'start_page': start,
-                'end_page': end,
-                'output_path': os.path.join(output_dir, f"part_{i+1}_pages_{start}_to_{end}.pdf"),
-                'part_num': i + 1
-            }
-            tasks.append(task)
-        
-        # Execute tasks in parallel
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            future_to_task = {executor.submit(self._process_pdf_range, task): task for task in tasks}
-            
-            for future in as_completed(future_to_task):
-                task = future_to_task[future]
+            except Exception as pdf_error:
+                print(f"PyPDF2 validation failed: {pdf_error}")
                 try:
-                    result_path = future.result()
-                    created_files.append(result_path)
-                    self.logger.info(f"Completed part {task['part_num']}")
-                except Exception as e:
-                    self.logger.error(f"Error processing part {task['part_num']}: {e}")
-                    raise
-        
-        return created_files
-    
-    @staticmethod
-    def _process_pdf_range(task: Dict) -> str:
-        """Process a single PDF range (for multiprocessing)"""
-        reader = PdfReader(task['file_path'])
-        writer = PdfWriter()
-        
-        for page_num in range(task['start_page'] - 1, min(task['end_page'], len(reader.pages))):
-            writer.add_page(reader.pages[page_num])
-        
-        with open(task['output_path'], 'wb') as output_file:
-            writer.write(output_file)
-        
-        return task['output_path']
-    
-    def _split_pages_streaming(self, pdf_doc, file_path: str, output_dir: str, split_info: Dict) -> List[str]:
-        """Memory-efficient page-based splitting with streaming"""
-        created_files = []
-        pages_spec = split_info.get('pages_spec', '')
-        total_pages = split_info['total_pages']
-        
-        # Parse pages specification
-        if not pages_spec:
-            # Default: split in middle
-            split_point = max(1, total_pages // 2)
-            ranges = [(1, split_point), (split_point + 1, total_pages)]
-        else:
-            ranges = self._parse_pages_to_ranges(pages_spec, total_pages)
-        
-        # Create PDFs for each range using streaming
-        for i, (start, end) in enumerate(ranges):
-            output_path = os.path.join(output_dir, f"part_{i+1}_pages_{start}_to_{end}.pdf")
-            self._create_pdf_range_streaming(file_path, start, end, output_path)
-            created_files.append(output_path)
-        
-        return created_files
-    
-    def _create_pdf_range_streaming(self, file_path: str, start_page: int, end_page: int, output_path: str):
-        """Create PDF for page range using streaming to minimize memory usage"""
-        
-        # Process in chunks to avoid memory issues
-        chunk_size = self.config['CHUNK_SIZE_MB'] // 4  # Conservative chunk size
-        
-        writer = PdfWriter()
-        pages_processed = 0
-        
-        with open(file_path, 'rb') as input_file:
-            reader = PdfReader(input_file)
-            
-            for page_num in range(start_page - 1, min(end_page, len(reader.pages))):
-                writer.add_page(reader.pages[page_num])
-                pages_processed += 1
-                
-                # Write intermediate file if chunk is full
-                if pages_processed >= chunk_size:
-                    temp_path = output_path + f'.tmp_{pages_processed}'
-                    with open(temp_path, 'wb') as temp_file:
-                        writer.write(temp_file)
+                    doc = fitz.open(file_path)
+                    total_pages = len(doc)
+                    doc.close()
+                    print(f"PyMuPDF validation successful: {total_pages} pages")
                     
-                    # Start new writer and merge later if needed
-                    if page_num < min(end_page, len(reader.pages)) - 1:
-                        # More pages to process, continue with new writer
-                        writer = PdfWriter()
-                        pages_processed = 0
-        
-        # Save final output
-        self._save_writer_streaming(writer, output_path)
-    
-    def _save_writer_streaming(self, writer: PdfWriter, output_path: str):
-        """Save PDF writer with streaming to minimize memory usage"""
-        with open(output_path, 'wb') as output_file:
-            writer.write(output_file)
-        
-        # Force garbage collection to free memory
-        import gc
-        gc.collect()
-    
-    def _extract_bookmarks(self, pdf_doc) -> List[Dict]:
-        """Extract bookmarks/outline from PDF"""
-        bookmarks = []
-        
-        try:
-            if hasattr(pdf_doc, 'outline') and pdf_doc.outline:  # PyPDF2
-                self._extract_bookmarks_pypdf2(pdf_doc.outline, bookmarks, level=0)
-            elif hasattr(pdf_doc, 'get_toc'):  # PyMuPDF
-                toc = pdf_doc.get_toc()
-                for item in toc:
-                    level, title, page = item
-                    bookmarks.append({
-                        'title': title,
-                        'page': page,
-                        'level': level
-                    })
-        except Exception as e:
-            self.logger.warning(f"ಬುಕ್‌ಮಾರ್ಕ್ ಹೊರತೆಗೆಯಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {e}")
-        
-        return sorted(bookmarks, key=lambda x: x['page'])
-    
-    def _extract_bookmarks_pypdf2(self, outline, bookmarks: List, level: int = 0):
-        """Recursively extract bookmarks from PyPDF2 outline"""
-        for item in outline:
-            if isinstance(item, list):
-                self._extract_bookmarks_pypdf2(item, bookmarks, level + 1)
-            else:
+                    if total_pages == 0:
+                        raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
+                        
+                except Exception as fitz_error:
+                    raise Exception(f"ಅಮಾನ್ಯ PDF ಫೈಲ್: {str(fitz_error)}")
+            
+            if total_pages == 1:
+                raise Exception("ಒಂದೇ ಪುಟದ PDF ಅನ್ನು ವಿಭಜಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ")
+
+            # ===== OUTPUT DIRECTORY SETUP =====
+            temp_dir = tempfile.mkdtemp(prefix=f"pdf_split_{session_id}_")
+            output_dir = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_split")
+            
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+                print(f"Output directory: {output_dir}")
+                print(f"Temp directory: {temp_dir}")
+                
+                # ===== PARSE SPLIT SPECIFICATION =====
+                split_info = self._parse_split_specification_enhanced(pages, total_pages, file_size_mb, chunk_size_mb)
+                print(f"Split strategy: {split_info}")
+                
+                # ===== PERFORM SPLIT OPERATION =====
+                created_files = []
+                
+                if split_info['type'] == 'memory_efficient_chunks':
+                    created_files = self._split_large_pdf_chunks(
+                        file_path, temp_dir, split_info, total_pages, session_id
+                    )
+                    
+                elif split_info['type'] == 'single_split':
+                    created_files = self._split_pdf_two_parts(
+                        file_path, temp_dir, split_info['split_point'], total_pages, session_id
+                    )
+                    
+                elif split_info['type'] == 'extract_pages':
+                    created_files = self._extract_specific_pages(
+                        file_path, temp_dir, split_info['pages'], session_id
+                    )
+                    
+                elif split_info['type'] == 'multiple_splits':
+                    created_files = self._split_multiple_ranges(
+                        file_path, temp_dir, split_info['ranges'], session_id
+                    )
+                
+                elif split_info['type'] == 'auto_chunk':
+                    created_files = self._auto_chunk_pdf(
+                        file_path, temp_dir, split_info['pages_per_chunk'], total_pages, session_id
+                    )
+                
+                # ===== VALIDATION AND CLEANUP =====
+                print(f"Split operation completed. Files created: {len(created_files)}")
+                
+                validated_files = []
+                total_output_size = 0
+                
+                for file_path_created in created_files:
+                    try:
+                        if not os.path.exists(file_path_created):
+                            print(f"WARNING: File not found: {os.path.basename(file_path_created)}")
+                            continue
+                        
+                        file_size = os.path.getsize(file_path_created)
+                        if file_size == 0:
+                            print(f"WARNING: Empty file: {os.path.basename(file_path_created)}")
+                            continue
+                        
+                        try:
+                            test_reader = PdfReader(file_path_created)
+                            page_count = len(test_reader.pages)
+                            if page_count == 0:
+                                print(f"WARNING: PDF with no pages: {os.path.basename(file_path_created)}")
+                                continue
+                            print(f"✓ {os.path.basename(file_path_created)}: {page_count} pages, {file_size:,} bytes")
+                            validated_files.append(file_path_created)
+                            total_output_size += file_size
+                            
+                        except Exception as validation_error:
+                            print(f"WARNING: Invalid PDF {os.path.basename(file_path_created)}: {validation_error}")
+                            continue
+                            
+                    except Exception as file_error:
+                        print(f"WARNING: Error validating {file_path_created}: {file_error}")
+                        continue
+                
+                if not validated_files:
+                    raise Exception("ಯಾವುದೇ ಸರಿಯಾದ PDF ಫೈಲ್\u200cಗಳು ರಚಿಸಲಾಗಿಲ್ಲ")
+                
+                print(f"Validated files: {len(validated_files)}")
+                print(f"Total output size: {total_output_size:,} bytes ({total_output_size/(1024*1024):.2f}MB)")
+                
+                # ===== CREATE OUTPUT ZIP =====
+                zip_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_split.zip")
+                print(f"Creating ZIP archive: {zip_path}")
+                
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zipf:
+                    for i, file_path_to_zip in enumerate(validated_files):
+                        try:
+                            filename = os.path.basename(file_path_to_zip)
+                            zipf.write(file_path_to_zip, filename)
+                            print(f"Added to ZIP ({i+1}/{len(validated_files)}): {filename}")
+                            
+                        except Exception as zip_error:
+                            print(f"ERROR: Failed to add {filename} to ZIP: {zip_error}")
+                            continue
+                
+                # Validate ZIP file
+                if not os.path.exists(zip_path):
+                    raise Exception("ZIP ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ")
+                
+                zip_size = os.path.getsize(zip_path)
+                if zip_size == 0:
+                    raise Exception("ಖಾಲಿ ZIP ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ")
+                
                 try:
-                    page_num = item.page.idnum if hasattr(item.page, 'idnum') else 1
-                    bookmarks.append({
-                        'title': item.title,
-                        'page': page_num,
-                        'level': level
-                    })
+                    with zipfile.ZipFile(zip_path, 'r') as zipf:
+                        zip_contents = zipf.namelist()
+                        if not zip_contents:
+                            raise Exception("ZIP ಫೈಲ್\u200cನಲ್ಲಿ ಯಾವುದೇ ಫೈಲ್\u200cಗಳಿಲ್ಲ")
+                        print(f"ZIP verification successful: {len(zip_contents)} files")
+                        
+                except Exception as zip_verify_error:
+                    raise Exception(f"ZIP ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(zip_verify_error)}")
+                
+                print(f"ZIP created successfully: {zip_size:,} bytes ({zip_size/(1024*1024):.2f}MB)")
+                
+                # ===== CLEANUP =====
+                try:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    print("Temporary files cleaned up")
+                except Exception as cleanup_error:
+                    print(f"WARNING: Cleanup failed: {cleanup_error}")
+                
+                if file_size_mb > 100:
+                    gc.collect()
+                    print("Memory cleanup performed")
+                
+                # ===== SUCCESS SUMMARY =====
+                compression_ratio = (zip_size / total_output_size) * 100 if total_output_size > 0 else 100
+                
+                print(f"=== SPLIT OPERATION SUCCESSFUL ===")
+                print(f"Input file: {file_size_mb:.2f}MB ({total_pages} pages)")
+                print(f"Output files: {len(validated_files)} PDFs")
+                print(f"ZIP file: {zip_size/(1024*1024):.2f}MB")
+                print(f"Compression ratio: {compression_ratio:.1f}%")
+                print(f"Output path: {zip_path}")
+                print(f"=== END DEBUG ===")
+                
+                return zip_path
+                
+            except Exception as processing_error:
+                try:
+                    if os.path.exists(temp_dir):
+                        shutil.rmtree(temp_dir, ignore_errors=True)
                 except:
                     pass
-    
-    def _post_process_files(self, files: List[str], config: Dict) -> List[str]:
-        """Add watermarks, page numbers, etc. to created files"""
-        processed_files = []
-        
-        for file_path in files:
-            processed_path = file_path
-            
-            if config.get('add_watermark'):
-                processed_path = self._add_watermark(processed_path, config.get('watermark_text', 'SPLIT'))
-            
-            if config.get('add_page_numbers'):
-                processed_path = self._add_page_numbers(processed_path)
-            
-            processed_files.append(processed_path)
-        
-        return processed_files
-    
-    def _add_watermark(self, file_path: str, watermark_text: str) -> str:
-        """Add watermark to PDF"""
-        try:
-            # Create watermark PDF
-            watermark_pdf = io.BytesIO()
-            can = canvas.Canvas(watermark_pdf, pagesize=A4)
-            can.setFillColor(gray, alpha=0.3)
-            can.setFont("Helvetica", 40)
-            can.rotate(45)
-            can.drawString(200, 100, watermark_text)
-            can.save()
-            
-            # Apply watermark
-            watermark_pdf.seek(0)
-            watermark_reader = PdfReader(watermark_pdf)
-            watermark_page = watermark_reader.pages[0]
-            
-            reader = PdfReader(file_path)
-            writer = PdfWriter()
-            
-            for page in reader.pages:
-                page.merge_page(watermark_page)
-                writer.add_page(page)
-            
-            # Save watermarked version
-            watermarked_path = file_path.replace('.pdf', '_watermarked.pdf')
-            with open(watermarked_path, 'wb') as output_file:
-                writer.write(output_file)
-            
-            # Replace original
-            os.replace(watermarked_path, file_path)
+                raise processing_error
             
         except Exception as e:
-            self.logger.warning(f"ವಾಟರ್‌ಮಾರ್ಕ್ ಸೇರಿಸಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {e}")
-        
-        return file_path
-    
-    def _add_page_numbers(self, file_path: str) -> str:
-        """Add page numbers to PDF"""
+            print(f"Enhanced split error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise Exception(f"PDF ವಿಭಾಗ ವಿಫಲ: {str(e)}")
+
+    def _parse_split_specification_enhanced(self, pages, total_pages, file_size_mb, chunk_size_mb):
+        """Enhanced parsing with intelligent split strategy selection"""
         try:
-            reader = PdfReader(file_path)
-            writer = PdfWriter()
+            print(f"Parsing split specification with file size: {file_size_mb:.2f}MB")
             
-            for i, page in enumerate(reader.pages):
-                # Create page number overlay
-                page_num_pdf = io.BytesIO()
-                can = canvas.Canvas(page_num_pdf, pagesize=A4)
-                can.setFont("Helvetica", 10)
-                can.drawString(520, 20, f"Page {i + 1}")
-                can.save()
-                
-                # Apply page number
-                page_num_pdf.seek(0)
-                page_num_reader = PdfReader(page_num_pdf)
-                page.merge_page(page_num_reader.pages[0])
-                
-                writer.add_page(page)
+            # For very large files, prefer chunking
+            if file_size_mb > 200:
+                pages_per_chunk = max(10, int((chunk_size_mb / file_size_mb) * total_pages))
+                if not pages or pages.strip() == "":
+                    print(f"Large file detected: auto-chunking with {pages_per_chunk} pages per chunk")
+                    return {
+                        'type': 'auto_chunk',
+                        'pages_per_chunk': pages_per_chunk,
+                        'reason': 'large_file_optimization'
+                    }
             
-            # Save numbered version
-            numbered_path = file_path.replace('.pdf', '_numbered.pdf')
-            with open(numbered_path, 'wb') as output_file:
-                writer.write(output_file)
+            if not pages or pages.strip() == "":
+                split_point = max(1, total_pages // 2)
+                return {
+                    'type': 'single_split',
+                    'split_point': split_point,
+                    'reason': 'default_middle_split'
+                }
             
-            # Replace original
-            os.replace(numbered_path, file_path)
+            pages_str = pages.strip().lower()
             
-        except Exception as e:
-            self.logger.warning(f"ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ಸೇರಿಸಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {e}")
-        
-        return file_path
-    
-    def _validate_created_files(self, files: List[str]):
-        """Validate all created files"""
-        for file_path in files:
-            if not os.path.exists(file_path):
-                raise Exception(f"{self.messages['file_not_created']}: {os.path.basename(file_path)}")
+            # Handle special keywords
+            if pages_str in ['auto', 'chunk', 'smart']:
+                pages_per_chunk = max(10, min(50, total_pages // 5))
+                return {
+                    'type': 'auto_chunk',
+                    'pages_per_chunk': pages_per_chunk,
+                    'reason': 'user_requested_auto'
+                }
             
-            if os.path.getsize(file_path) == 0:
-                raise Exception(f"{self.messages['empty_file']}: {os.path.basename(file_path)}")
+            if pages_str in ['efficient', 'memory', 'large']:
+                chunk_pages = max(20, min(100, total_pages // 10))
+                return {
+                    'type': 'memory_efficient_chunks',
+                    'chunk_size': chunk_pages,
+                    'reason': 'memory_efficient_requested'
+                }
             
-            # Test PDF validity
+            # Original parsing logic
             try:
-                test_reader = PdfReader(file_path)
-                if len(test_reader.pages) == 0:
-                    raise Exception(f"{self.messages['invalid_pdf']}: {os.path.basename(file_path)}")
-            except Exception as e:
-                raise Exception(f"{self.messages['corrupted_pdf']}: {os.path.basename(file_path)} - {str(e)}")
-    
-    def _create_zip_with_progress(self, files: List[str], session_id: str) -> str:
-        """Create ZIP file with progress tracking"""
-        zip_path = os.path.join(self.config['OUTPUT_FOLDER'], f"{session_id}_split.zip")
-        
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, 
-                           compresslevel=self.config['COMPRESSION_LEVEL']) as zipf:
-            
-            total_files = len(files)
-            for i, file_path in enumerate(files):
-                if os.path.exists(file_path):
-                    # Add file with just basename to avoid path issues
-                    zipf.write(file_path, os.path.basename(file_path))
-                    
-                    # Log progress
-                    progress = ((i + 1) / total_files) * 100
-                    self.logger.info(f"ZIP ಪ್ರಗತಿ: {progress:.1f}% ({i+1}/{total_files})")
-        
-        # Validate ZIP
-        if not os.path.exists(zip_path):
-            raise Exception(self.messages['zip_not_created'])
-        
-        with zipfile.ZipFile(zip_path, 'r') as zipf:
-            zip_contents = zipf.namelist()
-            if not zip_contents:
-                raise Exception(self.messages['zip_empty'])
-        
-        zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
-        self.logger.info(f"ZIP ರಚಿಸಲಾಗಿದೆ: {zip_size_mb:.2f} MB")
-        
-        return zip_path
-    
-    def _parse_pages_to_ranges(self, pages_spec: str, total_pages: int) -> List[Tuple[int, int]]:
-        """Parse page specification into ranges"""
-        if not pages_spec.strip():
-            # Default: split in half
-            mid = max(1, total_pages // 2)
-            return [(1, mid), (mid + 1, total_pages)]
-        
-        try:
-            # Handle single number (split point)
-            if pages_spec.isdigit():
-                split_point = int(pages_spec)
+                split_point = int(pages_str)
                 split_point = max(1, min(split_point, total_pages - 1))
-                return [(1, split_point), (split_point + 1, total_pages)]
+                return {
+                    'type': 'single_split',
+                    'split_point': split_point,
+                    'reason': 'user_specified_point'
+                }
+            except ValueError:
+                pass
             
-            # Handle range like "1-10"
-            if '-' in pages_spec and ',' not in pages_spec:
-                start, end = map(int, pages_spec.split('-'))
-                start = max(1, start)
-                end = min(end, total_pages)
-                return [(start, end)]
+            # Range notation
+            if '-' in pages_str and ',' not in pages_str:
+                parts = pages_str.split('-')
+                if len(parts) == 2:
+                    try:
+                        start = int(parts[0].strip())
+                        end = int(parts[1].strip())
+                        start = max(1, min(start, total_pages))
+                        end = max(start, min(end, total_pages))
+                        
+                        return {
+                            'type': 'extract_pages',
+                            'pages': list(range(start, end + 1)),
+                            'reason': 'user_specified_range'
+                        }
+                    except ValueError:
+                        pass
             
-            # Handle complex specifications like "1-5,10-15,20-25"
-            ranges = []
-            for part in pages_spec.split(','):
-                part = part.strip()
-                if '-' in part:
-                    start, end = map(int, part.split('-'))
-                    ranges.append((max(1, start), min(end, total_pages)))
-                else:
-                    page = int(part)
-                    if 1 <= page <= total_pages:
-                        ranges.append((page, page))
+            # Comma-separated pages/ranges
+            if ',' in pages_str:
+                try:
+                    page_numbers = self._parse_page_ranges_enhanced(pages_str, total_pages)
+                    if page_numbers:
+                        return {
+                            'type': 'extract_pages',
+                            'pages': page_numbers,
+                            'reason': 'user_specified_pages'
+                        }
+                except:
+                    pass
             
-            return ranges
-            
-        except:
-            # Fallback to default
-            mid = max(1, total_pages // 2)
-            return [(1, mid), (mid + 1, total_pages)]
-    
-    def _calculate_ranges(self, pages_spec: str, total_pages: int) -> List[Tuple[int, int]]:
-        """Calculate page ranges for multiprocessing"""
-        ranges = self._parse_pages_to_ranges(pages_spec, total_pages)
-        
-        # If we have large ranges, split them further for better parallelization
-        optimized_ranges = []
-        max_pages_per_range = 50  # Optimal chunk size for multiprocessing
-        
-        for start, end in ranges:
-            range_size = end - start + 1
-            if range_size > max_pages_per_range:
-                # Split large range into smaller chunks
-                for chunk_start in range(start, end + 1, max_pages_per_range):
-                    chunk_end = min(chunk_start + max_pages_per_range - 1, end)
-                    optimized_ranges.append((chunk_start, chunk_end))
-            else:
-                optimized_ranges.append((start, end))
-        
-        return optimized_ranges
-    
-    def _cleanup_temp_files(self):
-        """Clean up temporary files and directories"""
-        try:
-            import shutil
-            if os.path.exists(self.temp_dir):
-                shutil.rmtree(self.temp_dir)
-        except Exception as e:
-            self.logger.warning(f"ತಾತ್ಕಾಲಿಕ ಫೈಲ್‌ಗಳನ್ನು ಸಿಗಿ ಮಾಡಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {e}")
-    
-    def get_pdf_info(self, file_path: str, password: Optional[str] = None) -> Dict[str, Any]:
-        """Get comprehensive PDF information"""
-        try:
-            pdf_doc = self._open_pdf_with_password(file_path, password)
-            
-            info = {
-                'total_pages': len(pdf_doc.pages) if hasattr(pdf_doc, 'pages') else pdf_doc.page_count,
-                'file_size_mb': os.path.getsize(file_path) / (1024 * 1024),
-                'encrypted': pdf_doc.is_encrypted if hasattr(pdf_doc, 'is_encrypted') else pdf_doc.needs_pass,
-                'bookmarks': [],
-                'metadata': {}
-            }
-            
-            # Extract bookmarks
-            bookmarks = self._extract_bookmarks(pdf_doc)
-            info['bookmarks'] = [{'title': b['title'], 'page': b['page']} for b in bookmarks]
-            
-            # Extract metadata
-            if hasattr(pdf_doc, 'metadata') and pdf_doc.metadata:
-                for key, value in pdf_doc.metadata.items():
-                    info['metadata'][key] = str(value)
-            elif hasattr(pdf_doc, 'metadata') and pdf_doc.metadata:
-                info['metadata'] = dict(pdf_doc.metadata)
-            
-            return info
-            
-        except Exception as e:
-            self.logger.error(f"PDF ಮಾಹಿತಿ ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {e}")
+            # Fallback
+            split_point = max(1, total_pages // 2)
             return {
-                'total_pages': 0,
-                'file_size_mb': 0,
-                'encrypted': False,
-                'bookmarks': [],
-                'metadata': {},
-                'error': str(e)
+                'type': 'single_split',
+                'split_point': split_point,
+                'reason': 'fallback_middle_split'
             }
-
-
-# Web API Integration Class
-class PDFSplitterAPI:
-    """
-    ವೆಬ್ API ಇಂಟಿಗ್ರೇಶನ್ (Web API Integration)
-    RESTful API wrapper for the PDF splitter
-    """
-    
-    def __init__(self, splitter: PDFOperations):
-        self.splitter = splitter
-        self.active_jobs = {}  # Track running jobs
-    
-    def create_split_job(self, file_path: str, config: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new splitting job"""
-        import uuid
-        
-        job_id = str(uuid.uuid4())
-        session_id = f"api_{job_id[:8]}"
-        
-        job_info = {
-            'job_id': job_id,
-            'session_id': session_id,
-            'status': 'created',
-            'file_path': file_path,
-            'config': config,
-            'created_at': datetime.now().isoformat(),
-            'progress': 0
-        }
-        
-        self.active_jobs[job_id] = job_info
-        return job_info
-    
-    def start_split_job(self, job_id: str) -> Dict[str, Any]:
-        """Start processing a split job"""
-        if job_id not in self.active_jobs:
-            return {'error': 'Job not found'}
-        
-        job = self.active_jobs[job_id]
-        job['status'] = 'processing'
-        job['started_at'] = datetime.now().isoformat()
-        
-        try:
-            # Run the splitting process
-            result_path = self.splitter.split_pdf_advanced(
-                job['file_path'],
-                job['session_id'],
-                job['config']
-            )
-            
-            job['status'] = 'completed'
-            job['result_path'] = result_path
-            job['completed_at'] = datetime.now().isoformat()
-            job['progress'] = 100
             
         except Exception as e:
-            job['status'] = 'failed'
-            job['error'] = str(e)
-            job['failed_at'] = datetime.now().isoformat()
+            print(f"Parse specification error: {e}")
+            return {
+                'type': 'single_split',
+                'split_point': max(1, total_pages // 2),
+                'reason': 'error_fallback'
+            }
+
+    def _parse_page_ranges_enhanced(self, pages_str, total_pages):
+        """Enhanced page range parsing with better error handling"""
+        pages = set()
         
-        return job
-    
-    def get_job_status(self, job_id: str) -> Dict[str, Any]:
-        """Get job status"""
-        return self.active_jobs.get(job_id, {'error': 'Job not found'})
-    
-    def list_jobs(self) -> List[Dict[str, Any]]:
-        """List all jobs"""
-        return list(self.active_jobs.values())
+        try:
+            parts = [part.strip() for part in pages_str.split(',') if part.strip()]
+            
+            for part in parts:
+                if '-' in part:
+                    range_parts = part.split('-', 1)
+                    if len(range_parts) == 2:
+                        try:
+                            start = int(range_parts[0].strip())
+                            end = int(range_parts[1].strip())
+                            
+                            start = max(1, min(start, total_pages))
+                            end = max(start, min(end, total_pages))
+                            
+                            pages.update(range(start, end + 1))
+                            
+                        except ValueError:
+                            print(f"Invalid range format: {part}")
+                            continue
+                else:
+                    try:
+                        page_num = int(part)
+                        if 1 <= page_num <= total_pages:
+                            pages.add(page_num)
+                        else:
+                            print(f"Page {page_num} out of range (1-{total_pages})")
+                            
+                    except ValueError:
+                        print(f"Invalid page number: {part}")
+                        continue
+            
+            result = sorted(list(pages))
+            print(f"Parsed page ranges result: {len(result)} pages")
+            return result
+            
+        except Exception as e:
+            print(f"Enhanced page range parsing error: {e}")
+            return []
 
+    def _split_large_pdf_chunks(self, file_path, output_dir, split_info, total_pages, session_id):
+        """Memory-efficient chunking for very large PDFs"""
+        print("Starting memory-efficient chunking...")
+        
+        chunk_size = split_info.get('chunk_size', 50)
+        created_files = []
+        
+        try:
+            current_page = 0
+            chunk_num = 1
+            
+            while current_page < total_pages:
+                end_page = min(current_page + chunk_size, total_pages)
+                
+                print(f"Processing chunk {chunk_num}: pages {current_page + 1} to {end_page}")
+                
+                chunk_pages = list(range(current_page + 1, end_page + 1))
+                chunk_file = self._extract_pages_efficient(
+                    file_path, 
+                    output_dir, 
+                    chunk_pages, 
+                    f"chunk_{chunk_num:03d}",
+                    session_id
+                )
+                
+                if chunk_file:
+                    created_files.append(chunk_file)
+                
+                current_page = end_page
+                chunk_num += 1
+                
+                gc.collect()
+            
+            return created_files
+            
+        except Exception as e:
+            print(f"Large PDF chunking error: {e}")
+            raise Exception(f"ದೊಡ್ಡ PDF ಚಂಕಿಂಗ್ ವಿಫಲ: {str(e)}")
 
-# Usage Examples and Factory Class
-class PDFSplitterFactory:
-    """
-    PDF ವಿಭಾಗ ಫ್ಯಾಕ್ಟರಿ (PDF Splitter Factory)
-    Factory class to create configured splitter instances
-    """
-    
-    @staticmethod
-    def create_basic_splitter(output_folder: str = './output') -> PDFOperations:
-        """Create basic splitter for simple operations"""
-        config = {
-            'OUTPUT_FOLDER': output_folder,
-            'MAX_MEMORY_MB': 256,
-            'ENABLE_MULTIPROCESSING': False,
-            'ADD_WATERMARK': False,
-            'ADD_PAGE_NUMBERS': False,
-            'LOG_LEVEL': 'WARNING'
-        }
-        return PDFOperations(config)
-    
-    @staticmethod
-    def create_pro_splitter(output_folder: str = './output', 
-                           max_memory_mb: int = 1024) -> PDFOperations:
-        """Create pro splitter with all features enabled"""
-        config = {
-            'OUTPUT_FOLDER': output_folder,
-            'MAX_MEMORY_MB': max_memory_mb,
-            'CHUNK_SIZE_MB': 100,
-            'MAX_WORKERS': multiprocessing.cpu_count(),
-            'ENABLE_MULTIPROCESSING': True,
-            'ADD_WATERMARK': True,
-            'ADD_PAGE_NUMBERS': True,
-            'COMPRESSION_LEVEL': 9,
-            'LOG_LEVEL': 'INFO'
-        }
-        return PDFOperations(config)
-    
-    @staticmethod
-    def create_enterprise_splitter(output_folder: str = './output') -> PDFOperations:
-        """Create enterprise splitter with maximum performance"""
-        config = {
-            'OUTPUT_FOLDER': output_folder,
-            'MAX_MEMORY_MB': 2048,
-            'CHUNK_SIZE_MB': 200,
-            'MAX_WORKERS': min(8, multiprocessing.cpu_count()),
-            'ENABLE_MULTIPROCESSING': True,
-            'ADD_WATERMARK': True,
-            'ADD_PAGE_NUMBERS': True,
-            'COMPRESSION_LEVEL': 6,  # Balance between speed and compression
-            'LOG_LEVEL': 'DEBUG'
-        }
-        return PDFOperations(config)
+    def _extract_pages_efficient(self, file_path, output_dir, page_numbers, filename_prefix, session_id):
+        """Memory-efficient page extraction"""
+        try:
+            output_filename = f"{filename_prefix}_pages_{min(page_numbers)}_to_{max(page_numbers)}.pdf"
+            output_path = os.path.join(output_dir, output_filename)
+            
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            
+            for page_num in page_numbers:
+                if 1 <= page_num <= len(reader.pages):
+                    page = reader.pages[page_num - 1]
+                    writer.add_page(page)
+            
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            writer = None
+            return output_path
+            
+        except Exception as e:
+            print(f"Efficient page extraction error: {e}")
+            return None
 
+    def _split_pdf_two_parts(self, file_path, output_dir, split_point, total_pages, session_id):
+        """Traditional two-part split with memory management"""
+        created_files = []
+        
+        try:
+            reader = PdfReader(file_path)
+            
+            # First part
+            print(f"Creating first part: pages 1 to {split_point}")
+            writer1 = PdfWriter()
+            for i in range(split_point):
+                writer1.add_page(reader.pages[i])
+            
+            output_path1 = os.path.join(output_dir, f"part_1_pages_1_to_{split_point}.pdf")
+            with open(output_path1, 'wb') as output_file:
+                writer1.write(output_file)
+            created_files.append(output_path1)
+            
+            writer1 = None
+            
+            # Second part
+            print(f"Creating second part: pages {split_point + 1} to {total_pages}")
+            writer2 = PdfWriter()
+            for i in range(split_point, total_pages):
+                writer2.add_page(reader.pages[i])
+            
+            output_path2 = os.path.join(output_dir, f"part_2_pages_{split_point + 1}_to_{total_pages}.pdf")
+            with open(output_path2, 'wb') as output_file:
+                writer2.write(output_file)
+            created_files.append(output_path2)
+            
+            return created_files
+            
+        except Exception as e:
+            print(f"Two-part split error: {e}")
+            raise Exception(f"ಎರಡು ಭಾಗಗಳ ವಿಭಾಗ ವಿಫಲ: {str(e)}")
 
-# Example Usage Functions
-def example_basic_split():
-    """Basic splitting example"""
-    splitter = PDFSplitterFactory.create_basic_splitter()
-    
-    config = {
-        'type': 'pages',
-        'pages': '5',  # Split at page 5
-    }
-    
-    result = splitter.split_pdf_advanced('input.pdf', 'session_001', config)
-    print(f"ಫಲಿತಾಂಶ: {result}")
+    def _extract_specific_pages(self, file_path, output_dir, pages_to_extract, session_id):
+        """Extract specific pages with validation"""
+        try:
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            
+            extracted_count = 0
+            for page_num in pages_to_extract:
+                if 1 <= page_num <= len(reader.pages):
+                    writer.add_page(reader.pages[page_num - 1])
+                    extracted_count += 1
+            
+            if extracted_count == 0:
+                raise Exception("ಯಾವುದೇ ಸರಿಯಾದ ಪುಟಗಳು ಕಂಡುಬಂದಿಲ್ಲ")
+            
+            if len(pages_to_extract) <= 5:
+                page_str = "_".join(map(str, pages_to_extract))
+            else:
+                page_str = f"{min(pages_to_extract)}_to_{max(pages_to_extract)}_and_others"
+            
+            output_path = os.path.join(output_dir, f"extracted_pages_{page_str}.pdf")
+            
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            print(f"Extracted {extracted_count} pages to {os.path.basename(output_path)}")
+            return [output_path]
+            
+        except Exception as e:
+            print(f"Specific page extraction error: {e}")
+            raise Exception(f"ನಿರ್ದಿಷ್ಟ ಪುಟಗಳ ಹೊರತೆಗೆಯುವಿಕೆ ವಿಫಲ: {str(e)}")
 
+    def _split_multiple_ranges(self, file_path, output_dir, ranges, session_id):
+        """Split into multiple ranges with memory management"""  
+        created_files = []
+        
+        try:
+            reader = PdfReader(file_path)
+            
+            for i, (start, end) in enumerate(ranges):
+                writer = PdfWriter()
+                pages_added = 0
+                
+                for page_num in range(start, end + 1):
+                    if 1 <= page_num <= len(reader.pages):
+                        writer.add_page(reader.pages[page_num - 1])
+                        pages_added += 1
+                
+                if pages_added > 0:
+                    output_path = os.path.join(output_dir, f"part_{i + 1}_pages_{start}_to_{end}.pdf")
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    created_files.append(output_path)
+                    print(f"Created range {i + 1}: {pages_added} pages")
+                
+                writer = None
+            
+            return created_files
+            
+        except Exception as e:
+            print(f"Multiple ranges split error: {e}")
+            raise Exception(f"ಬಹು ವ್ಯಾಪ್ತಿ ವಿಭಾಗ ವಿಫಲ: {str(e)}")
 
-def example_size_based_split():
-    """Size-based splitting example"""
-    splitter = PDFSplitterFactory.create_pro_splitter()
-    
-    config = {
-        'type': 'size',
-        'size_mb': 10,  # Split into 10MB chunks
-        'add_watermark': True,
-        'watermark_text': 'ಕನ್ನಡ PDF'
-    }
-    
-    result = splitter.split_pdf_advanced('large_document.pdf', 'session_002', config)
-    print(f"ಆಕಾರ ಆಧಾರಿತ ವಿಭಾಗ: {result}")
-
-
-def example_bookmark_split():
-    """Bookmark-based splitting example"""
-    splitter = PDFSplitterFactory.create_pro_splitter()
-    
-    config = {
-        'type': 'bookmarks',
-        'add_page_numbers': True,
-        'password': 'secret123'  # If PDF is password protected
-    }
-    
-    result = splitter.split_pdf_advanced('book_with_chapters.pdf', 'session_003', config)
-    print(f"ಬುಕ್‌ಮಾರ್ಕ್ ಆಧಾರಿತ ವಿಭಾಗ: {result}")
-
-
-def example_multiprocessing_split():
-    """Large file splitting with multiprocessing"""
-    splitter = PDFSplitterFactory.create_enterprise_splitter()
-    
-    config = {
-        'type': 'custom',
-        'pages': '1-100,101-200,201-300,301-400',  # Multiple ranges
-        'use_multiprocessing': True,
-        'add_watermark': True,
-        'watermark_text': 'ಸುರಕ್ಷಿತ',
-        'add_page_numbers': True
-    }
-    
-    result = splitter.split_pdf_advanced('huge_document.pdf', 'session_004', config)
-    print(f"ಮಲ್ಟಿಪ್ರೊಸೆಸಿಂಗ್ ವಿಭಾಗ: {result}")
-
-
-def example_api_usage():
-    """Web API usage example"""
-    splitter = PDFSplitterFactory.create_pro_splitter()
-    api = PDFSplitterAPI(splitter)
-    
-    # Create job
-    job = api.create_split_job('document.pdf', {
-        'type': 'every_n',
-        'every_n': 20,
-        'add_page_numbers': True
-    })
-    
-    print(f"Job created: {job['job_id']}")
-    
-    # Start processing
-    result = api.start_split_job(job['job_id'])
-    print(f"Job status: {result['status']}")
-
-
-if __name__ == "__main__":
-    # Run examples
-    print("=== ಸುಧಾರಿತ PDF ವಿಭಾಗ ಉದಾಹರಣೆಗಳು ===")
-    
-    # Test PDF info extraction
-    splitter = PDFSplitterFactory.create_basic_splitter()
-    
-    # Example: Get PDF information
-    # info = splitter.get_pdf_info('sample.pdf')
-    # print(f"PDF ಮಾಹಿತಿ: {info}")
-    
-    print("Examples ready to run. Uncomment specific examples to test.")
+    def _auto_chunk_pdf(self, file_path, output_dir, pages_per_chunk, total_pages, session_id):
+        """Automatic chunking based on optimal chunk size"""
+        print(f"Auto-chunking PDF: {pages_per_chunk} pages per chunk")
+        
+        created_files = []
+        current_page = 1
+        chunk_num = 1
+        
+        try:
+            reader = PdfReader(file_path)
+            
+            while current_page <= total_pages:
+                end_page = min(current_page + pages_per_chunk - 1, total_pages)
+                
+                writer = PdfWriter()
+                pages_in_chunk = 0
+                
+                for page_num in range(current_page, end_page + 1):
+                    if page_num <= len(reader.pages):
+                        writer.add_page(reader.pages[page_num - 1])
+                        pages_in_chunk += 1
+                
+                if pages_in_chunk > 0:
+                    output_path = os.path.join(
+                        output_dir, 
+                        f"chunk_{chunk_num:03d}_pages_{current_page}_to_{end_page}.pdf"
+                    )
+                    
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    
+                    created_files.append(output_path)
+                    print(f"Created chunk {chunk_num}: pages {current_page}-{end_page} ({pages_in_chunk} pages)")
+                
+                current_page = end_page + 1
+                chunk_num += 1
+                
+                writer = None
+                if chunk_num % 10 == 0:
+                    gc.collect()
+            
+            return created_files
+            
+        except Exception as e:
+            print(f"Auto-chunk error: {e}")
+            raise Exception(f"ಸ್ವಯಂಚಾಲಿತ ಚಂಕಿಂಗ್ ವಿಫಲ: {str(e)}")
     
     def extract_pages(self, file_path, pages, session_id):
         """Extract specific pages from PDF"""
@@ -1874,136 +1495,180 @@ if __name__ == "__main__":
             print(f"docx2pdf simple conversion failed: {e}")
             return None
         
-    def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=50):
+    def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=None, batch_size=20):
         """
-    Generate thumbnail previews for PDF pages
-    
-    Args:
-        pdf_path (str): Path to the PDF file
-        session_id (str): Session identifier for organizing previews
-        preview_folder (str): Base folder for storing preview images
-        max_pages (int): Maximum number of pages to generate previews for
-    
-    Returns:
-        dict: Preview data with page information and image paths
+        Generate thumbnail previews for PDF pages
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            session_id (str): Session identifier for organizing previews
+            preview_folder (str): Base folder for storing preview images
+            max_pages (int, optional): Maximum number of pages to generate previews for. 
+                                    If None, processes all pages
+            batch_size (int): Number of pages to process in each batch for memory management
+        
+        Returns:
+            dict: Preview data with page information and image paths
         """
         try:
-        # Create session-specific preview directory
+            # Create session-specific preview directory
             session_preview_dir = os.path.join(preview_folder, session_id)
             os.makedirs(session_preview_dir, exist_ok=True)
         
-        # Open the PDF
+            # Open the PDF
             pdf_document = fitz.open(pdf_path)
             total_pages = len(pdf_document)
         
-        # Limit the number of pages for performance
-            pages_to_process = min(total_pages, max_pages)
+            # Process all pages if max_pages is None, otherwise limit
+            pages_to_process = total_pages if max_pages is None else min(total_pages, max_pages)
+            
+            print(f"Processing {pages_to_process} pages out of {total_pages} total pages...")
         
             previews = []
-        
-            for page_num in range(pages_to_process):
-                try:
-                # Get the page
-                    page = pdf_document[page_num]
+            
+            # Process pages in batches to manage memory
+            for batch_start in range(0, pages_to_process, batch_size):
+                batch_end = min(batch_start + batch_size, pages_to_process)
+                print(f"Processing batch: pages {batch_start + 1} to {batch_end}")
                 
-                # Set zoom factor for good quality thumbnails
-                    zoom = 1.5  # Increase for higher quality, decrease for smaller files
-                    mat = fitz.Matrix(zoom, zoom)
+                for page_num in range(batch_start, batch_end):
+                    try:
+                        # Get the page
+                        page = pdf_document[page_num]
+                    
+                        # Set zoom factor for good quality thumbnails
+                        zoom = 1.5  # Increase for higher quality, decrease for smaller files
+                        mat = fitz.Matrix(zoom, zoom)
+                    
+                        # Render page as image
+                        pix = page.get_pixmap(matrix=mat)
+                    
+                        # Convert to PIL Image
+                        img_data = pix.tobytes("png")
+                        img = Image.open(io.BytesIO(img_data))
+                    
+                        # Resize to thumbnail size (maintain aspect ratio)
+                        thumbnail_size = (200, 280)  # Width, Height
+                        img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+                    
+                        # Save thumbnail
+                        filename = f"page_{page_num + 1}.png"
+                        file_path = os.path.join(session_preview_dir, filename)
+                        img.save(file_path, "PNG", optimize=True)
+                    
+                        # Add to previews list
+                        previews.append({
+                            'page_num': page_num + 1,
+                            'image_path': file_path,
+                            'width': img.width,
+                            'height': img.height
+                        })
+                        
+                        # Clean up memory
+                        pix = None
+                        img = None
+                    
+                    except Exception as e:
+                        print(f"Error generating preview for page {page_num + 1}: {str(e)}")
+                        continue
                 
-                # Render page as image
-                    pix = page.get_pixmap(matrix=mat)
-                
-                # Convert to PIL Image
-                    img_data = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_data))
-                
-                # Resize to thumbnail size (maintain aspect ratio)
-                    thumbnail_size = (200, 280)  # Width, Height
-                    img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
-                
-                # Save thumbnail
-                    filename = f"page_{page_num + 1}.png"
-                    file_path = os.path.join(session_preview_dir, filename)
-                    img.save(file_path, "PNG", optimize=True)
-                
-                # Add to previews list
-                    previews.append({
-                        'page_num': page_num + 1,
-                        'image_path': file_path,
-                        'width': img.width,
-                        'height': img.height
-                    })
-                
-                except Exception as e:
-                    print(f"Error generating preview for page {page_num + 1}: {str(e)}")
-                    continue
+                # Optional: Force garbage collection after each batch
+                import gc
+                gc.collect()
         
             pdf_document.close()
         
             return {
                 'total_pages': total_pages,
                 'previews': previews,
-                'session_id': session_id
+                'session_id': session_id,
+                'processed_pages': len(previews)
             }
         
         except Exception as e:
             print(f"Error generating PDF previews: {str(e)}")
             return None
 
-# Alternative method using pdf2image if PyMuPDF is not available
-    def generate_page_previews_pdf2image(self, pdf_path, session_id, preview_folder, max_pages=50):
+    # Alternative method using pdf2image for full PDF processing
+    def generate_page_previews_pdf2image(self, pdf_path, session_id, preview_folder, max_pages=None, batch_size=20):
         """
-    Alternative method using pdf2image library
-    Requires: pip install pdf2image
-    Also requires poppler-utils (system dependency)
-    """
+        Alternative method using pdf2image library for full PDF processing
+        Requires: pip install pdf2image
+        Also requires poppler-utils (system dependency)
+        
+        Args:
+            pdf_path (str): Path to the PDF file
+            session_id (str): Session identifier for organizing previews
+            preview_folder (str): Base folder for storing preview images
+            max_pages (int, optional): Maximum number of pages to generate previews for.
+                                    If None, processes all pages
+            batch_size (int): Number of pages to process in each batch
+        """
         try:
             from pdf2image import convert_from_path
         
-        # Create session-specific preview directory
+            # Create session-specific preview directory
             session_preview_dir = os.path.join(preview_folder, session_id)
             os.makedirs(session_preview_dir, exist_ok=True)
         
-        # Convert PDF pages to images
-        # Use first_page and last_page to limit conversion for performance
-            images = convert_from_path(
-                pdf_path,
-            dpi=150,  # Lower DPI for thumbnails
-            first_page=1,
-            last_page=min(max_pages, self.get_pdf_page_count(pdf_path)),
-            thread_count=2
-        )
+            # Get total page count
+            total_pages = self.get_pdf_page_count(pdf_path)
+            pages_to_process = total_pages if max_pages is None else min(total_pages, max_pages)
+            
+            print(f"Processing {pages_to_process} pages out of {total_pages} total pages...")
         
             previews = []
-        
-            for i, image in enumerate(images):
-                try:
-                    # Resize to thumbnail
-                    thumbnail_size = (200, 280)
-                    image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+            
+            # Process pages in batches to avoid memory issues
+            for batch_start in range(0, pages_to_process, batch_size):
+                batch_end = min(batch_start + batch_size, pages_to_process)
+                first_page = batch_start + 1  # pdf2image uses 1-based indexing
+                last_page = batch_end
                 
-                # Save thumbnail
-                    filename = f"page_{i + 1}.png"
-                    file_path = os.path.join(session_preview_dir, filename)
-                    image.save(file_path, "PNG", optimize=True)
+                print(f"Processing batch: pages {first_page} to {last_page}")
                 
-                    previews.append({
-                        'page_num': i + 1,
-                        'image_path': file_path,
-                        'width': image.width,
-                        'height': image.height
-                    })
+                # Convert batch of PDF pages to images
+                images = convert_from_path(
+                    pdf_path,
+                    dpi=150,  # Lower DPI for thumbnails
+                    first_page=first_page,
+                    last_page=last_page,
+                    thread_count=2
+                )
+            
+                for i, image in enumerate(images):
+                    try:
+                        # Resize to thumbnail
+                        thumbnail_size = (200, 280)
+                        image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+                    
+                        # Save thumbnail
+                        page_num = batch_start + i + 1
+                        filename = f"page_{page_num}.png"
+                        file_path = os.path.join(session_preview_dir, filename)
+                        image.save(file_path, "PNG", optimize=True)
+                    
+                        previews.append({
+                            'page_num': page_num,
+                            'image_path': file_path,
+                            'width': image.width,
+                            'height': image.height
+                        })
+                    
+                    except Exception as e:
+                        print(f"Error processing preview for page {batch_start + i + 1}: {str(e)}")
+                        continue
                 
-                except Exception as e:
-                    print(f"Error processing preview for page {i + 1}: {str(e)}")
-                    continue
-        
-            total_pages = self.get_pdf_page_count(pdf_path)
+                # Clean up memory
+                images = None
+                import gc
+                gc.collect()
         
             return {
                 'total_pages': total_pages,
                 'previews': previews,
-                'session_id': session_id
+                'session_id': session_id,
+                'processed_pages': len(previews)
             }
         
         except ImportError:
@@ -2013,160 +1678,25 @@ if __name__ == "__main__":
             print(f"Error generating PDF previews with pdf2image: {str(e)}")
             return None
 
+    # Helper method to get PDF page count (if not already implemented)
     def get_pdf_page_count(self, pdf_path):
         """Get the total number of pages in a PDF"""
         try:
-            import fitz
-            doc = fitz.open(pdf_path)
-            count = len(doc)
-            doc.close()
-            return count
-        except:
-            try:
-                from PyPDF2 import PdfReader
-                reader = PdfReader(pdf_path)
-                return len(reader.pages)
-            except:
-                return 0
-            
-    def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=50):
-        """
-    Generate thumbnail previews for PDF pages
-    
-    Args:
-        pdf_path (str): Path to the PDF file
-        session_id (str): Session identifier for organizing previews
-        preview_folder (str): Base folder for storing preview images
-        max_pages (int): Maximum number of pages to generate previews for
-    
-    Returns:
-        dict: Preview data with page information and image paths
-        """
-        try:
-        # Create session-specific preview directory
-            session_preview_dir = os.path.join(preview_folder, session_id)
-            os.makedirs(session_preview_dir, exist_ok=True)
-        
-        # Open the PDF
+            import fitz  # PyMuPDF
             pdf_document = fitz.open(pdf_path)
-            total_pages = len(pdf_document)
-        
-        # Limit the number of pages for performance
-            pages_to_process = min(total_pages, max_pages)
-        
-            previews = []
-        
-            for page_num in range(pages_to_process):
-                try:
-                # Get the page
-                    page = pdf_document[page_num]
-                
-                # Set zoom factor for good quality thumbnails
-                    zoom = 1.5  # Increase for higher quality, decrease for smaller files
-                    mat = fitz.Matrix(zoom, zoom)
-                
-                # Render page as image
-                    pix = page.get_pixmap(matrix=mat)
-                
-                # Convert to PIL Image
-                    img_data = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_data))
-                
-                # Resize to thumbnail size (maintain aspect ratio)
-                    thumbnail_size = (200, 280)  # Width, Height
-                    img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
-                
-                # Save thumbnail
-                    filename = f"page_{page_num + 1}.png"
-                    file_path = os.path.join(session_preview_dir, filename)
-                    img.save(file_path, "PNG", optimize=True)
-                
-                # Add to previews list
-                    previews.append({
-                        'page_num': page_num + 1,
-                        'image_path': file_path,
-                        'width': img.width,
-                        'height': img.height
-                    })
-                
-                except Exception as e:
-                    print(f"Error generating preview for page {page_num + 1}: {str(e)}")
-                    continue
-        
+            page_count = len(pdf_document)
             pdf_document.close()
-        
-            return {
-                'total_pages': total_pages,
-                'previews': previews,
-                'session_id': session_id
-            }
-        
+            return page_count
         except Exception as e:
-            print(f"Error generating PDF previews: {str(e)}")
-            return None
+            print(f"Error getting page count: {str(e)}")
+            return 0
 
-# Alternative method using pdf2image if PyMuPDF is not available
-    def generate_page_previews_pdf2image(self, pdf_path, session_id, preview_folder, max_pages=50):
-        """
-    Alternative method using pdf2image library
-    Requires: pip install pdf2image
-    Also requires poppler-utils (system dependency)
-    """
-        try:
-            from pdf2image import convert_from_path
-        
-        # Create session-specific preview directory
-            session_preview_dir = os.path.join(preview_folder, session_id)
-            os.makedirs(session_preview_dir, exist_ok=True)
-        
-        # Convert PDF pages to images
-        # Use first_page and last_page to limit conversion for performance
-            images = convert_from_path(
-                pdf_path,
-            dpi=150,  # Lower DPI for thumbnails
-            first_page=1,
-            last_page=min(max_pages, self.get_pdf_page_count(pdf_path)),
-            thread_count=2
-        )
-        
-            previews = []
-        
-            for i, image in enumerate(images):
-                try:
-                    # Resize to thumbnail
-                    thumbnail_size = (200, 280)
-                    image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
-                
-                # Save thumbnail
-                    filename = f"page_{i + 1}.png"
-                    file_path = os.path.join(session_preview_dir, filename)
-                    image.save(file_path, "PNG", optimize=True)
-                
-                    previews.append({
-                        'page_num': i + 1,
-                        'image_path': file_path,
-                        'width': image.width,
-                        'height': image.height
-                    })
-                
-                except Exception as e:
-                    print(f"Error processing preview for page {i + 1}: {str(e)}")
-                    continue
-        
-            total_pages = self.get_pdf_page_count(pdf_path)
-        
-            return {
-                'total_pages': total_pages,
-                'previews': previews,
-                'session_id': session_id
-            }
-        
-        except ImportError:
-            print("pdf2image not installed. Please install: pip install pdf2image")
-            return None
-        except Exception as e:
-            print(f"Error generating PDF previews with pdf2image: {str(e)}")
-            return None
+# Usage examples:
+# For processing all pages:
+# result = self.generate_page_previews(pdf_path, session_id, preview_folder)
 
-    
-    
+# For processing specific number of pages:
+# result = self.generate_page_previews(pdf_path, session_id, preview_folder, max_pages=100)
+
+# For large PDFs with custom batch size:
+# result = self.generate_page_previews(pdf_path, session_id, preview_folder, batch_size=10)

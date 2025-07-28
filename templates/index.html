@@ -998,7 +998,7 @@
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: ['pages'],
+                options: ['split_method', 'pages'],
                 minFiles: 1,
                 hasPreview: true
             },
@@ -1126,6 +1126,34 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group" id="splitMethodGroup" style="display: ${config.options.includes('split_method') ? 'block' : 'none'};">
+                        <label class="form-label" for="splitMethodSelect">ವಿಭಾಗ ವಿಧಾನ</label>
+                        <select name="split_method" id="splitMethodSelect" class="form-select" onchange="handleSplitMethodChange()">
+                            <option value="pages">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು/ವ್ಯಾಪ್ತಿಗಳು</option>
+                            <option value="size">ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ</option>
+                            <option value="auto">ಸ್ವಯಂಚಾಲಿತ ಚಂಕ್‌ಗಳು</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                        <label class="form-label" for="maxSizeInput">ಪ್ರತಿ ಫೈಲ್ ಗರಿಷ್ಠ ಗಾತ್ರ (MB)</label>
+                        <input type="number" name="target_size_mb" id="maxSizeInput" class="form-input" 
+                            placeholder="10" min="1" max="50" value="10">
+                        <small>ಪ್ರತಿ ಭಾಗದ ಅಂದಾಜು ಗಾತ್ರ</small>
+                    </div>
+
+                    <div class="form-group" id="autoChunkGroup" style="display: none;">
+                        <label class="form-label" for="chunkSizeInput">ಪ್ರತಿ ಚಂಕ್‌ನಲ್ಲಿ ಪುಟಗಳು</label>
+                        <input type="number" name="pages_per_chunk" id="chunkSizeInput" class="form-input" 
+                            placeholder="20" min="5" max="100" value="20">
+                        <small>ಪ್ರತಿ ಫೈಲ್‌ನಲ್ಲಿ ಎಷ್ಟು ಪುಟಗಳು</small>
+                    </div>
+
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                    <label class="form-label" for="maxSizeInput">ಗರಿಷ್ಠ ಫೈಲ್ ಗಾತ್ರ (MB)</label>
+                    <input type="number" name="max_file_size" id="maxSizeInput" class="form-input" 
+                    placeholder="10" min="1" max="100">
+                    </div>
 
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="processBtn" disabled>
@@ -1175,11 +1203,15 @@
         }
 
         function showOperationOptions(options, hasPreview) {
-            const optionGroups = ['pagesGroup', 'compressionGroup'];
-            optionGroups.forEach(group => {
-                const element = document.getElementById(group);
+            const optionGroups = ['pagesGroup', 'compressionGroup', 'splitMethodGroup', 'fileSizeGroup'];
+                options.forEach(option => {
+                const element = document.getElementById(option + 'Group');
                 if (element) {
-                    element.style.display = 'none';
+                    element.style.display = 'block';
+                    // Auto-show split method options for split operation
+                    if (currentOperation === 'split' && option === 'split_method') {
+                        setTimeout(() => handleSplitMethodChange(), 100);
+                    }
                 }
             });
             
@@ -1579,6 +1611,7 @@
             }
         }
 
+        
         function updateProcessButton() {
             const processBtn = document.getElementById('processBtn');
             if (!processBtn) return;
@@ -1598,6 +1631,34 @@
                 }
             }
         }
+
+        function handleSplitMethodChange() {
+                const method = document.getElementById('splitMethodSelect')?.value || 'pages';
+                const pagesGroup = document.getElementById('pagesGroup');
+                const fileSizeGroup = document.getElementById('fileSizeGroup');
+                const autoChunkGroup = document.getElementById('autoChunkGroup');
+                const pagesInput = document.getElementById('pagesInput');
+                const previewSection = document.getElementById('previewSection');
+                
+                // Hide all method-specific groups first
+                if (pagesGroup) pagesGroup.style.display = 'none';
+                if (fileSizeGroup) fileSizeGroup.style.display = 'none';
+                if (autoChunkGroup) autoChunkGroup.style.display = 'none';
+                
+                if (method === 'size') {
+                    if (fileSizeGroup) fileSizeGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ವಿಭಾಗಿಸಲಾಗುವುದು';
+                    if (previewSection) previewSection.style.display = 'none';
+                } else if (method === 'auto') {
+                    if (autoChunkGroup) autoChunkGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಸ್ವಯಂಚಾಲಿತ ಚಂಕಿಂಗ್';
+                    if (previewSection) previewSection.style.display = 'none';
+                } else { // method === 'pages'
+                    if (pagesGroup) pagesGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಉದಾ: 1,3,5-10 ಅಥವಾ 1-10,15-25';
+                    // Keep preview section available for page-based splitting
+                }
+            }
 
         async function handleFormSubmission(e) {
             e.preventDefault();
@@ -1633,6 +1694,20 @@
             if (compressionSelect && compressionSelect.value) {
                 formData.append('compression', compressionSelect.value);
             }
+            const splitMethodSelect = document.getElementById('splitMethodSelect');
+        if (splitMethodSelect && splitMethodSelect.value) {
+            formData.append('split_method', splitMethodSelect.value);
+        }
+
+        const maxSizeInput = document.getElementById('maxSizeInput');
+        if (maxSizeInput && maxSizeInput.value) {
+            formData.append('target_size_mb', maxSizeInput.value);
+        }
+
+        const chunkSizeInput = document.getElementById('chunkSizeInput');
+        if (chunkSizeInput && chunkSizeInput.value) {
+            formData.append('pages_per_chunk', chunkSizeInput.value);
+        }
             
             document.getElementById('operationModal').style.display = 'none';
             showLoadingModal();
