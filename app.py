@@ -120,7 +120,7 @@ def upload_file():
         split_method = request.form.get('split_method', 'pages')
         target_size_mb = request.form.get('target_size_mb', '10')
         pages_per_chunk = request.form.get('pages_per_chunk', '20')
-        max_file_size = request.form.get('max_file_size', '500')
+        max_file_size = request.form.get('max_file_size', '1000')
         
         print(f"Pages parameter: '{pages}'")
         print(f"Compression: {compression}")
@@ -165,11 +165,11 @@ def upload_file():
                 try:
                     target_size_mb_int = int(target_size_mb) if target_size_mb.isdigit() else 10
                     pages_per_chunk_int = int(pages_per_chunk) if pages_per_chunk.isdigit() else 20
-                    max_file_size_int = int(max_file_size) if max_file_size.isdigit() else 500
+                    max_file_size_int = int(max_file_size) if max_file_size.isdigit() else 1000
                 except ValueError:
                     target_size_mb_int = 10
                     pages_per_chunk_int = 20
-                    max_file_size_int = 500
+                    max_file_size_int = 1000
                 
                 result_path = pdf_ops.split_pdf(
                     pdf_path, 
