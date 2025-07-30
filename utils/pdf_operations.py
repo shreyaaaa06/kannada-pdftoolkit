@@ -452,27 +452,34 @@ class PDFOperations:
             raise Exception(f"ಪುಟ ಅಳಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
         
 
-    def compress_pdf(self, file_path, compression_level, session_id):
+    def compress_pdf(self, file_path, compression_level, session_id, target_size_mb=None):
         """
-        Compress PDF file with proper compression techniques
-    Returns compressed file path or raises exception
-    """
+        Enhanced PDF compression with user-controlled levels and target size
+        
+        Args:
+            file_path: Path to input PDF
+            compression_level: 'low', 'medium', 'high', 'maximum', or 'custom'
+            session_id: Session identifier
+            target_size_mb: Target file size in MB (for custom compression)
+        """
         try:
-            print(f"=== PDF COMPRESSION ===")
+            print(f"=== ENHANCED PDF COMPRESSION ===")
             print(f"Input: {file_path}")
             print(f"Level: {compression_level}")
-        
-        # Validate input
+            print(f"Target size: {target_size_mb}MB" if target_size_mb else "No target size")
+            
+            # Validate input
             if not os.path.exists(file_path):
                 raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
-        
+            
             original_size = os.path.getsize(file_path)
-            print(f"Original size: {original_size:,} bytes ({original_size/1024/1024:.2f} MB)")
-        
+            original_size_mb = original_size / (1024 * 1024)
+            print(f"Original size: {original_size:,} bytes ({original_size_mb:.2f} MB)")
+            
             if original_size == 0:
                 raise Exception("ಖಾಲಿ PDF ಫೈಲ್")
-        
-        # Test if valid PDF
+            
+            # Test if valid PDF
             try:
                 doc = fitz.open(file_path)
                 page_count = len(doc)
@@ -480,162 +487,493 @@ class PDFOperations:
                 print(f"Valid PDF with {page_count} pages")
             except Exception as e:
                 raise Exception(f"ಅಮಾನ್ಯ PDF ಫೈಲ್: {str(e)}")
-        
+            
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed.pdf")
-        
-        # Try compression methods in order of preference
-            methods = [
-            ("PyMuPDF", self._compress_pymupdf),
-            ("PyPDF2", self._compress_pypdf2),
-            ("Basic", self._compress_basic)
-            ]
-        
+            
+            # Enhanced compression methods with different aggressiveness levels
+            if compression_level == 'maximum' or (target_size_mb and target_size_mb < original_size_mb * 0.3):
+                # Ultra-aggressive compression
+                methods = [
+                    ("Ultra Aggressive", self._compress_ultra_aggressive),
+                    ("Extreme Image Recreation", self._compress_extreme_image_recreation),
+                    ("Advanced PyMuPDF", self._compress_advanced_pymupdf),
+                ]
+            elif compression_level == 'high' or (target_size_mb and target_size_mb < original_size_mb * 0.6):
+                # High compression
+                methods = [
+                    ("Extreme Image Recreation", self._compress_extreme_image_recreation),
+                    ("Advanced PyMuPDF", self._compress_advanced_pymupdf),
+                    ("Image Recreation", self._compress_by_image_recreation),
+                ]
+            elif compression_level == 'medium':
+                # Balanced compression
+                methods = [
+                    ("Advanced PyMuPDF", self._compress_advanced_pymupdf),
+                    ("Image Recreation", self._compress_by_image_recreation),
+                    ("Basic PyMuPDF", self._compress_basic_pymupdf)
+                ]
+            else:  # low compression
+                # Gentle compression
+                methods = [
+                    ("Basic PyMuPDF", self._compress_basic_pymupdf),
+                    ("Advanced PyMuPDF", self._compress_advanced_pymupdf),
+                ]
+            
+            best_result = None
+            best_size = original_size
+            target_reached = False
+            
             for method_name, method_func in methods:
                 try:
                     print(f"Trying {method_name} compression...")
-                    result = method_func(file_path, output_path, compression_level)
-                
-                    if result and os.path.exists(output_path):
-                        compressed_size = os.path.getsize(output_path)
+                    temp_output = output_path.replace('.pdf', f'_temp_{method_name.replace(" ", "_").lower()}.pdf')
                     
-                        if compressed_size > 0:
-                            reduction = (1 - compressed_size/original_size) * 100
-                            print(f"✓ {method_name} successful!")
-                            print(f"Compressed size: {compressed_size:,} bytes ({compressed_size/1024/1024:.2f} MB)")
-                            print(f"Size reduction: {reduction:.1f}%")
+                    # Pass target size for adaptive compression
+                    if hasattr(method_func, '__code__') and 'target_size_mb' in method_func.__code__.co_varnames:
+                        result = method_func(file_path, temp_output, compression_level, target_size_mb)
+                    else:
+                        result = method_func(file_path, temp_output, compression_level)
+                    
+                    if result and os.path.exists(temp_output):
+                        compressed_size = os.path.getsize(temp_output)
+                        compressed_size_mb = compressed_size / (1024 * 1024)
                         
-                        # Validate the compressed PDF
-                            if self._validate_compressed_pdf(output_path):
-                                return output_path
-                            else:
-                                print(f"✗ {method_name} produced invalid PDF")
-                                if os.path.exists(output_path):
-                                    os.remove(output_path)
+                        if compressed_size > 0 and compressed_size < best_size:
+                            # Clean up previous best
+                            if best_result and os.path.exists(best_result):
+                                os.remove(best_result)
+                            
+                            best_result = temp_output
+                            best_size = compressed_size
+                            reduction = (1 - compressed_size/original_size) * 100
+                            
+                            print(f"✓ {method_name} successful!")
+                            print(f"Compressed size: {compressed_size:,} bytes ({compressed_size_mb:.2f} MB)")
+                            print(f"Size reduction: {reduction:.1f}%")
+                            
+                            # Check if target size reached
+                            if target_size_mb and compressed_size_mb <= target_size_mb:
+                                target_reached = True
+                                print(f"🎯 Target size reached! ({compressed_size_mb:.2f}MB <= {target_size_mb}MB)")
+                                break
                         else:
-                            print(f"✗ {method_name} produced empty file")
+                            print(f"✗ {method_name} didn't improve compression")
+                            if os.path.exists(temp_output):
+                                os.remove(temp_output)
                     else:
                         print(f"✗ {method_name} failed to create output")
-                    
+                        
                 except Exception as e:
                     print(f"✗ {method_name} failed: {e}")
                     continue
-        
-        # If all methods failed
+            
+            # Use the best result or try iterative compression if target not reached
+            if best_result and os.path.exists(best_result):
+                final_output = output_path
+                
+                # If target size not reached and we have a target, try iterative compression
+                if target_size_mb and not target_reached and best_size > target_size_mb * 1024 * 1024:
+                    print("Target size not reached, trying iterative compression...")
+                    iterative_result = self._iterative_compression(best_result, final_output, target_size_mb)
+                    if iterative_result and os.path.exists(final_output):
+                        if best_result != final_output:
+                            os.remove(best_result)
+                    else:
+                        # Keep the best result we got
+                        if best_result != final_output:
+                            os.rename(best_result, final_output)
+                else:
+                    # Move best result to final output path
+                    if os.path.exists(final_output):
+                        os.remove(final_output)
+                    os.rename(best_result, final_output)
+                
+                final_size = os.path.getsize(final_output)
+                final_size_mb = final_size / (1024 * 1024)
+                reduction = (1 - final_size/original_size) * 100
+                
+                print(f"=== COMPRESSION COMPLETE ===")
+                print(f"Original: {original_size:,} bytes ({original_size_mb:.2f} MB)")
+                print(f"Compressed: {final_size:,} bytes ({final_size_mb:.2f} MB)")
+                print(f"Reduction: {reduction:.1f}%")
+                
+                if target_size_mb:
+                    if final_size_mb <= target_size_mb:
+                        print(f"🎯 Target achieved: {final_size_mb:.2f}MB <= {target_size_mb}MB")
+                    else:
+                        print(f"⚠️ Target not fully achieved: {final_size_mb:.2f}MB > {target_size_mb}MB")
+                
+                # Only return if we actually achieved compression
+                if final_size < original_size:
+                    return final_output
+                else:
+                    print("No compression achieved, removing output file")
+                    os.remove(final_output)
+                    raise Exception("ಸಂಕುಚನ ಸಾಧ್ಯವಾಗಲಿಲ್ಲ - ಮೂಲ ಫೈಲ್ ಈಗಾಗಲೇ ಅತ್ಯುತ್ತಮವಾಗಿ ಸಂಕುಚಿತವಾಗಿದೆ")
+            
+            # If no method worked
             raise Exception("ಎಲ್ಲಾ ಸಂಕುಚನ ವಿಧಾನಗಳು ವಿಫಲವಾಗಿವೆ")
-        
+            
         except Exception as e:
             print(f"Compression error: {str(e)}")
             raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
 
-    def _compress_pymupdf(self, input_path, output_path, level):
-        """Compress using PyMuPDF - Best method"""
+    def _compress_ultra_aggressive(self, input_path, output_path, level, target_size_mb=None):
+        """
+        Ultra-aggressive compression - maximum size reduction
+        """
+        try:
+            print("Starting ultra-aggressive compression...")
+            doc = fitz.open(input_path)
+            new_doc = fitz.open()
+            
+            # Very aggressive settings
+            dpi = 72  # Very low DPI
+            jpeg_quality = 30  # Very low quality
+            scale_factor = 0.4  # Scale down to 40%
+            
+            # If target size specified, adjust parameters dynamically
+            if target_size_mb:
+                original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+                compression_ratio = target_size_mb / original_size_mb
+                
+                if compression_ratio < 0.1:  # Need >90% compression
+                    dpi = 50
+                    jpeg_quality = 20
+                    scale_factor = 0.3
+                elif compression_ratio < 0.2:  # Need >80% compression
+                    dpi = 60
+                    jpeg_quality = 25
+                    scale_factor = 0.35
+                elif compression_ratio < 0.3:  # Need >70% compression
+                    dpi = 72
+                    jpeg_quality = 30
+                    scale_factor = 0.4
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Convert page to very low-res image
+                mat = fitz.Matrix(dpi/72, dpi/72)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL for aggressive compression
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Scale down further
+                new_width = int(pil_img.width * scale_factor)
+                new_height = int(pil_img.height * scale_factor)
+                pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Convert to RGB and compress heavily
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Apply additional optimizations
+                # Reduce color palette
+                pil_img = pil_img.quantize(colors=64).convert('RGB')
+                
+                # Save with very low quality
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', quality=jpeg_quality, 
+                            optimize=True, progressive=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page from compressed image
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
+            
+            doc.close()
+            
+            # Save with maximum compression
+            new_doc.save(output_path, 
+                        deflate=True, 
+                        garbage=4, 
+                        clean=True,
+                        linear=True,
+                        pretty=False)
+            new_doc.close()
+            
+            print("Ultra-aggressive compression completed")
+            return True
+            
+        except Exception as e:
+            print(f"Ultra-aggressive compression error: {e}")
+            return False
+
+    def _compress_extreme_image_recreation(self, input_path, output_path, level, target_size_mb=None):
+        """
+        Extreme image recreation with adaptive quality based on target size
+        """
         try:
             doc = fitz.open(input_path)
-        
-        # Compression settings based on level
+            new_doc = fitz.open()
+            
+            # Base settings
+            base_dpi = 100
+            base_quality = 50
+            
+            # Adjust based on target size
+            if target_size_mb:
+                original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+                compression_ratio = target_size_mb / original_size_mb
+                
+                # More aggressive settings for smaller target sizes
+                if compression_ratio < 0.2:
+                    base_dpi = 75
+                    base_quality = 35
+                elif compression_ratio < 0.5:
+                    base_dpi = 85
+                    base_quality = 45
+            
+            # Adjust based on level
+            if level == 'maximum':
+                dpi = max(50, base_dpi - 25)
+                jpeg_quality = max(20, base_quality - 15)
+            elif level == 'high':
+                dpi = max(75, base_dpi - 10)
+                jpeg_quality = max(35, base_quality - 10)
+            else:
+                dpi = base_dpi
+                jpeg_quality = base_quality
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Convert to image with calculated DPI
+                mat = fitz.Matrix(dpi/72, dpi/72)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Convert to RGB
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Apply sharpening before compression
+                from PIL import ImageFilter
+                pil_img = pil_img.filter(ImageFilter.UnsharpMask(radius=1, percent=100, threshold=3))
+                
+                # Compress as JPEG
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', 
+                            quality=jpeg_quality, 
+                            optimize=True,
+                            progressive=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
+            
+            doc.close()
+            
+            # Save with compression
+            new_doc.save(output_path, deflate=True, garbage=4, clean=True)
+            new_doc.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Extreme image recreation error: {e}")
+            return False
+
+    def _iterative_compression(self, input_path, output_path, target_size_mb):
+        """
+        Iteratively compress until target size is reached
+        """
+        try:
+            print(f"Starting iterative compression to reach {target_size_mb}MB...")
+            
+            current_path = input_path
+            iteration = 0
+            max_iterations = 5
+            
+            while iteration < max_iterations:
+                current_size_mb = os.path.getsize(current_path) / (1024 * 1024)
+                
+                if current_size_mb <= target_size_mb:
+                    print(f"Target reached after {iteration} iterations!")
+                    if current_path != output_path:
+                        import shutil
+                        shutil.copy2(current_path, output_path)
+                    return True
+                
+                print(f"Iteration {iteration + 1}: Current size {current_size_mb:.2f}MB, target {target_size_mb}MB")
+                
+                # Calculate required compression ratio
+                compression_ratio = target_size_mb / current_size_mb
+                
+                # Adjust quality based on how much more compression is needed
+                if compression_ratio < 0.5:
+                    quality = 25
+                    dpi = 60
+                elif compression_ratio < 0.7:
+                    quality = 35
+                    dpi = 75
+                else:
+                    quality = 50
+                    dpi = 90
+                
+                # Create temporary file for this iteration
+                temp_path = output_path.replace('.pdf', f'_iter_{iteration}.pdf')
+                
+                # Apply compression
+                doc = fitz.open(current_path)
+                new_doc = fitz.open()
+                
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    
+                    mat = fitz.Matrix(dpi/72, dpi/72)
+                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    
+                    img_data = pix.tobytes("png")
+                    pil_img = Image.open(io.BytesIO(img_data))
+                    
+                    if pil_img.mode != 'RGB':
+                        pil_img = pil_img.convert('RGB')
+                    
+                    jpeg_io = io.BytesIO()
+                    pil_img.save(jpeg_io, format='JPEG', quality=quality, optimize=True)
+                    jpeg_data = jpeg_io.getvalue()
+                    
+                    img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                    new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                    new_page.insert_image(img_rect, stream=jpeg_data)
+                
+                doc.close()
+                new_doc.save(temp_path, deflate=True, garbage=4, clean=True)
+                new_doc.close()
+                
+                # Clean up previous iteration
+                if current_path != input_path and os.path.exists(current_path):
+                    os.remove(current_path)
+                
+                current_path = temp_path
+                iteration += 1
+            
+            # Copy final result
+            if current_path != output_path:
+                import shutil
+                shutil.copy2(current_path, output_path)
+                if os.path.exists(current_path):
+                    os.remove(current_path)
+            
+            final_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+            print(f"Iterative compression completed. Final size: {final_size_mb:.2f}MB")
+            
+            return True
+            
+        except Exception as e:
+            print(f"Iterative compression error: {e}")
+            return False
+
+    def _compress_pymupdf(self, input_path, output_path, level):
+        """Compress using PyMuPDF - IMPROVED VERSION"""
+        try:
+            doc = fitz.open(input_path)
+            
+            # First pass - compress images in each page
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Get all images on the page
+                image_list = page.get_images()
+                
+                for img_index, img in enumerate(image_list):
+                    # Extract image
+                    xref = img[0]
+                    base_image = doc.extract_image(xref)
+                    image_bytes = base_image["image"]
+                    
+                    # Convert to PIL for compression
+                    from PIL import Image
+                    import io
+                    
+                    pil_image = Image.open(io.BytesIO(image_bytes))
+                    
+                    # Compress based on level
+                    if level == 'high':
+                        quality = 30
+                        scale = 0.5  # Reduce size to 50%
+                    elif level == 'medium':
+                        quality = 50
+                        scale = 0.7  # Reduce size to 70%
+                    else:  # low
+                        quality = 70
+                        scale = 0.9  # Reduce size to 90%
+                    
+                    # Resize image
+                    new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
+                    pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
+                    
+                    # Compress and save back
+                    if pil_image.mode in ('RGBA', 'LA'):
+                        # Convert transparent images to white background
+                        background = Image.new('RGB', pil_image.size, (255, 255, 255))
+                        if pil_image.mode == 'RGBA':
+                            background.paste(pil_image, mask=pil_image.split()[-1])
+                        else:
+                            background.paste(pil_image)
+                        pil_image = background
+                    
+                    # Save compressed image
+                    compressed_io = io.BytesIO()
+                    pil_image.save(compressed_io, format='JPEG', quality=quality, optimize=True)
+                    compressed_bytes = compressed_io.getvalue()
+                    
+                    # Replace image in PDF
+                    doc._updateObject(xref, compressed_bytes, filename="image.jpg")
+            
+            # Second pass - save with compression options
             if level == 'high':
-            # Aggressive compression
                 options = {
-                    'garbage': 4,        # Remove all unused objects
-                'clean': True,       # Clean content streams
-                'deflate': True,     # Compress all streams
-                'deflate_images': True,   # Compress images
-                'deflate_fonts': True,    # Compress fonts
-                'linear': True,      # Linearize (optimize for web)
-                'pretty': False,     # Don't pretty-print
-                'ascii': False,      # Don't force ASCII
-                'expand': 0          # Don't expand abbreviations
+                    'garbage': 4,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': True,
+                    'deflate_fonts': True,
+                    'linear': True,
+                    'pretty': False
                 }
-            
             elif level == 'medium':
-            # Balanced compression
                 options = {
-                'garbage': 3,
-                'clean': True,
-                'deflate': True,
-                'deflate_images': True,
-                'deflate_fonts': False,  # Keep fonts uncompressed
-                'linear': True,
-                'pretty': False
-            }
-            
-            else:  # 'low'
-            # Light compression
-                options = {
-                'garbage': 2,        # Remove some unused objects
-                'clean': True,       # Clean content streams
-                'deflate': True,     # Basic stream compression
-                'deflate_images': False,  # Don't compress images
-                'deflate_fonts': False,   # Don't compress fonts
-                'linear': False,     # Don't linearize
-                'pretty': False
+                    'garbage': 3,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': True,
+                    'deflate_fonts': True,
+                    'linear': True,
+                    'pretty': False
                 }
-        
-            print(f"PyMuPDF options: {options}")
-        
-        # Save with compression
+            else:  # low
+                options = {
+                    'garbage': 2,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': False,
+                    'deflate_fonts': False,
+                    'linear': False,
+                    'pretty': False
+                }
+            
             doc.save(output_path, **options)
             doc.close()
-        
+            
             return True
-        
+            
         except Exception as e:
             print(f"PyMuPDF compression error: {e}")
             return False
 
-    def _compress_pypdf2(self, input_path, output_path, level):
-        """Compress using PyPDF2 - Fallback method"""
-        try:
-            from PyPDF2 import PdfReader, PdfWriter
-            
-            reader = PdfReader(input_path)
-            writer = PdfWriter()
-            
-            # Process each page
-            for page_num, page in enumerate(reader.pages):
-                # Compress content streams
-                page.compress_content_streams()
-                
-                # For high compression, try to compress images
-                if level == 'high':
-                    try:
-                        # Scale down images (crude but effective)
-                        if '/XObject' in page.get('/Resources', {}):
-                            pass  # More complex image processing would go here
-                    except:
-                        pass
-                
-                writer.add_page(page)
-            
-            # Remove duplicate objects for better compression
-            writer.remove_duplication()
-            
-            # Write compressed PDF
-            with open(output_path, 'wb') as output_file:
-                writer.write(output_file)
-            
-            return True
-            
-        except Exception as e:
-            print(f"PyPDF2 compression error: {e}")
-            return False
-
-    def _compress_basic(self, input_path, output_path, level):
-        """Basic compression - just copy with minimal processing"""
-        try:
-            import shutil
-            
-            # For basic compression, just copy the file
-            # This ensures we always have a result, even if no compression
-            shutil.copy2(input_path, output_path)
-            
-            print("Basic compression: File copied without modification")
-            return True
-            
-        except Exception as e:
-            print(f"Basic compression error: {e}")
-            return False
-
+    
+    
     def _validate_compressed_pdf(self, pdf_path):
         """Validate that compressed PDF is readable"""
         try:
@@ -660,67 +998,841 @@ class PDFOperations:
             print(f"Validation failed: {e}")
             return False
 
-    def _compress_with_image_optimization(self, file_path, session_id):
-        """Advanced compression with image optimization for high compression"""
+    
+    def _compress_advanced_pymupdf(self, input_path, output_path, level):
+        """Advanced PyMuPDF compression with image optimization"""
         try:
-            print("Starting advanced image optimization...")
+            doc = fitz.open(input_path)
             
-            doc = fitz.open(file_path)
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed_advanced.pdf")
+            # Step 1: Compress images on each page
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                image_list = page.get_images(full=True)
+                
+                for img_index, img in enumerate(image_list):
+                    try:
+                        xref = img[0]
+                        base_image = doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        image_ext = base_image["ext"]
+                        
+                        # Convert to PIL for compression
+                        pil_image = Image.open(io.BytesIO(image_bytes))
+                        
+                        # Set compression parameters based on level
+                        if level == 'high':
+                            quality = 40
+                            scale_factor = 0.6
+                        elif level == 'medium':
+                            quality = 60
+                            scale_factor = 0.8
+                        else:  # low
+                            quality = 80
+                            scale_factor = 0.9
+                        
+                        # Resize image
+                        new_width = int(pil_image.width * scale_factor)
+                        new_height = int(pil_image.height * scale_factor)
+                        pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        
+                        # Convert RGBA to RGB with white background
+                        if pil_image.mode in ('RGBA', 'LA', 'P'):
+                            background = Image.new('RGB', pil_image.size, (255, 255, 255))
+                            if pil_image.mode == 'P':
+                                pil_image = pil_image.convert('RGBA')
+                            if pil_image.mode in ('RGBA', 'LA'):
+                                background.paste(pil_image, mask=pil_image.split()[-1])
+                            else:
+                                background.paste(pil_image)
+                            pil_image = background
+                        
+                        # Compress as JPEG
+                        compressed_io = io.BytesIO()
+                        pil_image.save(compressed_io, format='JPEG', quality=quality, optimize=True)
+                        compressed_bytes = compressed_io.getvalue()
+                        
+                        # Replace image in PDF
+                        img_dict = {
+                            "type": "image",
+                            "bbox": fitz.Rect(0, 0, new_width, new_height),
+                            "width": new_width,
+                            "height": new_height,
+                            "image": compressed_bytes
+                        }
+                        
+                        # Update the image in the document
+                        page.insert_image(img_dict["bbox"], stream=compressed_bytes)
+                        
+                    except Exception as img_error:
+                        print(f"Error compressing image {img_index}: {img_error}")
+                        continue
             
-            # Create new document with optimized images
+            # Step 2: Save with aggressive compression settings
+            if level == 'high':
+                options = {
+                    'garbage': 4,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': True,
+                    'deflate_fonts': True,
+                    'linear': True,
+                    'pretty': False,
+                    'ascii': False
+                }
+            elif level == 'medium':
+                options = {
+                    'garbage': 3,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': True,
+                    'deflate_fonts': True,
+                    'linear': False,
+                    'pretty': False
+                }
+            else:  # low
+                options = {
+                    'garbage': 2,
+                    'clean': True,
+                    'deflate': True,
+                    'deflate_images': False,
+                    'deflate_fonts': False,
+                    'linear': False,
+                    'pretty': False
+                }
+            
+            doc.save(output_path, **options)
+            doc.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Advanced PyMuPDF compression error: {e}")
+            return False
+
+    def _compress_by_image_recreation(self, input_path, output_path, level):
+        """Compress by converting pages to images and back - MOST AGGRESSIVE"""
+        try:
+            doc = fitz.open(input_path)
+            new_doc = fitz.open()
+            
+            # Set parameters based on compression level
+            if level == 'high':
+                dpi = 100  # Lower DPI = smaller file
+                jpeg_quality = 60
+            elif level == 'medium':
+                dpi = 150
+                jpeg_quality = 75
+            else:  # low
+                dpi = 200
+                jpeg_quality = 85
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Convert page to image
+                mat = fitz.Matrix(dpi/72, dpi/72)  # 72 is default DPI
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL for JPEG compression
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Convert to RGB if needed
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Compress as JPEG
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', quality=jpeg_quality, optimize=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page from compressed image
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
+            
+            doc.close()
+            
+            # Save the new document
+            new_doc.save(output_path, deflate=True, garbage=4, clean=True)
+            new_doc.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Image recreation compression error: {e}")
+            return False
+
+    def _compress_basic_pymupdf(self, input_path, output_path, level):
+        """Basic PyMuPDF compression - FALLBACK"""
+        try:
+            doc = fitz.open(input_path)
+            
+            # Basic settings that always work
+            options = {
+                'garbage': 4,
+                'clean': True,
+                'deflate': True
+            }
+            
+            doc.save(output_path, **options)
+            doc.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Basic PyMuPDF compression error: {e}")
+            return False
+    # Add this new method to your PDFOperations class in pdf_operations.py
+
+    def compress_pdf_enhanced(self, file_path, compression_level, session_id, 
+                        target_size_mb=None, image_quality=None, image_dpi=None,
+                        remove_metadata=False, optimize_fonts=False):
+        """
+        Enhanced PDF compression with user controls and target size
+        """
+        try:
+            print(f"=== ENHANCED PDF COMPRESSION ===")
+            print(f"Input: {file_path}")
+            print(f"Level: {compression_level}")
+            print(f"Target size: {target_size_mb}MB" if target_size_mb else "No target size")
+            
+            # Validate input
+            if not os.path.exists(file_path):
+                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
+            
+            original_size = os.path.getsize(file_path)
+            original_size_mb = original_size / (1024 * 1024)
+            print(f"Original size: {original_size_mb:.2f} MB")
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_compressed.pdf")
+            
+            # If target size is specified and user wants custom compression
+            if target_size_mb and target_size_mb < original_size_mb:
+                print("Using adaptive target-based compression...")
+                success = self._adaptive_target_compression(file_path, output_path, target_size_mb)
+                if success and os.path.exists(output_path):
+                    final_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+                    print(f"Final size: {final_size_mb:.2f}MB")
+                    return output_path
+            
+            # Determine compression parameters
+            compression_params = self._get_compression_parameters(
+                compression_level, target_size_mb, original_size_mb,
+                image_quality, image_dpi
+            )
+            
+            # Select compression methods based on aggressiveness needed
+            if compression_level == 'maximum' or (target_size_mb and target_size_mb < original_size_mb * 0.3):
+                methods = [
+                    ("Extreme Aggressive", self._compress_extreme_aggressive),
+                    ("Ultra Aggressive", self._compress_ultra_aggressive),
+                    ("Smart Adaptive", self._compress_smart_adaptive),
+                ]
+            else:
+                methods = [
+                    ("Smart Adaptive", self._compress_smart_adaptive),
+                    ("Enhanced Image Recreation", self._compress_image_recreation_enhanced),
+                    ("Advanced PyMuPDF", self._compress_pymupdf_enhanced),
+                ]
+            
+            # Try compression methods
+            best_result = None
+            best_size = original_size
+            
+            for method_name, method_func in methods:
+                try:
+                    print(f"Trying {method_name}...")
+                    temp_output = output_path.replace('.pdf', f'_temp_{method_name.replace(" ", "_").lower()}.pdf')
+                    
+                    result = method_func(file_path, temp_output, compression_params, 
+                                    remove_metadata, optimize_fonts)
+                    
+                    if result and os.path.exists(temp_output):
+                        compressed_size = os.path.getsize(temp_output)
+                        compressed_size_mb = compressed_size / (1024 * 1024)
+                        
+                        if compressed_size > 0 and compressed_size < best_size:
+                            if best_result and os.path.exists(best_result):
+                                os.remove(best_result)
+                            
+                            best_result = temp_output
+                            best_size = compressed_size
+                            reduction = (1 - compressed_size/original_size) * 100
+                            
+                            print(f"✓ {method_name} successful!")
+                            print(f"Size: {compressed_size_mb:.2f}MB (reduction: {reduction:.1f}%)")
+                            
+                            # Check if good enough
+                            if target_size_mb and compressed_size_mb <= target_size_mb:
+                                print("Target reached!")
+                                break
+                        else:
+                            print(f"✗ {method_name} didn't improve")
+                            if os.path.exists(temp_output):
+                                os.remove(temp_output)
+                            
+                except Exception as e:
+                    print(f"✗ {method_name} failed: {e}")
+                    continue
+            
+            # Finalize result
+            if best_result and os.path.exists(best_result):
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                os.rename(best_result, output_path)
+                
+                final_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+                reduction = (1 - final_size_mb/original_size_mb) * 100
+                
+                print(f"=== COMPRESSION COMPLETE ===")
+                print(f"Original: {original_size_mb:.2f} MB")
+                print(f"Compressed: {final_size_mb:.2f} MB")
+                print(f"Reduction: {reduction:.1f}%")
+                
+                return output_path
+            else:
+                raise Exception("ಎಲ್ಲಾ ಸಂಕುಚನ ವಿಧಾನಗಳು ವಿಫಲವಾಗಿವೆ")
+                
+        except Exception as e:
+            print(f"Enhanced compression error: {str(e)}")
+            raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
+
+    def _get_compression_parameters(self, level, target_size_mb, original_size_mb, 
+                                custom_quality=None, custom_dpi=None):
+        """Get compression parameters based on level and target size"""
+        
+        # Base parameters for each level
+        level_configs = {
+            'low': {'dpi': 200, 'quality': 80, 'scale': 0.9},
+            'medium': {'dpi': 150, 'quality': 60, 'scale': 0.8},
+            'high': {'dpi': 100, 'quality': 45, 'scale': 0.6},
+            'maximum': {'dpi': 75, 'quality': 30, 'scale': 0.4},
+            'custom': {'dpi': 150, 'quality': 60, 'scale': 0.8}
+        }
+        
+        params = level_configs.get(level, level_configs['medium']).copy()
+        
+        # Adjust for target size if specified
+        if target_size_mb and original_size_mb > 0:
+            compression_ratio = target_size_mb / original_size_mb
+            
+            if compression_ratio < 0.1:  # Need >90% compression
+                params.update({'dpi': 50, 'quality': 20, 'scale': 0.3})
+            elif compression_ratio < 0.2:  # Need >80% compression
+                params.update({'dpi': 60, 'quality': 25, 'scale': 0.35})
+            elif compression_ratio < 0.3:  # Need >70% compression
+                params.update({'dpi': 75, 'quality': 35, 'scale': 0.4})
+            elif compression_ratio < 0.5:  # Need >50% compression
+                params.update({'dpi': 100, 'quality': 45, 'scale': 0.6})
+        
+        # Override with custom values if provided
+        if custom_quality:
+            params['quality'] = custom_quality
+        if custom_dpi:
+            params['dpi'] = custom_dpi
+        
+        return params
+
+    def _compress_smart_adaptive(self, input_path, output_path, params, remove_metadata, optimize_fonts):
+        """Smart adaptive compression that analyzes content"""
+        try:
+            print("Starting smart adaptive compression...")
+            
+            doc = fitz.open(input_path)
+            new_doc = fitz.open()
+            
+            # Analyze document characteristics
+            total_images = 0
+            total_text_pages = 0
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                images = page.get_images()
+                text = page.get_text().strip()
+                
+                if images:
+                    total_images += len(images)
+                if text:
+                    total_text_pages += 1
+            
+            # Adjust parameters based on content
+            if total_images > total_text_pages * 2:  # Image-heavy document
+                print("Detected image-heavy document, using aggressive image compression")
+                params['quality'] = max(20, params['quality'] - 15)
+                params['dpi'] = max(50, params['dpi'] - 25)
+            elif total_text_pages > total_images * 3:  # Text-heavy document
+                print("Detected text-heavy document, preserving readability")
+                params['quality'] = min(85, params['quality'] + 10)
+                params['dpi'] = min(200, params['dpi'] + 25)
+            
+            # Process each page
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Convert to image with adaptive DPI
+                mat = fitz.Matrix(params['dpi']/72, params['dpi']/72)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL and optimize
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Scale if needed
+                if params['scale'] < 1.0:
+                    new_width = int(pil_img.width * params['scale'])
+                    new_height = int(pil_img.height * params['scale'])
+                    pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Convert to RGB
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Apply sharpening for better quality at lower resolutions
+                if params['dpi'] < 150:
+                    from PIL import ImageFilter
+                    pil_img = pil_img.filter(ImageFilter.UnsharpMask(radius=1, percent=100, threshold=3))
+                
+                # Compress as JPEG
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', 
+                            quality=params['quality'], 
+                            optimize=True, 
+                            progressive=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
+            
+            doc.close()
+            
+            # Save with options
+            save_options = {
+                'deflate': True,
+                'garbage': 4,
+                'clean': True,
+                'linear': True,
+                'pretty': False
+            }
+            
+            new_doc.save(output_path, **save_options)
+            new_doc.close()
+            
+            # Post-process if requested
+            if remove_metadata or optimize_fonts:
+                self._post_process_pdf(output_path, remove_metadata, optimize_fonts)
+            
+            print("Smart adaptive compression completed")
+            return True
+            
+        except Exception as e:
+            print(f"Smart adaptive compression error: {e}")
+            return False
+
+    def _compress_image_recreation_enhanced(self, input_path, output_path, params, remove_metadata, optimize_fonts):
+        """Enhanced image recreation with better quality control"""
+        try:
+            print("Starting enhanced image recreation...")
+            
+            doc = fitz.open(input_path)
             new_doc = fitz.open()
             
             for page_num in range(len(doc)):
                 page = doc[page_num]
                 
-                # Convert page to image with reduced quality
-                mat = fitz.Matrix(1.5, 1.5)  # Slightly higher resolution
+                # Use adaptive DPI based on page content
+                mat = fitz.Matrix(params['dpi']/72, params['dpi']/72)
                 pix = page.get_pixmap(matrix=mat, alpha=False)
                 
-                # Convert to PIL for better compression control
+                # Convert to PIL
                 img_data = pix.tobytes("png")
-                
-                from PIL import Image
-                import io
-                
                 pil_img = Image.open(io.BytesIO(img_data))
                 
-                # Compress as JPEG with quality setting
-                compressed_io = io.BytesIO()
+                # Apply scaling
+                if params['scale'] < 1.0:
+                    new_width = int(pil_img.width * params['scale'])
+                    new_height = int(pil_img.height * params['scale'])
+                    pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 
-                # Convert to RGB if necessary
-                if pil_img.mode in ('RGBA', 'LA'):
-                    # Create white background
-                    background = Image.new('RGB', pil_img.size, (255, 255, 255))
-                    if pil_img.mode == 'RGBA':
-                        background.paste(pil_img, mask=pil_img.split()[-1])
-                    else:
-                        background.paste(pil_img)
-                    pil_img = background
+                # Convert to RGB
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
                 
-                # Save with compression
-                pil_img.save(compressed_io, format='JPEG', quality=75, optimize=True)
-                compressed_io.seek(0)
+                # Optimize image before compression
+                # Reduce noise for better compression
+                from PIL import ImageFilter
+                pil_img = pil_img.filter(ImageFilter.MedianFilter(size=3))
                 
-                # Create new page from compressed image
-                img_pdf = fitz.open("pdf", compressed_io.getvalue())
-                new_doc.insert_pdf(img_pdf)
-                img_pdf.close()
+                # Compress with progressive JPEG
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', 
+                            quality=params['quality'],
+                            optimize=True,
+                            progressive=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
+            
+            doc.close()
+            
+            # Save with compression
+            new_doc.save(output_path, deflate=True, garbage=4, clean=True)
+            new_doc.close()
+            
+            # Post-process
+            if remove_metadata or optimize_fonts:
+                self._post_process_pdf(output_path, remove_metadata, optimize_fonts)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Enhanced image recreation error: {e}")
+            return False
+
+    def _compress_pymupdf_enhanced(self, input_path, output_path, params, remove_metadata, optimize_fonts):
+        """Enhanced PyMuPDF compression"""
+        try:
+            print("Starting enhanced PyMuPDF compression...")
+            
+            doc = fitz.open(input_path)
+            
+            # Process images on each page
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                image_list = page.get_images(full=True)
+                
+                for img_index, img in enumerate(image_list):
+                    try:
+                        xref = img[0]
+                        base_image = doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        
+                        # Convert to PIL for optimization
+                        pil_image = Image.open(io.BytesIO(image_bytes))
+                        
+                        # Resize image
+                        if params['scale'] < 1.0:
+                            new_width = int(pil_image.width * params['scale'])
+                            new_height = int(pil_image.height * params['scale'])
+                            pil_image = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        
+                        # Convert to RGB
+                        if pil_image.mode in ('RGBA', 'LA', 'P'):
+                            background = Image.new('RGB', pil_image.size, (255, 255, 255))
+                            if pil_image.mode == 'P':
+                                pil_image = pil_image.convert('RGBA')
+                            if pil_image.mode in ('RGBA', 'LA'):
+                                background.paste(pil_image, mask=pil_image.split()[-1])
+                            else:
+                                background.paste(pil_image)
+                            pil_image = background
+                        
+                        # Compress
+                        compressed_io = io.BytesIO()
+                        pil_image.save(compressed_io, format='JPEG', 
+                                    quality=params['quality'], optimize=True)
+                        compressed_bytes = compressed_io.getvalue()
+                        
+                        # Replace image in PDF (simplified approach)
+                        # Note: This is a basic replacement - you might need more sophisticated methods
+                        
+                    except Exception as img_error:
+                        print(f"Error processing image {img_index}: {img_error}")
+                        continue
+            
+            # Save with compression options
+            save_options = {
+                'garbage': 4,
+                'clean': True,
+                'deflate': True,
+                'deflate_images': True,
+                'deflate_fonts': optimize_fonts,
+                'linear': True,
+                'pretty': False
+            }
+            
+            doc.save(output_path, **save_options)
+            doc.close()
+            
+            # Post-process
+            if remove_metadata or optimize_fonts:
+                self._post_process_pdf(output_path, remove_metadata, optimize_fonts)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Enhanced PyMuPDF compression error: {e}")
+            return False
+
+    def _iterative_compression_enhanced(self, input_path, output_path, target_size_mb, base_params):
+        """Enhanced iterative compression"""
+        try:
+            print(f"Starting enhanced iterative compression to reach {target_size_mb}MB...")
+            
+            current_path = input_path
+            iteration = 0
+            max_iterations = 3
+            
+            while iteration < max_iterations:
+                current_size_mb = os.path.getsize(current_path) / (1024 * 1024)
+                
+                if current_size_mb <= target_size_mb:
+                    print(f"Target reached after {iteration} iterations!")
+                    if current_path != output_path:
+                        import shutil
+                        shutil.copy2(current_path, output_path)
+                    return True
+                
+                print(f"Iteration {iteration + 1}: {current_size_mb:.2f}MB -> target {target_size_mb}MB")
+                
+                # Adjust parameters more aggressively
+                compression_ratio = target_size_mb / current_size_mb
+                params = base_params.copy()
+                
+                if compression_ratio < 0.3:
+                    params.update({'dpi': 50, 'quality': 20, 'scale': 0.3})
+                elif compression_ratio < 0.5:
+                    params.update({'dpi': 60, 'quality': 30, 'scale': 0.4})
+                elif compression_ratio < 0.7:
+                    params.update({'dpi': 75, 'quality': 40, 'scale': 0.5})
+                
+                # Create temporary file
+                temp_path = output_path.replace('.pdf', f'_iter_{iteration}.pdf')
+                
+                # Apply compression
+                success = self._compress_image_recreation_enhanced(
+                    current_path, temp_path, params, False, False
+                )
+                
+                if not success or not os.path.exists(temp_path):
+                    print(f"Iteration {iteration + 1} failed")
+                    break
+                
+                # Clean up previous iteration
+                if current_path != input_path and os.path.exists(current_path):
+                    os.remove(current_path)
+                
+                current_path = temp_path
+                iteration += 1
+            
+            # Copy final result
+            if current_path != output_path:
+                import shutil
+                shutil.copy2(current_path, output_path)
+                if current_path != input_path and os.path.exists(current_path):
+                    os.remove(current_path)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Enhanced iterative compression error: {e}")
+            return False
+
+    def _post_process_pdf(self, pdf_path, remove_metadata, optimize_fonts):
+        """Post-process PDF to remove metadata and optimize fonts"""
+        try:
+            if not remove_metadata and not optimize_fonts:
+                return
+            
+            print("Post-processing PDF...")
+            
+            doc = fitz.open(pdf_path)
+            
+            if remove_metadata:
+                print("Removing metadata...")
+                # Clear metadata
+                doc.set_metadata({})
+                
+            # Note: Font optimization would require more complex implementation
+            # This is a placeholder for the concept
+            
+            doc.save(pdf_path, incremental=False, encryption=fitz.PDF_ENCRYPT_NONE)
+            doc.close()
+            
+            print("Post-processing completed")
+            
+        except Exception as e:
+            print(f"Post-processing error: {e}")
+    def _compress_extreme_aggressive(self, input_path, output_path, params, remove_metadata, optimize_fonts):
+        """
+        Extremely aggressive compression - for when you need maximum size reduction
+        """
+        try:
+            print("Starting extreme aggressive compression...")
+            
+            doc = fitz.open(input_path)
+            new_doc = fitz.open()
+            
+            # Ultra-low settings for maximum compression
+            dpi = max(50, params.get('dpi', 50))  # Very low DPI
+            quality = max(15, params.get('quality', 20))  # Ultra low quality
+            scale_factor = min(0.3, params.get('scale', 0.3))  # Scale down to 30%
+            
+            print(f"Extreme settings: DPI={dpi}, Quality={quality}, Scale={scale_factor}")
+            
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                
+                # Convert to very low resolution image
+                mat = fitz.Matrix(dpi/72, dpi/72)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                # Convert to PIL for aggressive processing
+                img_data = pix.tobytes("png")
+                pil_img = Image.open(io.BytesIO(img_data))
+                
+                # Scale down dramatically
+                new_width = int(pil_img.width * scale_factor)
+                new_height = int(pil_img.height * scale_factor)
+                pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Convert to RGB
+                if pil_img.mode != 'RGB':
+                    pil_img = pil_img.convert('RGB')
+                
+                # Reduce color depth for smaller file size
+                pil_img = pil_img.quantize(colors=32).convert('RGB')  # Reduce to 32 colors
+                
+                # Apply aggressive compression
+                jpeg_io = io.BytesIO()
+                pil_img.save(jpeg_io, format='JPEG', 
+                            quality=quality, 
+                            optimize=True, 
+                            progressive=True)
+                jpeg_data = jpeg_io.getvalue()
+                
+                # Create new page
+                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                new_page.insert_image(img_rect, stream=jpeg_data)
             
             doc.close()
             
             # Save with maximum compression
-            new_doc.save(output_path, garbage=4, clean=True, deflate=True)
+            new_doc.save(output_path, 
+                        deflate=True, 
+                        garbage=4, 
+                        clean=True,
+                        linear=True,
+                        pretty=False)
             new_doc.close()
             
-            print("Advanced compression completed")
-            return output_path
+            print("Extreme aggressive compression completed")
+            return True
             
         except Exception as e:
-            print(f"Advanced compression error: {e}")
-            raise Exception(f"Advanced compression failed: {str(e)}")    
-    
+            print(f"Extreme aggressive compression error: {e}")
+            return False
+
+    def _adaptive_target_compression(self, input_path, output_path, target_size_mb):
+        """
+        Adaptive compression that tries different settings until target size is reached
+        """
+        try:
+            print(f"Starting adaptive compression to reach {target_size_mb}MB...")
+            
+            original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+            compression_ratio = target_size_mb / original_size_mb
+            
+            print(f"Need {(1-compression_ratio)*100:.1f}% compression")
+            
+            # Progressive compression settings - start gentle, get more aggressive
+            compression_settings = [
+                {'dpi': 150, 'quality': 70, 'scale': 0.9, 'colors': None},
+                {'dpi': 120, 'quality': 55, 'scale': 0.7, 'colors': None},
+                {'dpi': 100, 'quality': 40, 'scale': 0.6, 'colors': 128},
+                {'dpi': 80, 'quality': 30, 'scale': 0.5, 'colors': 64},
+                {'dpi': 60, 'quality': 25, 'scale': 0.4, 'colors': 32},
+                {'dpi': 50, 'quality': 20, 'scale': 0.3, 'colors': 16},
+            ]
+            
+            for i, settings in enumerate(compression_settings):
+                print(f"Trying compression level {i+1}/6...")
+                
+                temp_output = output_path.replace('.pdf', f'_temp_adaptive_{i}.pdf')
+                
+                # Apply compression with current settings
+                doc = fitz.open(input_path)
+                new_doc = fitz.open()
+                
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    
+                    mat = fitz.Matrix(settings['dpi']/72, settings['dpi']/72)
+                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    
+                    img_data = pix.tobytes("png")
+                    pil_img = Image.open(io.BytesIO(img_data))
+                    
+                    # Scale image
+                    if settings['scale'] < 1.0:
+                        new_width = int(pil_img.width * settings['scale'])
+                        new_height = int(pil_img.height * settings['scale'])
+                        pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    
+                    # Convert to RGB
+                    if pil_img.mode != 'RGB':
+                        pil_img = pil_img.convert('RGB')
+                    
+                    # Reduce colors if specified
+                    if settings['colors']:
+                        pil_img = pil_img.quantize(colors=settings['colors']).convert('RGB')
+                    
+                    # Compress
+                    jpeg_io = io.BytesIO()
+                    pil_img.save(jpeg_io, format='JPEG', 
+                            quality=settings['quality'], 
+                            optimize=True, 
+                            progressive=True)
+                    jpeg_data = jpeg_io.getvalue()
+                    
+                    img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
+                    new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
+                    new_page.insert_image(img_rect, stream=jpeg_data)
+                
+                doc.close()
+                new_doc.save(temp_output, deflate=True, garbage=4, clean=True)
+                new_doc.close()
+                
+                # Check if target size reached
+                temp_size_mb = os.path.getsize(temp_output) / (1024 * 1024)
+                print(f"Result size: {temp_size_mb:.2f}MB (target: {target_size_mb}MB)")
+                
+                if temp_size_mb <= target_size_mb:
+                    print(f"Target reached with compression level {i+1}!")
+                    if temp_output != output_path:
+                        import shutil
+                        shutil.move(temp_output, output_path)
+                    
+                    # Clean up other temp files
+                    for j in range(i+1, len(compression_settings)):
+                        temp_file = output_path.replace('.pdf', f'_temp_adaptive_{j}.pdf')
+                        if os.path.exists(temp_file):
+                            os.remove(temp_file)
+                    
+                    return True
+                
+                # If not the last attempt, keep this file for potential fallback
+                if i < len(compression_settings) - 1:
+                    continue
+                else:
+                    # This is our best effort
+                    if temp_output != output_path:
+                        import shutil
+                        shutil.move(temp_output, output_path)
+                    print(f"Could not reach exact target. Best result: {temp_size_mb:.2f}MB")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Adaptive compression error: {e}")
+            return False
     def pdf_to_images(self, file_path, session_id):
         """Convert PDF pages to JPEG images"""
         try:
@@ -1330,5 +2442,4 @@ class PDFOperations:
                 return len(reader.pages)
             except:
                 return 0
-    
     

@@ -127,6 +127,60 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedFiles.forEach(file => dt.items.add(file));
         document.getElementById('fileInput').files = dt.files;
     };
+    // Compression functions
+    window.updateCompressionUI = function() {
+        const compressionSelect = document.getElementById('compressionSelect');
+        const targetSizeGroup = document.getElementById('targetSizeGroup');
+        const advancedToggle = document.getElementById('advancedToggle');
+        
+        if (!compressionSelect || !targetSizeGroup || !advancedToggle) {
+            return;
+        }
+        
+        const selectedValue = compressionSelect.value;
+        
+        // Show/hide target size input for custom level
+        if (selectedValue === 'custom') {
+            targetSizeGroup.style.display = 'block';
+            advancedToggle.style.display = 'none';
+            
+            // Hide advanced options when custom is selected
+            const advancedOptions = document.getElementById('advancedCompressionOptions');
+            if (advancedOptions) {
+                advancedOptions.style.display = 'none';
+            }
+            const showAdvancedComp = document.getElementById('showAdvancedComp');
+            if (showAdvancedComp) {
+                showAdvancedComp.checked = false;
+            }
+        } else {
+            targetSizeGroup.style.display = 'none';
+            advancedToggle.style.display = 'block';
+        }
+    };
+
+    window.toggleAdvancedCompression = function() {
+        const showAdvancedComp = document.getElementById('showAdvancedComp');
+        const advancedOptions = document.getElementById('advancedCompressionOptions');
+        
+        if (showAdvancedComp && advancedOptions) {
+            if (showAdvancedComp.checked) {
+                advancedOptions.style.display = 'block';
+            } else {
+                advancedOptions.style.display = 'none';
+            }
+        }
+    };
+
+    window.updateQualityDisplay = function() {
+        const imageQuality = document.getElementById('imageQuality');
+        const qualityValue = document.getElementById('qualityValue');
+        
+        if (imageQuality && qualityValue) {
+            qualityValue.textContent = imageQuality.value + '%';
+        }
+    };
+
 
     // Preview functions
     window.showPagePreview = async function() {
@@ -310,17 +364,73 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateSelectedPagesDisplay() {
-        const count = selectedPages.size;
-        const countElement = document.getElementById('selectedPagesCount');
-        if (countElement) {
-            countElement.textContent = `${count} ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿವೆ`;
+        const selectedCount = document.getElementById('selectedCount');
+        const selectedPagesList = document.getElementById('selectedPagesList');
+        const confirmBtn = document.getElementById('confirmSelectionBtn');
+
+        if (selectedCount) {
+            selectedCount.textContent = selectedPages.size;
         }
 
-        const confirmBtn = document.getElementById('confirmSelectionBtn');
+        if (selectedPagesList) {
+            if (selectedPages.size === 0) {
+                selectedPagesList.innerHTML = `
+                    <div style="text-align: center; color: var(--light-brown); padding: 1rem; font-size: 0.9rem;">
+                        ಯಾವುದೇ ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿಲ್ಲ
+                    </div>
+                `;
+            } else {
+                const sortedPages = Array.from(selectedPages).sort((a, b) => a - b);
+                selectedPagesList.innerHTML = sortedPages.map(pageNum => `
+                    <div class="selected-page-item">
+                        <span>ಪುಟ ${pageNum}</span>
+                        <span class="remove-page" onclick="togglePageSelection(${pageNum})">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    </div>
+                `).join('');
+            }
+        }
+
         if (confirmBtn) {
-            confirmBtn.disabled = count === 0;
+            confirmBtn.disabled = selectedPages.size === 0;
         }
     }
+
+    // File handling functions
+    function handleFileSelection(files) {
+        const config = operationConfigs[currentOperation];
+        
+        if (!config.multiple && files.length > 1) {
+            showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
+            return;
+        }
+        
+        const validFiles = files.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return config.accept.split(',').includes(extension);
+        });
+        
+        if (validFiles.length !== files.length) {
+            showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
+        }
+        
+        if (!config.multiple) {
+            selectedFiles = validFiles.slice(0, 1);
+        } else {
+            validFiles.forEach(file => {
+                const existingFile = selectedFiles.find(f => f.name === file.name && f.size === file.size);
+                if (!existingFile) {
+                    selectedFiles.push(file);
+                }
+            });
+        }
+        
+        displaySelectedFiles();
+        updateProcessButton();
+        updatePreviewSection();
+    }
+
 
     // File handling functions
     function displaySelectedFiles() {
@@ -352,6 +462,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
+    function getFileIcon(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        const icons = {
+            'pdf': 'pdf', 'doc': 'word', 'docx': 'word',
+            'jpg': 'image', 'jpeg': 'image', 'png': 'image',
+            'bmp': 'image', 'tiff': 'image'
+        };
+        return icons[extension] || 'alt';
+    }
+    
+
 
     function updateProcessButton() {
         const processBtn = document.getElementById('processBtn');
@@ -372,99 +493,363 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showOperationOptions(options, hasPreview) {
-        const optionsDiv = document.getElementById('operationOptions');
-        const previewSection = document.getElementById('previewSection');
-        
-        // Clear existing options
-        optionsDiv.innerHTML = '';
-        
-        // Show/hide preview section
-        if (previewSection) {
-            previewSection.style.display = hasPreview ? 'block' : 'none';
-        }
-
-        options.forEach(option => {
-            if (option === 'pages') {
-                optionsDiv.innerHTML += `
-                    <div class="option-group">
-                        <label for="pagesInput">ಪುಟಗಳು (ಉದಾ: 1-3,5,7-9):</label>
-                        <input type="text" id="pagesInput" name="pages" placeholder="1-3,5,7-9">
-                        <input type="hidden" id="selectedPagesInput" name="selected_pages">
-                    </div>
-                `;
-            } else if (option === 'compression') {
-                optionsDiv.innerHTML += `
-                    <div class="option-group">
-                        <label for="compressionLevel">ಸಂಕುಚನ ಮಟ್ಟ:</label>
-                        <select id="compressionLevel" name="compression_level">
-                            <option value="low">ಕಡಿಮೆ</option>
-                            <option value="medium" selected>ಮಧ್ಯಮ</option>
-                            <option value="high">ಹೆಚ್ಚಿನ</option>
-                        </select>
-                    </div>
-                `;
+        const optionGroups = ['pagesGroup', 'compressionGroup'];
+        optionGroups.forEach(group => {
+            const element = document.getElementById(group);
+            if (element) {
+                element.style.display = 'none';
             }
         });
+        
+        const operationOptions = document.getElementById('operationOptions');
+        if (operationOptions) {
+            if (options.length > 0) {
+                operationOptions.style.display = 'block';
+                options.forEach(option => {
+                    const element = document.getElementById(option + 'Group');
+                    if (element) {
+                        element.style.display = 'block';
+                    }
+                });
+            } else {
+                operationOptions.style.display = 'none';
+            }
+        }
     }
 
     function resetModalForm() {
         selectedFiles = [];
         selectedPages.clear();
         currentPreviewData = null;
-        
+        const filesList = document.getElementById('filesList');
+        const processBtn = document.getElementById('processBtn');
         const fileInput = document.getElementById('fileInput');
-        if (fileInput) fileInput.value = '';
+        const previewSection = document.getElementById('previewSection');
         
-        const pagesInput = document.getElementById('pagesInput');
-        if (pagesInput) pagesInput.value = '';
-        
-        const selectedPagesInput = document.getElementById('selectedPagesInput');
-        if (selectedPagesInput) selectedPagesInput.value = '';
-        
-        displaySelectedFiles();
-        updateProcessButton();
-        updatePreviewSection();
+        if (filesList) {
+            filesList.style.display = 'none';
+            filesList.innerHTML = '';
+        }
+        if (processBtn) {
+            processBtn.disabled = true;
+        }
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        if (previewSection) {
+            previewSection.style.display = 'none';
+        }
     }
 
     function restoreOriginalModalContent() {
-        const modalBody = document.querySelector('.modal-body');
-        const uploadArea = document.getElementById('uploadArea');
-        const filesList = document.getElementById('selectedFilesList');
-        const processBtn = document.getElementById('processBtn');
+        const modalBody = document.querySelector('#operationModal .modal-body');
+        const config = operationConfigs[currentOperation];
         
-        if (uploadArea) uploadArea.style.display = 'block';
-        if (filesList) filesList.style.display = 'block';
-        if (processBtn) processBtn.style.display = 'inline-block';
+        modalBody.innerHTML = `
+            <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
+                <input type="hidden" name="operation" id="selectedOperation" value="${currentOperation}">
+                <input type="hidden" name="selected_pages" id="selectedPagesInput">
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
+                    <div class="upload-subtext" id="uploadSubtext">${config.supportText}</div>
+                    <input type="file" name="files" id="fileInput" ${config.multiple ? 'multiple' : ''} accept="${config.accept}" style="display: none;">
+                </div>
+
+                <div id="filesList" class="file-list" style="display: none;"></div>
+
+                <div id="previewSection" style="display: ${config.hasPreview ? 'none' : 'none'}; margin-bottom: 1rem;">
+                    <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
+                        <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
+                    </button>
+                </div>
+
+                <div id="operationOptions" style="display: ${config.options.length > 0 ? 'block' : 'none'};">
+                    <div class="form-group" id="pagesGroup" style="display: ${config.options.includes('pages') ? 'block' : 'none'};">
+                        <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
+                        <input type="text" name="pages" id="pagesInput" class="form-input" 
+                            placeholder="ಉದಾ: 1,3,5-10">
+                        <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
+                    </div>
+
+                    <div class="form-group" id="compressionGroup" style="display: ${config.options.includes('compression') ? 'block' : 'none'};">
+                        <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
+                        <select name="compression" id="compressionSelect" class="form-select" onchange="updateCompressionUI()">
+                            <option value="low">ಕಡಿಮೆ (ಉತ್ತಮ ಗುಣಮಟ್ಟ)</option>
+                            <option value="medium" selected>ಮಧ್ಯಮ</option>
+                            <option value="high">ಹೆಚ್ಚು (ಚಿಕ್ಕ ಗಾತ್ರ)</option>
+                            <option value="maximum">ಅತ್ಯಧಿಕ (ಅತಿ ಚಿಕ್ಕ ಗಾತ್ರ)</option>
+                            <option value="custom">ಕಸ್ಟಮ್ ಗಾತ್ರ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="targetSizeGroup" style="display: none;">
+                        <label class="form-label" for="targetSizeMB">ಗುರಿ ಫೈಲ್ ಗಾತ್ರ (MB ನಲ್ಲಿ)</label>
+                        <input type="number" name="target_size_mb" id="targetSizeMB" class="form-input" placeholder="ಉದಾ: 2.5" step="0.1" min="0.1">
+                        <small>ಮೂಲ ಫೈಲ್‌ಗಿಂತ ಚಿಕ್ಕ ಗಾತ್ರವನ್ನು ನಮೂದಿಸಿ</small>
+                    </div>
+
+                    <div class="form-group" id="advancedToggle" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="showAdvancedComp" onchange="toggleAdvancedCompression()">
+                            ಸುಧಾರಿತ ಆಯ್ಕೆಗಳನ್ನು ತೋರಿಸಿ
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="advancedCompressionOptions" style="display: none;">
+                        <div class="advanced-grid">
+                            <div>
+                                <label class="form-label" for="imageQuality">ಚಿತ್ರ ಗುಣಮಟ್ಟ</label>
+                                <input type="range" name="imageQuality" id="imageQuality" min="20" max="95" value="60" oninput="updateQualityDisplay()">
+                                <span id="qualityValue">60%</span>
+                            </div>
+                            <div>
+                                <label class="form-label" for="imageDPI">ರೆಸಲ್ಯೂಶನ್ (DPI)</label>
+                                <select name="imageDPI" id="imageDPI" class="form-select">
+                                    <option value="72">72 DPI (ಅತಿ ಸಣ್ಣ)</option>
+                                    <option value="96">96 DPI (ಸಣ್ಣ)</option>
+                                    <option value="150" selected>150 DPI (ಮಧ್ಯಮ)</option>
+                                    <option value="200">200 DPI (ಉತ್ತಮ)</option>
+                                    <option value="300">300 DPI (ಅತ್ಯುತ್ತಮ)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="removeMetadata" checked>
+                                    ಮೆಟಾಡೇಟಾವನ್ನು ತೆಗೆದುಹಾಕಿ
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="optimizeFonts" checked>
+                                    ಫಾಂಟ್‌ಗಳನ್ನು ಆಪ್ಟಿಮೈಜ್ ಮಾಡಿ
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" id="processBtn" disabled>
+                        <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
+                    </button>
+                </div>
+            </form>
+        `;
         
-        const modalFooter = document.querySelector('.modal-footer');
-        if (modalFooter) modalFooter.style.display = 'flex';
+        // Initialize compression UI after DOM is created
+        setTimeout(() => {
+            if (config.options.includes('compression')) {
+                updateCompressionUI();
+                updateQualityDisplay();
+            }
+            bindEventListeners();
+        }, 100);
     }
 
-    // Page range parsing and formatting utilities
-    function parsePageRanges(pagesStr, totalPages) {
-        const pages = new Set();
-        const parts = pagesStr.split(',');
+    function bindEventListeners() {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
         
+        if (uploadArea && fileInput) {
+            uploadArea.onclick = () => fileInput.click();
+            
+            uploadArea.ondragover = (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            };
+            
+            uploadArea.ondragleave = (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            };
+            
+            uploadArea.ondrop = (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                handleFileSelection(files);
+            };
+            
+            fileInput.onchange = (e) => {
+                const files = Array.from(e.target.files);
+                handleFileSelection(files);
+            };
+        }
+
+        const form = document.getElementById('operationForm');
+        if (form) {
+            form.onsubmit = handleFormSubmission;
+        }
+    }
+
+    async function handleFormSubmission(e) {
+        e.preventDefault();
+        
+        const config = operationConfigs[currentOperation];
+        if (selectedFiles.length < (config.minFiles || 1)) {
+            if (currentOperation === 'merge') {
+                showAlert('error', 'ವಿಲೀನಗೊಳಿಸಲು ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು');
+            } else {
+                showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+            }
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('operation', currentOperation);
+        
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        // Use selected pages from preview or manual input
+        const selectedPagesInput = document.getElementById('selectedPagesInput');
+        const pagesInput = document.getElementById('pagesInput');
+        
+        if (selectedPagesInput && selectedPagesInput.value) {
+            formData.append('selected_pages', selectedPagesInput.value);
+        } else if (pagesInput && pagesInput.value) {
+            formData.append('pages', pagesInput.value);
+        }
+        
+        const compressionSelect = document.getElementById('compressionSelect');
+        if (compressionSelect && compressionSelect.value) {
+            formData.append('compression', compressionSelect.value);
+        }
+
+        // Add compression-specific parameters
+        const targetSizeMB = document.getElementById('targetSizeMB');
+        if (targetSizeMB && targetSizeMB.value) {
+            formData.append('target_size_mb', targetSizeMB.value);
+        }
+
+        const imageQuality = document.getElementById('imageQuality');
+        if (imageQuality) {
+            formData.append('imageQuality', imageQuality.value);
+        }
+
+        const imageDPI = document.getElementById('imageDPI');
+        if (imageDPI) {
+            formData.append('imageDPI', imageDPI.value);
+        }
+
+        const removeMetadata = document.querySelector('input[name="removeMetadata"]');
+        if (removeMetadata) {
+            formData.append('removeMetadata', removeMetadata.checked);
+        }
+
+        const optimizeFonts = document.querySelector('input[name="optimizeFonts"]');
+        if (optimizeFonts) {
+            formData.append('optimizeFonts', optimizeFonts.checked);
+        }
+        
+        document.getElementById('operationModal').style.display = 'none';
+        showLoadingModal();
+        
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessModal(result);
+            } else {
+                showErrorModal(result.error);
+            }
+        } catch (error) {
+            showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
+        }
+    }
+
+    function showLoadingModal() {
+        document.getElementById('loadingModal').style.display = 'block';
+    }
+
+    function showSuccessModal(result) {
+        const modal = document.getElementById('operationModal');
+        const modalBody = modal.querySelector('.modal-body');
+        
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 4rem; color: #4caf50; margin-bottom: 1rem;">✅</div>
+                <h3>ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!</h3>
+                <p style="margin: 1rem 0;">${result.message}</p>
+                <div style="margin-top: 2rem;">
+                    <a href="${result.download_url}" class="btn btn-primary" 
+                       download="${result.filename}" style="margin-right: 1rem;">
+                        <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+                    </a>
+                    <button class="btn" onclick="selectOperation('${currentOperation}')" 
+                            style="background: #6c757d; color: white; margin-right: 1rem;">
+                        <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
+                    </button>
+                    <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
+                        ಮುಚ್ಚಿ
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('loadingModal').style.display = 'none';
+        modal.style.display = 'block';
+    }
+
+    function showErrorModal(errorMessage) {
+        const modal = document.getElementById('operationModal');
+        const modalBody = modal.querySelector('.modal-body');
+        
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 4rem; color: #f44336; margin-bottom: 1rem;">❌</div>
+                <h3>ದೋಷ ಸಂಭವಿಸಿದೆ</h3>
+                <p style="margin: 1rem 0;">${errorMessage}</p>
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="selectOperation('${currentOperation}')">
+                        <i class="fas fa-redo"></i> ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ
+                    </button>
+                    <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white; margin-left: 1rem;">
+                        ಮುಚ್ಚಿ
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('loadingModal').style.display = 'none';
+        modal.style.display = 'block';
+    }
+
+    // Utility functions
+    function parsePageRanges(pagesStr, totalPages) {
+        const pages = [];
+        const parts = pagesStr.split(',');
+
         for (let part of parts) {
             part = part.trim();
             if (part.includes('-')) {
-                const [start, end] = part.split('-').map(s => parseInt(s.trim()));
-                if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
-                    throw new Error(`ಅಮಾನ್ಯ ಶ್ರೇಣಿ: ${part}`);
+                const [start, end] = part.split('-').map(x => parseInt(x.trim()));
+                if (isNaN(start) || isNaN(end) || start > end) {
+                    throw new Error(`ಅಮಾನ್ಯ ವ್ಯಾಪ್ತಿ: ${part}`);
                 }
-                for (let i = start; i <= end; i++) {
-                    pages.add(i);
+                for (let i = start; i <= Math.min(end, totalPages); i++) {
+                    if (i >= 1) pages.push(i);
                 }
             } else {
                 const pageNum = parseInt(part);
                 if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
                     throw new Error(`ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆ: ${part}`);
                 }
-                pages.add(pageNum);
+                pages.push(pageNum);
             }
         }
-        
-        return Array.from(pages);
+
+        return [...new Set(pages)].sort((a, b) => a - b);
     }
 
     function formatPageRanges(pageNumbers) {
@@ -497,24 +882,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return ranges.join(',');
     }
 
-    // Alert system
     function showAlert(type, message) {
-        const alertContainer = document.getElementById('alertContainer');
-        if (!alertContainer) return;
-
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type}`;
-        alert.innerHTML = `
-            <span class="alert-message">${message}</span>
-            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            ${message}
         `;
-
-        alertContainer.appendChild(alert);
-
+        
+        // Add to modal body or create container
+        const modalBody = document.querySelector('#operationModal .modal-body');
+        if (modalBody) {
+            modalBody.insertBefore(alertDiv, modalBody.firstChild);
+        }
+        
         // Auto remove after 5 seconds
         setTimeout(() => {
-            if (alert.parentElement) {
-                alert.remove();
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
             }
         }, 5000);
     }

@@ -164,9 +164,65 @@ def upload_file():
                     return jsonify({'success': False, 'error': 'ಅಳಿಸಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
                 result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
                 
+            # Replace your compression section in app.py with this:
+
             elif operation == 'compress':
                 print("Processing compress operation")
-                result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
+                
+                # Get compression parameters
+                compression_level = request.form.get('compression', 'medium')
+                target_size_mb = request.form.get('target_size_mb')
+                
+                # Convert target size to float if provided
+                target_size = None
+                if target_size_mb and target_size_mb.strip():
+                    try:
+                        target_size = float(target_size_mb)
+                        print(f"Target size specified: {target_size}MB")
+                    except (ValueError, TypeError):
+                        target_size = None
+                        print("Invalid target size, ignoring")
+                
+                # Get advanced options if provided
+                image_quality = request.form.get('imageQuality')  # Note: matching HTML id
+                image_dpi = request.form.get('imageDPI')
+                remove_metadata = request.form.get('removeMetadata') == 'on'
+                optimize_fonts = request.form.get('optimizeFonts') == 'on'
+                
+                # Convert string parameters to integers if provided and valid
+                quality = None
+                dpi = None
+                
+                if image_quality and image_quality.strip():
+                    try:
+                        quality = int(image_quality)
+                        quality = max(10, min(100, quality))  # Clamp between 10-100
+                        print(f"Image quality: {quality}")
+                    except (ValueError, TypeError):
+                        print("Invalid image quality, using default")
+                
+                if image_dpi and image_dpi.strip():
+                    try:
+                        dpi = int(image_dpi)
+                        dpi = max(50, min(600, dpi))  # Clamp between 50-600
+                        print(f"Image DPI: {dpi}")
+                    except (ValueError, TypeError):
+                        print("Invalid image DPI, using default")
+                
+                print(f"Compression settings: level={compression_level}, target={target_size}MB")
+                print(f"Advanced options: quality={quality}, dpi={dpi}, remove_metadata={remove_metadata}, optimize_fonts={optimize_fonts}")
+                
+                # Use the enhanced compression method
+                result_path = pdf_ops.compress_pdf_enhanced(
+                    file_paths[0], 
+                    compression_level, 
+                    session_id,
+                    target_size_mb=target_size,
+                    image_quality=quality,
+                    image_dpi=dpi,
+                    remove_metadata=remove_metadata,
+                    optimize_fonts=optimize_fonts
+                )
                 
             elif operation == 'pdf_to_jpeg':
                 print("Processing PDF to JPEG operation")

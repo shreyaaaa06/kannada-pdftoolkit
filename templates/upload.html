@@ -533,13 +533,77 @@
 
                     <div class="option-group" id="compressionOptions">
                         <h4>ಸಂಕೋಚನ ಆಯ್ಕೆಗಳು</h4>
+    
+                        <!-- Compression Level Selector -->
                         <div class="form-group">
-                            <label for="compressionLevel">ಗುಣಮಟ್ಟ</label>
-                            <select id="compressionLevel">
-                                <option value="high">ಹೆಚ್ಚಿನ ಗುಣಮಟ್ಟ</option>
-                                <option value="medium" selected>ಮಧ್ಯಮ ಗುಣಮಟ್ಟ</option>
-                                <option value="low">ಕಡಿಮೆ ಗುಣಮಟ್ಟ</option>
+                            <label for="compressionLevel">ಸಂಕೋಚನ ಮಟ್ಟ</label>
+                            <select id="compressionLevel" onchange="updateCompressionOptions()">
+                                <option value="low">ಕಡಿಮೆ (90% ಗುಣಮಟ್ಟ)</option>
+                                <option value="medium" selected>ಮಧ್ಯಮ (70% ಗುಣಮಟ್ಟ)</option>
+                                <option value="high">ಹೆಚ್ಚಿನ (50% ಗುಣಮಟ್ಟ)</option>
+                                <option value="maximum">ಅತ್ಯಧಿಕ (30% ಗುಣಮಟ್ಟ)</option>
+                                <option value="custom">ಕಸ್ಟಮ್ ಗಾತ್ರ</option>
                             </select>
+                        </div>
+
+                        <!-- Target Size Input (shown when custom is selected) -->
+                        <div class="form-group" id="targetSizeGroup" style="display: none;">
+                            <label for="targetSize">ಗುರಿ ಫೈಲ್ ಗಾತ್ರ (MB ನಲ್ಲಿ)</label>
+                            <input type="number" id="targetSize" name="target_size_mb" placeholder="ಉದಾ: 2.5" step="0.1" min="0.1">
+                            <small>ಮೂಲ ಫೈಲ್‌ಗಿಂತ ಚಿಕ್ಕ ಗಾತ್ರವನ್ನು ನಮೂದಿಸಿ</small>
+                        </div>
+
+                        <!-- Compression Preview -->
+                        <div class="compression-preview" id="compressionPreview">
+                            <div class="preview-item">
+                                <span class="preview-label">ಅಂದಾಜು ಸಂಕೋಚನ:</span>
+                                <span class="preview-value" id="estimatedCompression">50-70%</span>
+                            </div>
+                            <div class="preview-item">
+                                <span class="preview-label">ಗುಣಮಟ್ಟ:</span>
+                                <span class="preview-value" id="estimatedQuality">ಮಧ್ಯಮ</span>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options Toggle -->
+                        <div class="advanced-toggle">
+                            <input type="checkbox" id="showAdvanced" onchange="toggleAdvancedOptions()">
+                            <label for="showAdvanced">ಸುಧಾರಿತ ಆಯ್ಕೆಗಳನ್ನು ತೋರಿಸಿ</label>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="advanced-options" id="advancedOptions" style="display: none;">
+                            <div class="form-group">
+                                <label for="imageQuality">ಚಿತ್ರ ಗುಣಮಟ್ಟ</label>
+                                <input type="range" id="imageQuality" min="20" max="95" value="60" 
+                                    oninput="updateQualityDisplay(this.value)">
+                                <span class="quality-display" id="qualityDisplay">60%</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="imageDPI">ಚಿತ್ರ ರೆಸಲ್ಯೂಶನ್ (DPI)</label>
+                                <select id="imageDPI">
+                                    <option value="72">72 DPI (ಅತಿ ಸಣ್ಣ)</option>
+                                    <option value="96">96 DPI (ಸಣ್ಣ)</option>
+                                    <option value="150" selected>150 DPI (ಮಧ್ಯಮ)</option>
+                                    <option value="200">200 DPI (ಉತ್ತಮ)</option>
+                                    <option value="300">300 DPI (ಅತ್ಯುತ್ತಮ)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="removeMetadata" checked>
+                                    ಮೆಟಾಡೇಟಾವನ್ನು ತೆಗೆದುಹಾಕಿ
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="optimizeFonts" checked>
+                                    ಫಾಂಟ್‌ಗಳನ್ನು ಆಪ್ಟಿಮೈಜ್ ಮಾಡಿ
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -904,6 +968,48 @@
             });
         }
 
+        function updateCompressionOptions() {
+            const level = document.getElementById('compressionLevel').value;
+            const targetSizeGroup = document.getElementById('targetSizeGroup');
+            const estimatedCompression = document.getElementById('estimatedCompression');
+            const estimatedQuality = document.getElementById('estimatedQuality');
+                
+            // Show/hide target size input for custom level
+            if (level === 'custom') {
+                targetSizeGroup.style.display = 'block';
+            } else {
+                targetSizeGroup.style.display = 'none';
+            }
+                
+            // Update estimates
+            const compressionInfo = {
+                'low': { compression: '10-30%', quality: 'ಅತ್ಯುತ್ತಮ' },
+                'medium': { compression: '30-50%', quality: 'ಮಧ್ಯಮ' },
+                'high': { compression: '50-70%', quality: 'ಕಡಿಮೆ' },
+                'maximum': { compression: '70-90%', quality: 'ಅತಿ ಕಡಿಮೆ' },
+                'custom': { compression: 'ಗುರಿ ಪ್ರಕಾರ', quality: 'ಬದಲಾಗುತ್ತದೆ' }
+            };
+                
+            const info = compressionInfo[level] || compressionInfo['medium'];
+            estimatedCompression.textContent = info.compression;
+            estimatedQuality.textContent = info.quality;
+        }
+
+        function toggleAdvancedOptions() {
+            const checkbox = document.getElementById('showAdvanced');
+            const advancedOptions = document.getElementById('advancedOptions');
+            
+            if (checkbox.checked) {
+                advancedOptions.style.display = 'block';
+            } else {
+                advancedOptions.style.display = 'none';
+            }
+        }
+
+        function updateQualityDisplay(value) {
+            document.getElementById('qualityDisplay').textContent = value + '%';
+        }
+
         // Add operation-specific options to FormData
         function addOperationOptions(formData) {
             switch(selectedOperation) {
@@ -923,7 +1029,27 @@
                 
                 case 'compress':
                     const compressionLevel = document.getElementById('compressionLevel').value;
-                    formData.append('compression_level', compressionLevel);
+                    formData.append('compression', compressionLevel);
+                    
+                    // Add target size if custom is selected
+                    if (compressionLevel === 'custom') {
+                        const targetSize = document.getElementById('targetSize').value;
+                        if (targetSize) formData.append('target_size_mb', targetSize);
+                    }
+                    
+                    // Add advanced options if they're visible
+                    const showAdvanced = document.getElementById('showAdvanced').checked;
+                    if (showAdvanced) {
+                        const imageQuality = document.getElementById('imageQuality').value;
+                        const imageDPI = document.getElementById('imageDPI').value;
+                        const removeMetadata = document.getElementById('removeMetadata').checked;
+                        const optimizeFonts = document.getElementById('optimizeFonts').checked;
+                        
+                        formData.append('imageQuality', imageQuality);
+                        formData.append('imageDPI', imageDPI);
+                        formData.append('removeMetadata', removeMetadata ? 'on' : 'off');
+                        formData.append('optimizeFonts', optimizeFonts ? 'on' : 'off');
+                    }
                     break;
                 
                 case 'pdf-to-image':
