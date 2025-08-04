@@ -10,7 +10,7 @@ class FileHandler:
             'word': ['.doc', '.docx'],
             'image': ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         }
-        self.max_file_size = 100 * 1024 * 1024  # 100MB
+        self.max_file_size = 1024 * 1024 * 1024  # 1GB
     
     def allowed_file(self, filename, file_type='all'):
         """Check if file has allowed extension"""

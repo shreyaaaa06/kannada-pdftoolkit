@@ -14,7 +14,7 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  #1GB
 
 # Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -90,6 +90,7 @@ def upload_file():
         print(f"Operation: {operation}")
         print(f"Session ID: {session_id}")
         print(f"Use previous: {use_previous}")
+        print(f"Form data: {dict(request.form)}")
         
         # Get files - from upload or previous results
         if use_previous and session.get('processed_files'):
@@ -115,8 +116,18 @@ def upload_file():
         pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
         
+        # NEW: Get split-specific parameters
+        split_method = request.form.get('split_method', 'pages')
+        target_size_mb = request.form.get('target_size_mb', '10')
+        pages_per_chunk = request.form.get('pages_per_chunk', '20')
+        max_file_size = request.form.get('max_file_size', '100')
+        
         print(f"Pages parameter: '{pages}'")
         print(f"Compression: {compression}")
+        print(f"Split method: {split_method}")
+        print(f"Target size MB: {target_size_mb}")
+        print(f"Pages per chunk: {pages_per_chunk}")
+        print(f"Max file size: {max_file_size}")
         
         result_path = None
         
@@ -150,7 +161,25 @@ def upload_file():
                     print(f"PDF validation error: {pdf_error}")
                     return jsonify({'success': False, 'error': f'PDF ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(pdf_error)}'})
                 
-                result_path = pdf_ops.split_pdf(pdf_path, session_id, pages)
+                # FIXED: Call split_pdf with proper parameters based on split method
+                try:
+                    target_size_mb_int = int(target_size_mb) if target_size_mb.isdigit() else 10
+                    pages_per_chunk_int = int(pages_per_chunk) if pages_per_chunk.isdigit() else 20
+                    max_file_size_int = int(max_file_size) if max_file_size.isdigit() else 100
+                except ValueError:
+                    target_size_mb_int = 10
+                    pages_per_chunk_int = 20
+                    max_file_size_int = 100
+                
+                result_path = pdf_ops.split_pdf(
+                    pdf_path, 
+                    session_id, 
+                    pages=pages,
+                    split_method=split_method,
+                    target_size_mb=target_size_mb_int,
+                    pages_per_chunk=pages_per_chunk_int,
+                    max_file_size_mb=max_file_size_int
+                )
                 
             elif operation == 'extract':
                 print("Processing extract operation")
@@ -225,11 +254,6 @@ def upload_file():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
-
-@app.route('/process', methods=['POST'])
-def process_files():
-    """Alternative endpoint for processing files (matches main.js expectations)"""
-    return upload_file()
 
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
