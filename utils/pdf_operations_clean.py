@@ -403,28 +403,15 @@ class PDFOperations:
                 
                 previews.append({
                     'page_num': page_num + 1,
-                    'extracted_number': extracted_number if extracted_number else page_num + 1,  # Fixed field name
+                    'extracted_num': extracted_number,
                     'thumbnail_path': thumbnail_path
-                })
-            
-            # Sort previews by extracted number to show the expected order
-            sorted_previews = sorted(previews, key=lambda x: x['extracted_number'])  # Fixed field name
-            
-            # For the sorted_order, we need to return the sorted preview objects with proper field names
-            sorted_order = []
-            for preview in sorted_previews:
-                sorted_order.append({
-                    'page_num': preview['page_num'],
-                    'extracted_number': preview['extracted_number'],  # This field name matches template
-                    'thumbnail_path': preview['thumbnail_path']
                 })
             
             doc.close()
             
             return {
                 'total_pages': len(previews),
-                'previews': previews,
-                'sorted_order': sorted_order
+                'previews': previews
             }
             
         except Exception as e:

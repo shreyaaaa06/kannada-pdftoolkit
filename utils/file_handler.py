@@ -64,7 +64,6 @@ class FileHandler:
             return file_path
             
         except Exception as e:
-            print(f"Error saving file: {e}")
             raise Exception(f"ಫೈಲ್ ಉಳಿಸುವಲ್ಲಿ ದೋಷ: {str(e)}")
     
     def cleanup_old_files(self, max_age_hours=1):
@@ -102,7 +101,7 @@ class FileHandler:
                             shutil.rmtree(file_path)
                             
         except Exception as e:
-            print(f"Cleanup error: {e}")
+            pass
     
     def get_file_info(self, file_path):
         """Get file information"""
@@ -121,5 +120,4 @@ class FileHandler:
                 'path': file_path
             }
         except Exception as e:
-            print(f"Error getting file info: {e}")
             return None
