@@ -60,7 +60,7 @@ class FileHandler:
             # Save file
             file_path = os.path.join(upload_folder, filename)
             file.save(file_path)
-            
+            file.close()  # Add this line
             return file_path
             
         except Exception as e:
