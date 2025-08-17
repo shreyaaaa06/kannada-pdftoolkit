@@ -818,6 +818,18 @@
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
+                <!-- Add this card to your operations grid in index.html -->
+                <div class="operation-card">
+                    <div class="operation-icon"><i class="fas fa-balance-scale"></i></div>
+                    <h3 class="operation-title">PDF ಹೋಲಿಕೆ</h3>
+                    <p class="operation-description">ಎರಡು PDF ಫೈಲ್‌ಗಳನ್ನು ಹೋಲಿಸಿ ಮತ್ತು ವ್ಯತ್ಯಾಸಗಳನ್ನು ಹುಡುಕಿ</p>
+                    <button class="btn btn-primary" onclick="selectOperation('compare')">
+                        <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
+                    </button>
+                </div>
+
+                <!-- Also add compare type selection to your form (optional) -->
+                
             </div>
         </section>
     </div>
@@ -922,6 +934,14 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="form-group" id="compareTypeGroup" style="display: none;">
+                        <label class="form-label" for="compareType">ಹೋಲಿಕೆ ಪ್ರಕಾರ:</label>
+                        <select name="compare_type" id="compareType" class="form-select">
+                            <option value="both">ಎರಡೂ (ದೃಶ್ಯ + ಪಠ್ಯ)</option>
+                            <option value="visual">ದೃಶ್ಯ ಮಾತ್ರ</option>
+                            <option value="text">ಪಠ್ಯ ಮಾತ್ರ</option>
+                        </select>
                     </div>
 
                     <div class="form-group">

@@ -1,0 +1,391 @@
+
+    <!DOCTYPE html>
+    <html lang="kn">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            @font-face {
+                font-family: 'KannadaFont';
+                src: url('file:///static/fonts/NotoSansKannada-Regular.woff2') format('woff2'),
+                    url('file:///static/fonts/NotoSansKannada-Regular.ttf') format('truetype');
+            }
+            
+            body {
+                font-family: 'KannadaFont', Arial, sans-serif !important;
+                
+                margin: 20px;
+                line-height: 1.6;
+                color: #333;
+                font-size: 14px;
+            }
+            
+            .header {
+                text-align: center;
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 30px;
+                color: #8b7355;
+                border-bottom: 2px solid #d4af37;
+                padding-bottom: 10px;
+            }
+            
+            .summary-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 30px;
+                font-size: 12px;
+            }
+            
+            .summary-table td {
+                padding: 10px;
+                border: 1px solid #ddd;
+                vertical-align: top;
+            }
+            
+            .summary-table .label {
+                background: #f5f1e8;
+                font-weight: 600;
+                width: 200px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+                font-weight: 600;
+                margin: 30px 0 15px 0;
+                color: #8b7355;
+                border-bottom: 1px solid #d4af37;
+                padding-bottom: 5px;
+            }
+            
+            .page-title {
+                font-weight: 600;
+                margin: 20px 0 10px 0;
+                color: #5d4037;
+                font-size: 14px;
+            }
+            
+            .change-item {
+                margin: 8px 0;
+                padding: 12px;
+                border-left: 4px solid #ccc;
+                background: #f9f9f9;
+                font-size: 12px;
+                line-height: 1.5;
+                word-wrap: break-word;
+                page-break-inside: avoid;
+            }
+            
+            .added {
+                border-left-color: #4caf50;
+                background: #f1f8e9;
+            }
+            
+            .removed {
+                border-left-color: #f44336;
+                background: #ffebee;
+            }
+            
+            .change-label {
+                font-weight: 600;
+                display: inline-block;
+                margin-bottom: 5px;
+            }
+            
+            .change-text {
+                display: block;
+                margin-left: 10px;
+            }
+            
+            .no-changes {
+                text-align: center;
+                color: #666;
+                font-style: italic;
+                padding: 20px;
+            }
+            
+            .footer {
+                margin-top: 40px;
+                text-align: center;
+                color: #666;
+                font-size: 10px;
+                border-top: 1px solid #ddd;
+                padding-top: 10px;
+            }
+            
+            /* Print-specific styles */
+            @media print {
+                body { margin: 0; }
+                .change-item { page-break-inside: avoid; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">PDF ಹೋಲಿಕೆ ವರದಿ</div>
+        
+        <table class="summary-table">
+            <tr><td class="label">ಮೊದಲ ಫೈಲ್:</td><td>58d777aa-2559-43df-a3e0-687f39a912cf_1755428199693_8e88cd_-_.pdf</td></tr>
+            <tr><td class="label">ಎರಡನೇ ಫೈಲ್:</td><td>58d777aa-2559-43df-a3e0-687f39a912cf_1755428200058_b89b47_-_.pdf</td></tr>
+            <tr><td class="label">ಮೊದಲ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>13</td></tr>
+            <tr><td class="label">ಎರಡನೇ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>21</td></tr>
+            <tr><td class="label">ಪಠ್ಯ ಬದಲಾವಣೆಗಳು:</td><td>864</td></tr>
+        </table>
+        
+        <div class="section-title">ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು</div>
+    <div class="page-title">ಪುಟ 1:</div>
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕುವೆಂಪು</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ರಸ ಖುಷಿ, ಭಾರತೀಯ ಕವಿ, ನಾಟಕಕಾರ, ಚಿಂತಕ (೧೯೦೪-೧೯೯೪)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕುವೆಂಪು, ಕುಪ್ಪಳಿ ವೆಂಕಟಪ್ಪ ಪುಟ್ಟಪ್ಪ (ಡಿಸೆಂಬರ್‌ ೨೯, OF OG! - ನವೆಂಬರ್‌ ೧೧, ೧೯೯೪), ಕನ್ನಡದ ಅಗ್ರಮಾನ್ಯ ಕವಿ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕಾದಂಬರಿಕಾರ, ನಾಟಕಕಾರ, ವಿಮರ್ಶಕ ಮತ್ತು ಚಿಂತಕರಾಗಿದ್ದರು.</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಇಪ್ಪತ್ತನೆಯ ಶತಮಾನ ಕಂಡ ದೈತ್ಯ ಪ್ರತಿಭೆ. ವರಕವಿ ಬೇಂದ್ರೆಯವರಿಂದ 'ಯುಗದ ಕವಿ ಜಗದ ಕವಿ' ಎನಿಸಿಕೊಂಡವರು.</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ವಿಶ್ವಮಾನವ ಸಂದೇಶ ನೀಡಿದವರು. ಕನ್ನಡದ ಎರಡನೆಯ 'ರಾಷ್ಟ್ರಕವಿ. ಜ್ಞಾನಪೀಠ ಪ್ರಶಸ್ತಿಯನ್ನೂ, ಕೇಂದ್ರ ಸಾಹಿತ್ಯ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಅಕಾಡೆಮಿ ಪ್ರಶಸ್ತಿಯನ್ನೂ ಮೊದಲ ಬಾರಿಗೆ ಕನ್ನಡಕ್ಕೆ ತಂದುಕೊಟ್ಟವರು. ಕರ್ನಾಟಕ ಸರ್ಕಾರ ಕೊಡಮಾಡುವ ಕರ್ನಾಟಕ ರತ್ನ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಪ್ರಶಸ್ತಿ ಹಾಗೂ ಪಂಪ ಪ್ರಶಸ್ತಿಗಳನ್ನು ಮೊದಲ ಬಾರಿಗೆ ಪಡೆದವರು.</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಜೀವನ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಬಾಲ್ಯ</span>
+                                </div>
+                                <div class="page-title">ಪುಟ 2:</div>
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಜನನ ಡಿಸೆಂಬರ್‌ 29, 1904</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಹಿರೇಕೊಡಿಗೆ, ಕೊಪ್ಪ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕುವೆಂಪು ಅವರು ಮೈಸೂರಿನ ಮಹಾರಾಜ ಕಾಲೇಜಿನ ತಾಲೂಕು,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಪ್ರಾಧ್ಯಾಪಕರೂ, ಪ್ರಾಂಶುಪಾಲರೂ ಆಗಿದ್ದರು. ನಂತರ ಚಿಕ್ಕಮಗಳೂರು ಜಿಲ್ಲೆ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಉಪಕುಲಪತಿಗಳಾದರು!', ತಮ್ಮ ಕಲ್ಪನೆಯ ಕೂಸಾದ ನಿಧನ ನವೆಂಬರ್‌ ೧೧, ೧೯೯೪</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಮಾನಸ ಗಂಗೋತ್ರಿಯನ್ನು ಕಟ್ಟಿ ಬೆಳೆಸಿದರು. ಮೈಸೂರು , ಕರ್ನಾಟಕ ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ವಿಶ್ವವಿದ್ಯಾನಿಲಯವನ್ನು ಅಧ್ಯಯನಾಂಗ, ಸಂಶೋಧನಾಂಗ ಭಾರತ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಮಾಧ್ಯಮದ ತರಗತಿಗಳನ್ನು ಆರಂಭಿಸಿದರು.</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಉದ್ಯೋಗ ಕವಿ, ಲೇಖಕ, ಪ್ರಾಧ್ಯಾಪಕ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಪ್ರಾಂಶುಪಾಲ, ಕುಲಪತಿ</span>
+                                </div>
+                                <div class="page-title">ಪುಟ 3:</div>
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಅವರು ಕನ್ನಡದ ಅಗ್ರಮಾನ್ಯ ಸಾಹಿತಿಗಳಲ್ಲಿ ಒಬ್ಬರಾಗಿದ್ದಾರೆ. ಪ್ರಶಸ್ತಿಗಳು ಜ್ಞಾನಪೀಠ ಪ್ರಶಸ್ತಿ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕೋಕಿಲೋದಯ ಚೈತ್ರ ಅವರು ಇಂಜಿನಿಯರ್‌ ಆಗಿ ಪದ್ಮವಿಭೂಷಣ ಪ್ರಶಸ್ತಿ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಆಸ್ಟ್ರೇಲಿಯಾದಲ್ಲಿ ನೆಲೆಸಿದ್ದಾರೆ. ಚಿದಾನಂದಗೌಡ ಅವರು ಕರ್ನಾಟಕ ರತ್ನ ಪ್ರಶಸ್ತಿ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಪ್ರ ಸಾ @ ಪಂಪ ಪ್ರಶಸ್ತಿ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕುವೆಂಪು ಅವರ ಅಳಿಯ.</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಮಕ್ಕಳ ಸಂಖ್ಯೆ ಪೂರ್ಣಚಂದ್ರ ತೇಜಸ್ವಿ ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ನಿಧನ ಕೋಕಿಲೋದಯ ಚೈತ್ರ,</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಇಂದುಕಲಾ, ತಾರಿಣಿ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಕುವೆಂಪು ಅವರು ನವೆಂಬರ್‌ 11, 1994ರಂದು ಮೈಸೂರಿನಲ್ಲಿ</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">ಸ</span>
+                                </div>
+                                <div class="page-title">ಪುಟ 4:</div>
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">6. ಕೋಗಿಲೆ ಮತ್ತು ಸೋವಿಯಟ್‌ ರಷ್ಯಾ (1944)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">7. ಪ್ರೇಮ ಕಾಶ್ಮೀರ (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">8. ಅಗ್ನಿಹಂಸ (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">9. ಕೃತ್ತಿಕೆ (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">10. ಪಕ್ಷಿಕಾಶಿ (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">11. ಕಿಂಕಿಣಿ (ವಚನ ಸಂಕಲನ) (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">12. ಷೋಡಶಿ (1946)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">13. ಚಂದ್ರಮಂಚಕೆ ಬಾ ಚಕೋರಿ (1957)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">14. ಇಕ್ಷುಗಂಗೋತ್ರಿ (1957)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">15. ಅನಿಕೇತನ (1963)</span>
+                                </div>
+                                <div class="page-title">ಪುಟ 5:</div>
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">3. ಬಿರುಗಾಳಿ (1930)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">4. ವಾಲ್ಮೀಕಿಯ ಭಾಗ್ಯ (1931)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">5. ಮಹಾರಾತ್ರಿ (1931)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">6. ಸ್ಮಶಾನ ಕುರುಕ್ಷೇತ್ರಂ (1931)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">7. ರಕ್ತಾಕ್ಷಿ (1933)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">8. ಶೂದ್ರ ತಪಸ್ವಿ (1944)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">9. Bde ಕೊರಳ್‌ (1947)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">10. ಬಲಿದಾನ (1948)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">11. ಚಂದ್ರಹಾಸ (1963)</span>
+                                </div>
+                                
+                                <div class="change-item removed">
+                                    <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
+                                    <span class="change-text">12. ಕಾನೀನ (1974)</span>
+                                </div>
+                                
+        <div class="footer">
+            ಈ ವರದಿಯನ್ನು ಕನ್ನಡ PDF ಉಪಕರಣಗಳಿಂದ ರಚಿಸಲಾಗಿದೆ
+        </div>
+    </body>
+    </html>
+    

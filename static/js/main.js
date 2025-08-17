@@ -85,6 +85,16 @@ document.addEventListener('DOMContentLoaded', function() {
             options: [],
             minFiles: 1,
             hasPreview: false
+        },
+        'compare': {
+            title: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಹೋಲಿಸಿ',
+            accept: '.pdf',
+            supportText: 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ',
+            multiple: true,
+            options: ['compareType'],
+            minFiles: 2,
+            maxFiles: 2,
+            hasPreview: false
         }
     };
 
@@ -401,29 +411,48 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleFileSelection(files) {
         const config = operationConfigs[currentOperation];
         
-        if (!config.multiple && files.length > 1) {
-            showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
-            return;
+        // Special handling for compare operation
+        if (currentOperation === 'compare') {
+            if (files.length !== 2) {
+                showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+            
+            // Validate that both files are PDFs
+            const nonPdfFiles = files.filter(file => !file.name.toLowerCase().endsWith('.pdf'));
+            if (nonPdfFiles.length > 0) {
+                showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ಎರಡೂ ಫೈಲ್‌ಗಳು PDF ಆಗಿರಬೇಕು');
+                return;
+            }
+            
+            selectedFiles = files;
         }
-        
-        const validFiles = files.filter(file => {
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-            return config.accept.split(',').includes(extension);
-        });
-        
-        if (validFiles.length !== files.length) {
-            showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
-        }
-        
-        if (!config.multiple) {
-            selectedFiles = validFiles.slice(0, 1);
-        } else {
-            validFiles.forEach(file => {
-                const existingFile = selectedFiles.find(f => f.name === file.name && f.size === file.size);
-                if (!existingFile) {
-                    selectedFiles.push(file);
-                }
+         else {
+            // General validation for other operations
+            if (!config.multiple && files.length > 1) {
+                showAlert('error', 'ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಒಂದು ಫೈಲ್ ಮಾತ್ರ ಅನುಮತಿಸಲಾಗಿದೆ');
+                return;
+            }
+            
+            const validFiles = files.filter(file => {
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                return config.accept.split(',').includes(extension);
             });
+            
+            if (validFiles.length !== files.length) {
+                showAlert('error', 'ಕೆಲವು ಫೈಲ್‌ಗಳು ಬೆಂಬಲಿತವಲ್ಲ');
+            }
+            
+            if (!config.multiple) {
+                selectedFiles = validFiles.slice(0, 1);
+            } else {
+                validFiles.forEach(file => {
+                    const existingFile = selectedFiles.find(f => f.name === file.name && f.size === file.size);
+                    if (!existingFile) {
+                        selectedFiles.push(file);
+                    }
+                });
+            }
         }
         
         displaySelectedFiles();
@@ -492,8 +521,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showOperationOptions(options, hasPreview) {
-        const optionGroups = ['pagesGroup', 'compressionGroup'];
+    function showOperationOptions(options,haspreview){
+        const optionGroups = ['pagesGroup', 'compressionGroup','compareTypeGroup'];
         optionGroups.forEach(group => {
             const element = document.getElementById(group);
             if (element) {
@@ -584,6 +613,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             <option value="maximum">ಅತ್ಯಧಿಕ (ಅತಿ ಚಿಕ್ಕ ಗಾತ್ರ)</option>
                             <option value="custom">ಕಸ್ಟಮ್ ಗಾತ್ರ</option>
                         </select>
+                    </div>
+
+                    <div class="form-group" id="compareTypeGroup" style="display: ${config.options.includes('compareType') ? 'block' : 'none'};">
+
+                        
+                        <small>ಪಠ್ಯ ಹೋಲಿಕೆ ಕನ್ನಡ ಪಠ್ಯವನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ</small>
                     </div>
 
                     <div class="form-group" id="targetSizeGroup" style="display: none;">
@@ -759,6 +794,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
+                // Special handling for compare operation
+                if (result.redirect_url) {
+                    showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
+                    
+                    // Redirect to comparison results page after a short delay
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url;
+                    }, 1500);
+                    
+                    return;
+                }
+                
+                // Regular operation success handling
                 showSuccessModal(result);
             } else {
                 showErrorModal(result.error);
@@ -767,6 +815,24 @@ document.addEventListener('DOMContentLoaded', function() {
             showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
         }
     }
+    function validateCompareOperation() {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        let totalFiles = 0;
+        
+        fileInputs.forEach(input => {
+            if (input.files && input.files.length > 0) {
+                totalFiles += input.files.length;
+            }
+        });
+        
+        if (totalFiles !== 2) {
+            showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ');
+            return false;
+        }
+        
+        return true;
+    }
+
 
     function showLoadingModal() {
         document.getElementById('loadingModal').style.display = 'block';
@@ -1080,4 +1146,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-});
+    const operationCards = document.querySelectorAll('.operation-card');
+        
+        operationCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const operation = this.dataset.operation;
+                
+                if (operation === 'compare') {
+                    // Show special message for compare
+                    const uploadText = document.querySelector('.upload-text');
+                    if (uploadText) {
+                        uploadText.innerHTML = 
+                            '<i class="fas fa-balance-scale"></i> ಹೋಲಿಕೆಗಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ';
+                    }
+                    
+                    // Set file input to accept multiple files
+                    const fileInput = document.querySelector('input[type="file"]');
+                    if (fileInput) {
+                        fileInput.multiple = true;
+                        fileInput.accept = '.pdf';
+                    }
+                }
+            });
+        });
+        
+        // Add validation before form submission
+        const uploadForm = document.querySelector('#uploadForm');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(e) {
+                const operation = document.querySelector('input[name="operation"]')?.value;
+                
+                if (operation === 'compare') {
+                    if (!validateCompareOperation()) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            });
+        }
+
+
+    });

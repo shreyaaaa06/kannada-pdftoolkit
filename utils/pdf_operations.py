@@ -17,6 +17,7 @@ import subprocess
 import shutil
 from pathlib import Path
 import io
+from .pdf_compare import PDFCompare
 
 class PDFOperations:
     def __init__(self):
@@ -2442,4 +2443,48 @@ class PDFOperations:
                 return len(reader.pages)
             except:
                 return 0
-    
+    def compare_pdfs(self, pdf1_path, pdf2_path, session_id, compare_type='both'):
+        """Compare two PDF files and generate comparison report"""
+        try:
+            from utils.pdf_compare import PDFCompare
+            
+            # Validate input files
+            if not os.path.exists(pdf1_path):
+                raise Exception(f"ಮೊದಲ PDF ಫೈಲ್ ಸಿಗಲಿಲ್ಲ: {pdf1_path}")
+            if not os.path.exists(pdf2_path):
+                raise Exception(f"ಎರಡನೇ PDF ಫೈಲ್ ಸಿಗಲಿಲ್ಲ: {pdf2_path}")
+            
+            # Check if files are readable
+            try:
+                import fitz
+                test_doc1 = fitz.open(pdf1_path)
+                test_doc2 = fitz.open(pdf2_path)
+                test_doc1.close()
+                test_doc2.close()
+            except Exception as pdf_error:
+                raise Exception(f"PDF ಫೈಲ್‌ಗಳನ್ನು ಓದಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {str(pdf_error)}")
+            
+            print(f"Comparing PDFs: {os.path.basename(pdf1_path)} vs {os.path.basename(pdf2_path)}")
+            print(f"Compare type: {compare_type}")
+            
+            comparer = PDFCompare()
+            result_path = comparer.compare_pdfs(pdf1_path, pdf2_path, session_id, compare_type)
+            
+            if not result_path or not os.path.exists(result_path):
+                raise Exception("ಹೋಲಿಕೆ ವರದಿ ರಚಿಸಲಾಗಿಲ್ಲ")
+            
+            print(f"Comparison report created: {result_path}")
+            return result_path
+            
+        except Exception as e:
+            print(f"Compare operation error: {e}")
+            raise Exception(f"PDF ಹೋಲಿಕೆ ವಿಫಲ: {str(e)}")
+    def compare_pdfs_web(self, pdf1_path, pdf2_path, session_id, compare_type='both'):
+        """Web-friendly PDF comparison that returns data for Flask templates"""
+        try:
+            from utils.pdf_compare import PDFCompare
+            comparer = PDFCompare()
+            return comparer.compare_pdfs_web(pdf1_path, pdf2_path, session_id, compare_type)
+        except Exception as e:
+            print(f"PDF comparison error: {e}")
+            return None

@@ -45,13 +45,23 @@ class FileHandler:
             if not self.allowed_file(file.filename):
                 raise Exception(f"ಬೆಂಬಲಿಸದ ಫೈಲ್ ಪ್ರಕಾರ: {file.filename}")
             
-            # Generate secure filename
-            filename = secure_filename(file.filename)
-            if not filename:
-                filename = f"file_{uuid.uuid4().hex[:8]}.pdf"
+            # FIXED: Generate unique filename to handle Kannada/special characters
+            original_filename = file.filename
+            secure_name = secure_filename(original_filename)
             
-            # Add session prefix to avoid conflicts
-            filename = f"{session_id}_{filename}"
+            # If secure_filename removes everything (common with Kannada filenames)
+            if not secure_name or len(secure_name) < 3:
+                # Use original extension if available
+                if '.' in original_filename:
+                    extension = '.' + original_filename.rsplit('.', 1)[1].lower()
+                else:
+                    extension = '.pdf'
+                secure_name = f"file_{uuid.uuid4().hex[:8]}{extension}"
+            
+            # CRITICAL FIX: Always add unique identifier to prevent conflicts
+            import time
+            unique_id = f"{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
+            filename = f"{session_id}_{unique_id}_{secure_name}"
             
             # Create upload directory if it doesn't exist
             upload_folder = current_app.config['UPLOAD_FOLDER']
