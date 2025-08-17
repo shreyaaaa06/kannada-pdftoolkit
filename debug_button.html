@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Process Button</title>
+</head>
+<body>
+    <h2>Debug Test for Process Button</h2>
+    
+    <div>
+        <p>Current Operation: <span id="currentOp">None</span></p>
+        <p>Selected Files: <span id="fileCount">0</span></p>
+        <p>Button State: <span id="buttonState">Disabled</span></p>
+    </div>
+    
+    <div>
+        <button onclick="selectWatermarkOperation()">Select Watermark Operation</button>
+        <input type="file" id="testFileInput" onchange="handleTestFileSelection()" accept=".pdf" />
+        <button id="testProcessBtn" disabled onclick="testProcessing()">ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ</button>
+    </div>
+    
+    <div id="messages" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+    
+    <script>
+        let currentOperation = '';
+        let selectedFiles = [];
+        
+        const operationConfigs = {
+            'watermark': {
+                title: 'PDF ವಾಟರ್‌ಮಾರ್ಕ್',
+                accept: '.pdf',
+                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
+                multiple: false,
+                options: ['watermark'],
+                minFiles: 1,
+                hasPreview: true
+            }
+        };
+        
+        function addMessage(msg) {
+            const messages = document.getElementById('messages');
+            messages.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + msg + '</div>';
+        }
+        
+        function selectWatermarkOperation() {
+            currentOperation = 'watermark';
+            document.getElementById('currentOp').textContent = currentOperation;
+            addMessage('Operation selected: ' + currentOperation);
+            updateTestButton();
+        }
+        
+        function handleTestFileSelection() {
+            const fileInput = document.getElementById('testFileInput');
+            selectedFiles = Array.from(fileInput.files);
+            document.getElementById('fileCount').textContent = selectedFiles.length;
+            addMessage('Files selected: ' + selectedFiles.length);
+            updateTestButton();
+        }
+        
+        function updateTestButton() {
+            const btn = document.getElementById('testProcessBtn');
+            const config = operationConfigs[currentOperation];
+            
+            if (config && selectedFiles.length >= (config.minFiles || 1)) {
+                btn.disabled = false;
+                document.getElementById('buttonState').textContent = 'Enabled';
+                addMessage('Button enabled');
+            } else {
+                btn.disabled = true;
+                document.getElementById('buttonState').textContent = 'Disabled';
+                addMessage('Button disabled - need files and operation');
+            }
+        }
+        
+        function testProcessing() {
+            addMessage('Processing started!');
+            addMessage('Operation: ' + currentOperation);
+            addMessage('Files: ' + selectedFiles.map(f => f.name).join(', '));
+            
+            // Simulate form submission
+            const formData = new FormData();
+            formData.append('operation', currentOperation);
+            selectedFiles.forEach(file => formData.append('files', file));
+            
+            addMessage('FormData created successfully');
+            addMessage('Would submit to /upload endpoint');
+        }
+    </script>
+</body>
+</html>

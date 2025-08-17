@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಲಾಗಿನ್ - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು | ಕರ್ನಾಟಕ ಸರ್ಕಾರ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --biscuit-cream: #f5f1e8;
+            --biscuit-light: #e8e0d1;
+            --light-brown: #8b7355;
+            --brown-text: #5d4037;
+            --gold: #d4af37;
+            --dark-text: #3e2723;
+            --white: #ffffff;
+            --shadow: rgba(139, 115, 85, 0.2);
+            --gov-blue: #1e3a8a;
+            --gov-orange: #ff6600;
+            --gov-red: #dc2626;
+            --karnataka-yellow: #ffcc00;
+            --success-green: #16a34a;
+            --tricolor-gradient: linear-gradient(to right, #ff6600, #ffffff, #16a34a);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans Kannada', sans-serif;
+            background: linear-gradient(135deg, var(--gov-blue) 0%, #1e40af 50%, var(--gov-blue) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-text);
+        }
+
+        .login-container {
+            background: var(--white);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--tricolor-gradient);
+        }
+
+        .login-header {
+            margin-bottom: 2rem;
+        }
+
+        .government-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            object-fit: contain;
+            border: 3px solid var(--gold);
+            padding: 5px;
+            background: var(--white);
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            color: var(--gov-blue);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .login-subtitle {
+            color: var(--light-brown);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .department-text {
+            color: var(--gold);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .optional-notice {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(30, 58, 138, 0.1);
+            border: 1px solid var(--gov-blue);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .optional-notice i {
+            color: var(--gov-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .optional-notice p {
+            margin: 0.5rem 0;
+            color: var(--brown-text);
+            font-size: 0.9rem;
+        }
+
+        .guest-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--biscuit-light);
+            color: var(--brown-text);
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .guest-link:hover {
+            background: var(--light-brown);
+            color: var(--white);
+            transform: translateY(-1px);
+        }
+
+        .guest-link[style*="success-green"]:hover {
+            background: #15803d !important;
+        }
+
+        .login-form {
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--brown-text);
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--biscuit-light);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Noto Sans Kannada', sans-serif;
+            transition: all 0.3s ease;
+            background: var(--biscuit-cream);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gov-blue);
+            background: var(--white);
+            box-shadow: 0 0 10px rgba(30, 58, 138, 0.2);
+        }
+
+        .form-input-icon {
+            position: relative;
+        }
+
+        .form-input-icon i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--light-brown);
+        }
+
+        .form-input-icon .form-input {
+            padding-left: 3rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--gov-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans Kannada', sans-serif;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            background: #1e40af;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
+        }
+
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--gov-red);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            font-size: 0.9rem;
+        }
+
+        .demo-credentials {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(30, 58, 138, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(30, 58, 138, 0.1);
+        }
+
+        .demo-credentials h4 {
+            color: var(--gov-blue);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .demo-credentials p {
+            font-size: 0.8rem;
+            color: var(--light-brown);
+            margin: 0.3rem 0;
+        }
+
+        .demo-credentials strong {
+            color: var(--brown-text);
+        }
+
+        .security-notice {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        .security-notice i {
+            color: #10b981;
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+
+            .login-title {
+                font-size: 1.5rem;
+            }
+
+            .government-logo {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="{{ url_for('static', filename='images/government/karnataka_govt_logo.webp') }}" 
+                 alt="Karnataka Government Logo" 
+                 class="government-logo">
+            <h1 class="login-title">ಸರ್ಕಾರಿ ಉದ್ಯೋಗಿ ಲಾಗಿನ್</h1>
+            <p class="login-subtitle">ಕನ್ನಡ PDF ಉಪಕರಣಗಳು</p>
+            <p class="department-text">ಕರ್ನಾಟಕ ಸರ್ಕಾರ - ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್</p>
+            
+            <div class="optional-notice">
+                <i class="fas fa-info-circle"></i>
+                <p>ಲಾಗಿನ್ ಐಚ್ಛಿಕವಾಗಿದೆ - ನೀವು ಅತಿಥಿಯಾಗಿ ಸಹ ಬಳಸಬಹುದು</p>
+                <a href="{{ url_for('index') }}" class="guest-link">
+                    <i class="fas fa-external-link-alt"></i> ಅತಿಥಿಯಾಗಿ ಮುಂದುವರೆಯಿರಿ
+                </a>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--biscuit-light);">
+                    <p>ಹೊಸ ಬಳಕೆದಾರರೇ?</p>
+                    <a href="{{ url_for('signup') }}" class="guest-link" style="background: var(--success-green);">
+                        <i class="fas fa-user-plus"></i> ಹೊಸ ಖಾತೆ ರಚಿಸಿ
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form class="login-form" method="POST">
+            <div class="form-group">
+                <label class="form-label" for="username">
+                    <i class="fas fa-user"></i> ಇಮೇಲ್ ಅಥವಾ ಬಳಕೆದಾರ ಹೆಸರು / Email or Username
+                </label>
+                <div class="form-input-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="username" id="username" class="form-input" 
+                           placeholder="ನಿಮ್ಮ ಇಮೇಲ್ ಅಥವಾ ಬಳಕೆದಾರ ಹೆಸರು ನಮೂದಿಸಿ" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">
+                    <i class="fas fa-lock"></i> ಪಾಸ್‌ವರ್ಡ್ / Password
+                </label>
+                <div class="form-input-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" id="password" class="form-input" 
+                           placeholder="ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ" required>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> ಲಾಗಿನ್ ಮಾಡಿ
+            </button>
+        </form>
+
+        <div class="demo-credentials">
+            <h4><i class="fas fa-info-circle"></i> ಪರೀಕ್ಷಾ ಖಾತೆಗಳು (Demo Accounts)</h4>
+            <p><strong>ನಿರ್ವಾಹಕ:</strong> admin / admin123</p>
+            <p><strong>ಉದ್ಯೋಗಿ 1:</strong> employee1 / emp123</p>
+            <p><strong>ಉದ್ಯೋಗಿ 2:</strong> employee2 / emp123</p>
+        </div>
+
+        <div class="security-notice">
+            <p><i class="fas fa-shield-alt"></i> <strong>ಸುರಕ್ಷತಾ ಸೂಚನೆ:</strong></p>
+            <ul style="margin: 0.5rem 0 0 1rem; list-style: none;">
+                <li>• ನಿಮ್ಮ ಲಾಗಿನ್ ಮಾಹಿತಿಯನ್ನು ಯಾರೊಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಬೇಡಿ</li>
+                <li>• ಕೆಲಸ ಮುಗಿದ ನಂತರ ಲಾಗ್‌ಔಟ್ ಮಾಡಲು ಮರೆಯಬೇಡಿ</li>
+                <li>• ಇದು ಸುರಕ್ಷಿತ ಸರ್ಕಾರಿ ಸಿಸ್ಟಮ್ ಆಗಿದೆ</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus username field
+        document.getElementById('username').focus();
+
+        // Handle form submission
+        document.querySelector('.login-form').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                e.preventDefault();
+                alert('ದಯವಿಟ್ಟು ಇಮೇಲ್/ಬಳಕೆದಾರ ಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.querySelector('.login-btn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ಲಾಗಿನ್ ಆಗುತ್ತಿದೆ...';
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

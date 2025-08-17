@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6600"/>
+      <stop offset="33%" style="stop-color:#ffffff"/>
+      <stop offset="66%" style="stop-color:#16a34a"/>
+      <stop offset="100%" style="stop-color:#d4af37"/>
+    </linearGradient>
+    <radialGradient id="centerGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="100%" style="stop-color:#1e40af"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Outer border with tricolor inspiration -->
+  <circle cx="30" cy="30" r="28" fill="url(#logoGradient)" stroke="#1e3a8a" stroke-width="2"/>
+  
+  <!-- Inner circle with Karnataka blue -->
+  <circle cx="30" cy="30" r="22" fill="url(#centerGradient)" stroke="#d4af37" stroke-width="1.5"/>
+  
+  <!-- Karnataka State emblem inspired design -->
+  <g transform="translate(30,30)">
+    <!-- Central shield shape -->
+    <path d="M 0,-15 L -8,-10 L -8,8 L 0,15 L 8,8 L 8,-10 Z" 
+          fill="#d4af37" stroke="#ffffff" stroke-width="1"/>
+    
+    <!-- Inner pattern representing Karnataka -->
+    <g fill="#1e3a8a" opacity="0.8">
+      <!-- Stylized ಕ (Ka) letter -->
+      <path d="M -3,-8 L -3,-2 L 0,-2 L 3,-5 L 3,-2 L 0,2 L -3,2 L -3,8 M 0,2 L 3,8"/>
+      
+      <!-- Decorative elements -->
+      <circle cx="-5" cy="-5" r="1" fill="#ffffff"/>
+      <circle cx="5" cy="-5" r="1" fill="#ffffff"/>
+      <circle cx="0" cy="10" r="1.5" fill="#ffffff"/>
+    </g>
+    
+    <!-- Border decorations -->
+    <g stroke="#ffffff" stroke-width="0.8" fill="none" opacity="0.7">
+      <circle cx="0" cy="0" r="18"/>
+      <circle cx="0" cy="0" r="14"/>
+    </g>
+  </g>
+  
+  <!-- Text elements -->
+  <g font-family="Arial, sans-serif" text-anchor="middle" fill="#ffffff" font-size="3.5" font-weight="bold">
+    <text x="30" y="50" opacity="0.9">KARNATAKA</text>
+  </g>
+  
+  <!-- Corner elements representing the state -->
+  <g fill="#d4af37" opacity="0.6">
+    <polygon points="5,15 10,10 15,15" />
+    <polygon points="45,15 50,10 55,15" />
+    <polygon points="5,45 10,50 15,45" />
+    <polygon points="45,45 50,50 55,45" />
+  </g>
+  
+  <!-- Stars representing districts -->
+  <g fill="#ffffff" opacity="0.8">
+    <polygon points="15,8 16,11 19,11 17,13 18,16 15,14 12,16 13,13 11,11 14,11" transform="scale(0.3)"/>
+    <polygon points="45,8 46,11 49,11 47,13 48,16 45,14 42,16 43,13 41,11 44,11" transform="scale(0.3)"/>
+  </g>
+</svg>

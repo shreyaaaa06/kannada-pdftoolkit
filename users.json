@@ -1,0 +1,77 @@
+{
+  "admin": {
+    "password_hash": "68b4d88dabdf64e2127adca77f99008b25fa421e7d647a05b96bcff4af0d67de580fa23b4605b018587d76d9ea384102",
+    "employee_id": "KGV001",
+    "name": "ನಿರ್ವಾಹಕ / Administrator",
+    "department": "ಮಾಹಿತಿ ತಂತ್ರಜ್ಞಾನ ವಿಭಾಗ",
+    "designation": "ಸಿಸ್ಟಮ್ ಅಡ್ಮಿನಿಸ್ಟ್ರೇಟರ್",
+    "role": "admin",
+    "created_at": "2025-08-06T22:56:12.926683"
+  },
+  "employee1": {
+    "password_hash": "ad8753245eccb65bb0bf24027c6b685874bb69e61135a5192d353d032e3af9741642cb1c18cb0723a3d1fb96381c324a",
+    "employee_id": "KGV002",
+    "name": "ರಾಜ್ ಕುಮಾರ್",
+    "department": "ರಾಜಸ್ವ ವಿಭಾಗ",
+    "designation": "ಸಹಾಯಕ ಕಮಿಷನರ್",
+    "role": "employee",
+    "created_at": "2025-08-06T22:56:12.967522"
+  },
+  "employee2": {
+    "password_hash": "0c106ca2540608f5be905ea8b47ab8dc8749bff0cbab7bb455bab642c38c7d67b540b0c881612f86d26f52f4f4ee306f",
+    "employee_id": "KGV003",
+    "name": "ಸುನೀತಾ ದೇವಿ",
+    "department": "ಶಿಕ್ಷಣ ವಿಭಾಗ",
+    "designation": "ಮುಖ್ಯ ಶಿಕ್ಷಣಾಧಿಕಾರಿ",
+    "role": "employee",
+    "created_at": "2025-08-06T22:56:13.008079"
+  },
+  "test": {
+    "email": "test@example.com",
+    "password_hash": "ff4a0848e9b15fff1a3990ef44ace8e071c301790a97ce5f972f7c6fd15a2112d6f544427f7bf583fcc4bd65d3019416",
+    "name": "ಟೆಸ್ಟ್ ಬಳಕೆದಾರ",
+    "employee_id": "TEST001",
+    "department": "ಪರೀಕ್ಷಾ ವಿಭಾಗ",
+    "designation": "ಟೆಸ್ಟರ್",
+    "role": "user",
+    "created_at": "2025-08-07T23:33:55.436072",
+    "is_verified": false,
+    "last_login": "2025-08-07T23:33:55.502856"
+  },
+  "rajesh.kumar": {
+    "email": "rajesh.kumar@karnataka.gov.in",
+    "password_hash": "d64e32687c0db253f173f06d46e68bc544ca46ae72915cb1401c7bd4fa61babaac7ebf1764124216fdbe77e853c466a8",
+    "name": "ರಾಜೇಶ್ ಕುಮಾರ್",
+    "employee_id": "KGV101",
+    "department": "ಕಲೆಕ್ಟರ್ ಕಚೇರಿ",
+    "designation": "ಸಹಾಯಕ ಕಲೆಕ್ಟರ್",
+    "role": "user",
+    "created_at": "2025-08-07T23:36:17.397828",
+    "is_verified": false,
+    "last_login": "2025-08-07T23:36:17.577424"
+  },
+  "priya.sharma": {
+    "email": "priya.sharma@example.com",
+    "password_hash": "35bfc100567c6ac79af3260eb5c507cb8b31d81d81a4a045ccdb007fc70f4e398d996f78b79743ca88a0eca12ee68771",
+    "name": "ಪ್ರಿಯಾ ಶರ್ಮಾ",
+    "employee_id": "USR006",
+    "department": "ಸಾಮಾನ್ಯ ಬಳಕೆದಾರ",
+    "designation": "ಬಳಕೆದಾರ",
+    "role": "user",
+    "created_at": "2025-08-07T23:36:17.496854",
+    "is_verified": false,
+    "last_login": "2025-08-07T23:36:17.746409"
+  },
+  "mallanagoudapolicepatil9": {
+    "email": "mallanagoudapolicepatil9@gmail.com",
+    "password_hash": "128ecc22934d4e27438bccb6b3454b93e7e5b1ca159f01f0a77036a1f75040bb168603ce3dee04bf1367c718e3d539c4",
+    "name": "Mallanagouda Policepatil",
+    "employee_id": "USR007",
+    "department": "ಸಾಮಾನ್ಯ ಬಳಕೆದಾರ",
+    "designation": "ಬಳಕೆದಾರ",
+    "role": "user",
+    "created_at": "2025-08-07T23:38:56.308033",
+    "is_verified": false,
+    "last_login": "2025-08-08T23:35:17.476101"
+  }
+}

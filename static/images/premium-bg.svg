@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="premiumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="glowEffect" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="url(#premiumGradient)"/>
+  
+  <!-- Floating geometric shapes -->
+  <g opacity="0.3">
+    <circle cx="200" cy="200" r="50" fill="#ffffff">
+      <animateTransform attributeName="transform" type="translate" values="0,0; 20,30; 0,0" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <rect x="1500" y="300" width="80" height="80" fill="#ffcc00" rx="10">
+      <animateTransform attributeName="transform" type="rotate" values="0 1540 340; 360 1540 340" dur="10s" repeatCount="indefinite"/>
+    </rect>
+    <polygon points="800,100 850,150 800,200 750,150" fill="#00ff41" opacity="0.7">
+      <animateTransform attributeName="transform" type="translate" values="0,0; -10,-20; 0,0" dur="4s" repeatCount="indefinite"/>
+    </polygon>
+  </g>
+  
+  <!-- Glow effects -->
+  <ellipse cx="960" cy="540" rx="400" ry="200" fill="url(#glowEffect)"/>
+  
+  <!-- Kannada script pattern -->
+  <g opacity="0.1" fill="#ffffff">
+    <text x="100" y="800" font-family="Noto Sans Kannada" font-size="120" transform="rotate(-15 100 800)">ಕನ್ನಡ</text>
+    <text x="1200" y="200" font-family="Noto Sans Kannada" font-size="80" transform="rotate(15 1200 200)">ಸರ್ಕಾರ</text>
+  </g>
+</svg>

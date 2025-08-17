@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಹೊಸ ಖಾತೆ ರಚನೆ - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು | ಕರ್ನಾಟಕ ಸರ್ಕಾರ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --biscuit-cream: #f5f1e8;
+            --biscuit-light: #e8e0d1;
+            --light-brown: #8b7355;
+            --brown-text: #5d4037;
+            --gold: #d4af37;
+            --dark-text: #3e2723;
+            --white: #ffffff;
+            --shadow: rgba(139, 115, 85, 0.2);
+            --gov-blue: #1e3a8a;
+            --gov-orange: #ff6600;
+            --gov-red: #dc2626;
+            --karnataka-yellow: #ffcc00;
+            --success-green: #16a34a;
+            --tricolor-gradient: linear-gradient(to right, #ff6600, #ffffff, #16a34a);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans Kannada', sans-serif;
+            background: linear-gradient(135deg, var(--success-green) 0%, #22c55e 50%, var(--success-green) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-text);
+            padding: 2rem 1rem;
+        }
+
+        .signup-container {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signup-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--tricolor-gradient);
+        }
+
+        .signup-header {
+            margin-bottom: 2rem;
+        }
+
+        .government-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: block;
+            border: 3px solid var(--gold);
+            background: var(--white);
+            padding: 5px;
+        }
+
+        .signup-title {
+            color: var(--success-green);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .signup-subtitle {
+            color: var(--brown-text);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .department-text {
+            color: var(--light-brown);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .login-link-section {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(30, 58, 138, 0.1);
+            border: 1px solid var(--gov-blue);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .login-link-section p {
+            margin: 0.5rem 0;
+            color: var(--brown-text);
+            font-size: 0.9rem;
+        }
+
+        .login-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gov-blue);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .login-link:hover {
+            background: #1e40af;
+            transform: translateY(-1px);
+        }
+
+        .signup-form {
+            text-align: left;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .form-group.full-width {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--brown-text);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .required {
+            color: var(--gov-red);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--biscuit-light);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: 'Noto Sans Kannada', sans-serif;
+            transition: all 0.3s ease;
+            background: var(--biscuit-cream);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--success-green);
+            background: var(--white);
+            box-shadow: 0 0 10px rgba(22, 163, 74, 0.2);
+        }
+
+        .form-input-icon {
+            position: relative;
+        }
+
+        .form-input-icon i {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--light-brown);
+            font-size: 0.9rem;
+        }
+
+        .form-input-icon .form-input {
+            padding-left: 2.5rem;
+        }
+
+        .password-strength {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .strength-indicator {
+            height: 4px;
+            background: var(--biscuit-light);
+            border-radius: 2px;
+            margin: 0.3rem 0;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .strength-weak { background: var(--gov-red); width: 33%; }
+        .strength-medium { background: var(--karnataka-yellow); width: 66%; }
+        .strength-strong { background: var(--success-green); width: 100%; }
+
+        .signup-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--success-green);
+            color: var(--white);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans Kannada', sans-serif;
+            margin-top: 1rem;
+        }
+
+        .signup-btn:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(22, 163, 74, 0.3);
+        }
+
+        .signup-btn:disabled {
+            background: var(--light-brown);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-message {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--gov-red);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .success-message {
+            background: rgba(22, 163, 74, 0.1);
+            color: var(--success-green);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(22, 163, 74, 0.3);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .optional-fields {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(22, 163, 74, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(22, 163, 74, 0.1);
+        }
+
+        .optional-fields h4 {
+            color: var(--success-green);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .security-notice {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        .security-notice i {
+            color: #10b981;
+            margin-right: 0.5rem;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            border: 4px solid var(--biscuit-light);
+            border-top: 4px solid var(--success-green);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            .signup-container {
+                padding: 2rem 1.5rem;
+                margin: 0;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .signup-title {
+                font-size: 1.5rem;
+            }
+
+            .government-logo {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <p>ಖಾತೆ ರಚಿಸುತ್ತಿದೆ...</p>
+        </div>
+
+        <div class="signup-header">
+            <img src="{{ url_for('static', filename='images/government/karnataka_govt_logo.webp') }}" 
+                 alt="Karnataka Government Logo" 
+                 class="government-logo">
+            <h1 class="signup-title">ಹೊಸ ಖಾತೆ ರಚನೆ</h1>
+            <p class="signup-subtitle">ಕನ್ನಡ PDF ಉಪಕರಣಗಳು</p>
+            <p class="department-text">ಕರ್ನಾಟಕ ಸರ್ಕಾರ - ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್</p>
+            
+            <div class="login-link-section">
+                <i class="fas fa-user-check"></i>
+                <p>ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?</p>
+                <a href="{{ url_for('login') }}" class="login-link">
+                    <i class="fas fa-sign-in-alt"></i> ಲಾಗಿನ್ ಮಾಡಿ
+                </a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            {{ success }}
+        </div>
+        {% if show_login_link %}
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="{{ url_for('login') }}" class="login-link">
+                <i class="fas fa-sign-in-alt"></i> ಈಗ ಲಾಗಿನ್ ಮಾಡಿ
+            </a>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if not success %}
+        <form class="signup-form" method="POST" id="signupForm">
+            <!-- Required Fields -->
+            <div class="form-group full-width">
+                <label class="form-label" for="email">
+                    <i class="fas fa-envelope"></i> ಇಮೇಲ್ ವಿಳಾಸ <span class="required">*</span>
+                </label>
+                <div class="form-input-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" name="email" id="email" class="form-input" 
+                           placeholder="ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸ ನಮೂದಿಸಿ" 
+                           value="{{ form_data.email if form_data else '' }}" required>
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label class="form-label" for="name">
+                    <i class="fas fa-user"></i> ಪೂರ್ಣ ಹೆಸರು <span class="required">*</span>
+                </label>
+                <div class="form-input-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="name" id="name" class="form-input" 
+                           placeholder="ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರು ನಮೂದಿಸಿ" 
+                           value="{{ form_data.name if form_data else '' }}" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="password">
+                        <i class="fas fa-lock"></i> ಪಾಸ್‌ವರ್ಡ್ <span class="required">*</span>
+                    </label>
+                    <div class="form-input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" id="password" class="form-input" 
+                               placeholder="ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸಿ" required>
+                    </div>
+                    <div class="password-strength" id="passwordStrength" style="display: none;">
+                        <div class="strength-indicator">
+                            <div class="strength-bar" id="strengthBar"></div>
+                        </div>
+                        <span id="strengthText"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirm_password">
+                        <i class="fas fa-lock"></i> ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಣ <span class="required">*</span>
+                    </label>
+                    <div class="form-input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-input" 
+                               placeholder="ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತೆ ನಮೂದಿಸಿ" required>
+                    </div>
+                    <div id="passwordMatch" style="font-size: 0.8rem; margin-top: 0.3rem;"></div>
+                </div>
+            </div>
+
+            <!-- Optional Fields -->
+            <div class="optional-fields">
+                <h4><i class="fas fa-info-circle"></i> ಐಚ್ಛಿಕ ಮಾಹಿತಿ (ಸರ್ಕಾರಿ ಉದ್ಯೋಗಿಗಳಿಗೆ)</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="employee_id">
+                            <i class="fas fa-id-badge"></i> ಉದ್ಯೋಗಿ ಐಡಿ
+                        </label>
+                        <div class="form-input-icon">
+                            <i class="fas fa-id-badge"></i>
+                            <input type="text" name="employee_id" id="employee_id" class="form-input" 
+                                   placeholder="ಉದಾ: KGV001" 
+                                   value="{{ form_data.employee_id if form_data else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="designation">
+                            <i class="fas fa-briefcase"></i> ಹುದ್ದೆ
+                        </label>
+                        <div class="form-input-icon">
+                            <i class="fas fa-briefcase"></i>
+                            <input type="text" name="designation" id="designation" class="form-input" 
+                                   placeholder="ಉದಾ: ಸಹಾಯಕ ಕಮಿಷನರ್" 
+                                   value="{{ form_data.designation if form_data else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="department">
+                        <i class="fas fa-building"></i> ವಿಭಾಗ
+                    </label>
+                    <div class="form-input-icon">
+                        <i class="fas fa-building"></i>
+                        <input type="text" name="department" id="department" class="form-input" 
+                               placeholder="ಉದಾ: ರಾಜಸ್ವ ವಿಭಾಗ" 
+                               value="{{ form_data.department if form_data else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="signup-btn" id="submitBtn">
+                <i class="fas fa-user-plus"></i> ಖಾತೆ ರಚಿಸಿ
+            </button>
+        </form>
+        {% endif %}
+
+        <div class="security-notice">
+            <p><i class="fas fa-shield-alt"></i> <strong>ಸುರಕ್ಷತಾ ಸೂಚನೆ:</strong></p>
+            <ul style="margin: 0.5rem 0 0 1rem; list-style: none;">
+                <li>• ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಮಾಹಿತಿ ಸುರಕ್ಷಿತವಾಗಿ ಸಂಗ್ರಹಿಸಲಾಗುತ್ತದೆ</li>
+                <li>• ಬಲವಾದ ಪಾಸ್‌ವರ್ಡ್ ಬಳಸಿ (ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು)</li>
+                <li>• ನಿಮ್ಮ ಲಾಗಿನ್ ಮಾಹಿತಿಯನ್ನು ಯಾರೊಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಬೇಡಿ</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Password strength checker
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const strengthIndicator = document.getElementById('passwordStrength');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
+        const passwordMatch = document.getElementById('passwordMatch');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let feedback = [];
+
+            if (password.length >= 6) strength += 1;
+            else feedback.push('ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು');
+
+            if (/[a-z]/.test(password)) strength += 1;
+            else feedback.push('ಸಣ್ಣ ಅಕ್ಷರಗಳು');
+
+            if (/[A-Z]/.test(password)) strength += 1;
+            else feedback.push('ದೊಡ್ಡ ಅಕ್ಷರಗಳು');
+
+            if (/[0-9]/.test(password)) strength += 1;
+            else feedback.push('ಸಂಖ್ಯೆಗಳು');
+
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+            else feedback.push('ವಿಶೇಷ ಚಿಹ್ನೆಗಳು');
+
+            return { strength, feedback };
+        }
+
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length > 0) {
+                strengthIndicator.style.display = 'block';
+                const { strength, feedback } = checkPasswordStrength(password);
+
+                // Update strength bar
+                strengthBar.className = 'strength-bar';
+                if (strength <= 2) {
+                    strengthBar.classList.add('strength-weak');
+                    strengthText.textContent = 'ದುರ್ಬಲ - ' + feedback.slice(0, 2).join(', ') + ' ಬೇಕು';
+                    strengthText.style.color = '#dc2626';
+                } else if (strength <= 3) {
+                    strengthBar.classList.add('strength-medium');
+                    strengthText.textContent = 'ಮಧ್ಯಮ - ' + (feedback.length > 0 ? feedback.slice(0, 1).join(', ') + ' ಬೇಕು' : 'ಉತ್ತಮ');
+                    strengthText.style.color = '#fbbf24';
+                } else {
+                    strengthBar.classList.add('strength-strong');
+                    strengthText.textContent = 'ಬಲವಾದ ಪಾಸ್‌ವರ್ಡ್ ✓';
+                    strengthText.style.color = '#16a34a';
+                }
+            } else {
+                strengthIndicator.style.display = 'none';
+            }
+
+            checkPasswordMatch();
+        });
+
+        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    passwordMatch.textContent = 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತವೆ ✓';
+                    passwordMatch.style.color = '#16a34a';
+                } else {
+                    passwordMatch.textContent = 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ ✗';
+                    passwordMatch.style.color = '#dc2626';
+                }
+            } else {
+                passwordMatch.textContent = '';
+            }
+        }
+
+        // Form validation
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            const email = document.getElementById('email').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+
+            if (!email || !name || !password || !confirmPassword) {
+                e.preventDefault();
+                alert('ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಅಗತ್ಯ ಕ್ಷೇತ್ರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಿ');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ');
+                return;
+            }
+
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳಿರಬೇಕು');
+                return;
+            }
+
+            // Show loading overlay
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            submitBtn.disabled = true;
+        });
+
+        // Auto-focus email field
+        document.getElementById('email').focus();
+
+        // Email validation
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                this.style.borderColor = '#dc2626';
+                this.style.boxShadow = '0 0 10px rgba(220, 38, 38, 0.2)';
+            } else {
+                this.style.borderColor = '#e8e0d1';
+                this.style.boxShadow = 'none';
+            }
+        });
+
+        // Name validation (only allow letters and spaces)
+        document.getElementById('name').addEventListener('input', function() {
+            const name = this.value;
+            const nameRegex = /^[a-zA-Zಅ-ಹ\s]+$/;
+            
+            if (name && !nameRegex.test(name)) {
+                this.value = name.replace(/[^a-zA-Zಅ-ಹ\s]/g, '');
+            }
+        });
+    </script>
+</body>
+</html>

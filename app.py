@@ -1,13 +1,15 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for
+from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for, redirect, flash
 import os
 import uuid
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
+from utils.auth import AuthenticationManager
 import config
+from functools import wraps
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'karnataka-govt-pdf-toolkit-secret-key-2025'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
@@ -18,6 +20,126 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Initialize authentication
+auth_manager = AuthenticationManager()
+
+def login_required(f):
+    """Decorator to require authentication for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        session_token = session.get('auth_token')
+        is_valid, user_info = auth_manager.validate_session(session_token)
+        
+        if not is_valid:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ', 'requires_login': True}), 401
+            return redirect(url_for('login'))
+        
+        # Store user info in session for access
+        session['current_user'] = user_info
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Check if it's email or username
+        login_field = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        if not login_field or not password:
+            return render_template('login.html', error='ಇಮೇಲ್/ಬಳಕೆದಾರ ಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯ')
+        
+        # Try email login first, then username
+        is_authenticated = False
+        user_info = None
+        
+        if '@' in login_field:
+            # Email login
+            is_authenticated, user_info = auth_manager.authenticate_user_by_email(login_field, password)
+        else:
+            # Username login
+            is_authenticated, user_info = auth_manager.authenticate_user(login_field, password)
+        
+        if is_authenticated:
+            # Find username for session creation
+            users = auth_manager.load_users()
+            username = None
+            for uname, udata in users.items():
+                if udata.get('email', '').lower() == login_field.lower() or uname == login_field:
+                    username = uname
+                    break
+            
+            if username:
+                # Create session
+                auth_token = auth_manager.create_session(username)
+                session['auth_token'] = auth_token
+                session['current_user'] = user_info
+                
+                return redirect(url_for('index'))
+        
+        return render_template('login.html', error='ಅಮಾನ್ಯ ಇಮೇಲ್/ಬಳಕೆದಾರ ಹೆಸರು ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್')
+    
+    return render_template('login.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        name = request.form.get('name', '').strip()
+        employee_id = request.form.get('employee_id', '').strip()
+        department = request.form.get('department', '').strip()
+        designation = request.form.get('designation', '').strip()
+        
+        # Validation
+        if not email or not password or not name:
+            return render_template('signup.html', 
+                                 error='ಇಮೇಲ್, ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತು ಹೆಸರು ಅಗತ್ಯ',
+                                 form_data=request.form)
+        
+        if password != confirm_password:
+            return render_template('signup.html', 
+                                 error='ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ',
+                                 form_data=request.form)
+        
+        # Register user
+        success, message = auth_manager.register_user(
+            email=email,
+            password=password,
+            name=name,
+            employee_id=employee_id if employee_id else None,
+            department=department if department else None,
+            designation=designation if designation else None
+        )
+        
+        if success:
+            return render_template('signup.html', 
+                                 success=message,
+                                 show_login_link=True)
+        else:
+            return render_template('signup.html', 
+                                 error=message,
+                                 form_data=request.form)
+    
+    return render_template('signup.html')
+
+@app.route('/logout')
+def logout():
+    auth_token = session.get('auth_token')
+    if auth_token:
+        auth_manager.logout_session(auth_token)
+    
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    user_info = session.get('current_user')
+    return render_template('profile.html', user=user_info)
+
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
@@ -27,7 +149,8 @@ pdf_ops = PDFOperations()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    user_info = session.get('current_user')
+    return render_template('index.html', user=user_info)
 
 @app.route('/favicon.ico')
 def favicon():
@@ -209,34 +332,34 @@ def upload_file():
             elif operation == 'watermark':
                 from utils.validators import validate_watermark_options
                 
+                # Determine watermark type from form data
+                watermark_type = request.form.get('watermark_type', 'text')
+                
                 watermark_options = {
-                    'type': 'text' if request.form.get('watermark_text', '').strip() else 'image',
-                    'text': request.form.get('watermark_text', ''),
+                    'type': watermark_type,
+                    'text': request.form.get('watermark_text', 'ವಾಟರ್‌ಮಾರ್ಕ್'),
                     'font_family': request.form.get('font_family', 'Helvetica'),
                     'font_size': int(request.form.get('font_size', 50)),
-                    'color': request.form.get('font_color', '#000000'),
+                    'color': request.form.get('watermark_color', '#000000'),
                     'opacity': float(request.form.get('opacity', 50)),
                     'rotation': float(request.form.get('rotation', 0)),
                     'position': request.form.get('position', 'center'),
-                    'custom_x': request.form.get('custom_x'),
-                    'custom_y': request.form.get('custom_y'),
-                    'pages': request.form.get('selected_pages', 'all'),
-                    'behind_content': request.form.get('layer_position', 'below') == 'below',
-                    'repeat': request.form.get('repeat_watermark', 'false') == 'true',
-                    'scale': float(request.form.get('scale', 20)) / 100.0
+                    'layer_position': request.form.get('layer_position', 'below'),
+                    'watermark_pages': request.form.get('watermark_pages', 'all'),
+                    'repeat_watermark': request.form.get('repeat_watermark', 'false') == 'true',
+                    'image_scale': float(request.form.get('image_scale', 20)) if watermark_type == 'image' else 20
                 }
                 
-                if not watermark_options['text'].strip() and watermark_options['type'] == 'text':
-                    watermark_options['text'] = 'ವಾಟರ್‌ಮಾರ್ಕ್'
-                
-                if watermark_options['pages'] == 'custom':
+                # Handle custom pages
+                if watermark_options['watermark_pages'] == 'custom':
                     custom_pages = request.form.get('custom_pages', '').strip()
                     if custom_pages:
-                        watermark_options['pages'] = custom_pages
+                        watermark_options['custom_pages'] = custom_pages
                     else:
                         return jsonify({'success': False, 'error': 'ನಿರ್ದಿಷ್ಟ ಪುಟ ಸಂಖ್ಯೆಗಳು ಅಗತ್ಯ'})
                 
-                if watermark_options['type'] == 'image':
+                # Handle image watermark
+                if watermark_type == 'image':
                     if 'watermark_image' in request.files:
                         watermark_file = request.files['watermark_image']
                         if watermark_file and watermark_file.filename:
@@ -249,11 +372,42 @@ def upload_file():
                     else:
                         return jsonify({'success': False, 'error': 'ವಾಟರ್‌ಮಾರ್ಕ್ ಚಿತ್ರ ಅಗತ್ಯ'})
                 
+                # Validate watermark options
                 is_valid, validation_message = validate_watermark_options(watermark_options)
                 if not is_valid:
                     return jsonify({'success': False, 'error': f'ವಾಟರ್‌ಮಾರ್ಕ್ ಸೆಟ್ಟಿಂಗ್ ದೋಷ: {validation_message}'})
                 
-                result_path = pdf_ops.add_watermark(file_paths[0], session_id, watermark_options)
+                result = pdf_ops.add_watermark(file_paths[0], session_id, watermark_options)
+                if result['success']:
+                    result_path = result['output_path']
+                else:
+                    return jsonify(result)
+                
+            elif operation == 'protect':
+                protection_options = {
+                    'protection_password': request.form.get('protection_password', ''),
+                    'confirm_password': request.form.get('confirm_password', ''),
+                    'protection_level': request.form.get('protection_level', '128'),
+                    'allow_printing': request.form.get('allow_printing') == 'true',
+                    'allow_copying': request.form.get('allow_copying') == 'true',
+                    'allow_modification': request.form.get('allow_modification') == 'true',
+                    'allow_annotation': request.form.get('allow_annotation') == 'true',
+                    'allow_form_filling': request.form.get('allow_form_filling') == 'true'
+                }
+                
+                # Validate password
+                if len(protection_options['protection_password']) < 6:
+                    return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು ಇರಬೇಕು'})
+                
+                if protection_options['protection_password'] != protection_options['confirm_password']:
+                    return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ'})
+                
+                result = pdf_ops.protect_pdf(file_paths[0], session_id, protection_options)
+                if result['success']:
+                    result_path = result['output_path']
+                    flash(result['message'], 'success')
+                else:
+                    return jsonify({'success': False, 'error': result['error']})
                 
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
