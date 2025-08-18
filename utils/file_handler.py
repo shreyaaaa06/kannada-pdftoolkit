@@ -13,20 +13,32 @@ class FileHandler:
         self.max_file_size = 1000 * 1024 * 1024  # 1000MB
     
     def allowed_file(self, filename, file_type='all'):
-        """Check if file has allowed extension"""
-        if '.' not in filename:
+        """Check if file has allowed extension - ENHANCED for Unicode filenames"""
+        if not filename or '.' not in filename:
             return False
         
-        extension = '.' + filename.rsplit('.', 1)[1].lower()
-        
-        if file_type == 'all':
-            all_extensions = []
-            for ext_list in self.allowed_extensions.values():
-                all_extensions.extend(ext_list)
-            return extension in all_extensions
-        
-        return extension in self.allowed_extensions.get(file_type, [])
-    
+        try:
+            # FIXED: Handle Unicode filenames properly
+            extension = '.' + filename.split('.')[-1].lower()
+            
+            # Debug output
+            print(f"Checking file: '{filename}' -> Extension: '{extension}'")
+            
+            if file_type == 'all':
+                all_extensions = []
+                for ext_list in self.allowed_extensions.values():
+                    all_extensions.extend(ext_list)
+                is_allowed = extension in all_extensions
+                print(f"Extension '{extension}' allowed: {is_allowed}")
+                return is_allowed
+            
+            return extension in self.allowed_extensions.get(file_type, [])
+            
+        except Exception as e:
+            print(f"Extension check error for '{filename}': {e}")
+            # Fallback: check if it ends with known extensions
+            filename_lower = filename.lower()
+            return any(filename_lower.endswith(ext) for ext in ['.doc', '.docx', '.pdf', '.jpg', '.jpeg', '.png'])
     def save_uploaded_file(self, file, session_id):
         """Save uploaded file and return path"""
         try:

@@ -918,7 +918,13 @@ class PDFOperations:
             
             # Read PDF
             from PyPDF2 import PdfReader, PdfWriter
-            reader = PdfReader(file_path)
+            import io
+            
+            # First pass: Read the original PDF into memory
+            with open(file_path, 'rb') as original_file:
+                original_data = original_file.read()
+            
+            reader = PdfReader(io.BytesIO(original_data))
             writer = PdfWriter()
             total_pages = len(reader.pages)
             
@@ -926,23 +932,30 @@ class PDFOperations:
                 raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
             
             # Determine which pages to rotate
-            if apply_to_all or not pages.strip():
-                pages_to_rotate = list(range(1, total_pages + 1))
-            else:
+            if pages.strip():
                 pages_to_rotate = self._parse_page_ranges_enhanced(pages, total_pages)
-            
+                print(f"Rotating specific pages: {pages_to_rotate}")
+            else:
+                pages_to_rotate = list(range(1, total_pages + 1))
+                print(f"No specific pages - rotating all pages")
+                        
             print(f"Pages to rotate: {pages_to_rotate}")
             
-            # Process each page
+            # Process each page - create fresh reader for each page to avoid object sharing
             for page_num in range(1, total_pages + 1):
-                page = reader.pages[page_num - 1]
-                
                 if page_num in pages_to_rotate:
-                    # Rotate the page
+                    # Create a fresh reader for the page to be rotated
+                    fresh_reader = PdfReader(io.BytesIO(original_data))
+                    page = fresh_reader.pages[page_num - 1]
                     page.rotate(rotation_angle)
+                    writer.add_page(page)
                     print(f"Rotated page {page_num} by {rotation_angle} degrees")
-                
-                writer.add_page(page)
+                else:
+                    # Create a fresh reader for the non-rotated page
+                    fresh_reader = PdfReader(io.BytesIO(original_data))
+                    page = fresh_reader.pages[page_num - 1]
+                    writer.add_page(page)
+                    print(f"Added page {page_num} without rotation")
             
             # Create output path
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_rotated.pdf")
@@ -1728,16 +1741,20 @@ class PDFOperations:
         for old, new in replacements.items():
             text = text.replace(old, new)
         
-        # Remove any remaining problematic characters
-        # Keep only printable ASCII and common Unicode
+        # FIXED: Keep all Kannada characters and don't replace with '?'
         cleaned = ''
         for char in text:
-            if ord(char) < 127 or ord(char) in range(2304, 2432):  # Basic ASCII + Devanagari range
+            if ord(char) < 127:  # Basic ASCII
+                cleaned += char
+            elif ord(char) in range(2304, 2432):  # Devanagari range
                 cleaned += char
             elif ord(char) in range(3200, 3327):  # Kannada Unicode range
                 cleaned += char
+            elif char in ['\n', '\r', '\t', ' ']:  # Whitespace characters
+                cleaned += char
             else:
-                cleaned += '?'  # Replace unknown chars
+                # CRITICAL FIX: Don't replace with '?' - keep the original character
+                cleaned += char  # CHANGED: This preserves Kannada characters that might be outside the range
         
         return cleaned
 

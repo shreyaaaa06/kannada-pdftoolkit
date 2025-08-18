@@ -105,12 +105,29 @@ def upload_file():
             return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
         
         file_paths = []
+        
         for file in files:
             if file and file.filename:
-                # CRITICAL FIX: Generate unique filename for each session
+                # ADD DEBUG PRINTS:
+                print(f"=== FILENAME DEBUG ===")
+                print(f"Original filename: '{file.filename}'")
+                print(f"Original filename bytes: {file.filename.encode('utf-8')}")
+                
                 original_filename = secure_filename(file.filename)
+                print(f"After secure_filename: '{original_filename}'")
+                print(f"Has dot: {'.' in original_filename}")
+                
+                if not original_filename or '.' not in original_filename:
+                    # If secure_filename stripped the extension, rebuild it
+                    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'docx'
+                    original_filename = f"document.{file_ext}"
+                    print(f"FIXED filename: '{original_filename}'")
+
                 timestamp = str(int(time.time()))
                 unique_filename = f"{session_id}_{timestamp}_{original_filename}"
+                print(f"Final unique filename: '{unique_filename}'")
+                print("=== END DEBUG ===")
+                
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 
                 try:
