@@ -51,7 +51,13 @@ def docai_extract(pdf_bytes: bytes, language_hints: List[str]) -> List[Page]:
         if not all([project_id, processor_id]):
             raise ValueError("Missing Document AI configuration")
         
-        client = documentai.DocumentProcessorServiceClient()
+        # Use explicit credentials if GOOGLE_APPLICATION_CREDENTIALS is relative
+        from .path_utils import resolve_service_account_from_env
+        creds_path = resolve_service_account_from_env()
+        if creds_path:
+            client = documentai.DocumentProcessorServiceClient.from_service_account_file(creds_path)  # type: ignore
+        else:
+            client = documentai.DocumentProcessorServiceClient()
         name = client.processor_path(project=project_id, location=location, processor=processor_id)
 
         raw_document = documentai.RawDocument(content=pdf_bytes, mime_type="application/pdf")

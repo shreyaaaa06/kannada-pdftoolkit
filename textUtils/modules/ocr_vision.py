@@ -36,7 +36,13 @@ def vision_fulltext_on_image(pil_img: Image.Image, language_hints: List[str] = N
 
 
     try:
-        client = vision.ImageAnnotatorClient()
+        # Use explicit credentials if GOOGLE_APPLICATION_CREDENTIALS is relative
+        from .path_utils import resolve_service_account_from_env
+        creds_path = resolve_service_account_from_env()
+        if creds_path:
+            client = vision.ImageAnnotatorClient.from_service_account_file(creds_path)  # type: ignore
+        else:
+            client = vision.ImageAnnotatorClient()
 
         # Convert PIL Image to bytes
         img_byte_arr = io.BytesIO()

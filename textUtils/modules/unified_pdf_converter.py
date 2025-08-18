@@ -464,11 +464,12 @@ class UnifiedPDFConverter:
 
                                 for span in line.spans:
                                     processed = self._normalize_kannada_text(span.text)
+                                    # Use stable body font size to avoid jitter
                                     span_data = {
                                         'text': processed,
                                         'bold': False,
                                         'italic': False,
-                                        'size_pt': span.font_size or 12.0,
+                                        'size_pt': 12.0,
                                         'font': 'Noto Sans Kannada'
                                     }
                                     spans.append(span_data)
@@ -529,7 +530,7 @@ class UnifiedPDFConverter:
                                 'text': processed,
                                 'bold': False,
                                 'italic': False,
-                                'size_pt': line_span.font_size,
+                                'size_pt': 12.0,
                                 'font': 'Noto Sans Kannada'
                             }
                             builder.add_paragraph([span_data])
@@ -623,40 +624,25 @@ class UnifiedPDFConverter:
             raise
 
     def _normalize_kannada_text(self, text: str) -> str:
-        """Comprehensive Kannada text normalization and cleanup with grapheme merging."""
+        """NFC-only normalization plus Kannada-safe spacing fixes.
+        Avoid stripping ZWJ/ZWNJ or virama; only remove ASCII spaces inside grapheme clusters.
+        """
         if not text:
             return text
 
         import re
-        # Unicode NFC normalization
+        # NFC normalization only
         text = unicodedata.normalize('NFC', text)
 
-        # Legacy font conversion if needed
-        is_legacy = detect_legacy_encoding(text)
-        text = post_process_kannada_text(text, is_legacy)
-
-        # Additional Unicode normalization
-        text = normalize_unicode(text)
-
-        # Remove stray ZWJ/ZWNJ around spaces
-        text = text.replace('\u200d', '\u200d').replace('\u200c', '\u200c')
-
-        # Heuristics to merge split graphemes/words while preserving real word gaps
-        # 1) Consonant + space(s) + halant/ZWJ/ZWNJ -> merge
-        text = re.sub(r'([\u0C80-\u0CFF])\s+([\u0CCD\u200C\u200D])\s*', r'\1\2', text)
-        # 2) Halant followed by space(s) and consonant -> merge conjunct
-        text = re.sub(r'([\u0C80-\u0CFF]\u0CCD)\s+([\u0C80-\u0CFF])', r'\1\2', text)
-        # 3) Base letter + space(s) + dependent vowel sign/anusvara/visarga -> merge
-        text = re.sub(r'([\u0C80-\u0CFF])\s+([\u0C82-\u0C83\u0CBE-\u0CCD])', r'\1\2', text)
-        # 4) Remove tiny spaces inside Kannada words: letter space letter where both sides have adjoining marks context
-        text = re.sub(r'(?<=\u0C80)(\s+)(?=\u0C80)', ' ', text)  # minimal safeguard
-        # 5) Collapse sequences of single-letter Kannada tokens (common OCR issue)
-        # Join runs of 5+ Kannada letters separated by single spaces into a word
-        text = re.sub(r'((?:[\u0C80-\u0CFF]\s){4,}[\u0C80-\u0CFF])',
-                      lambda m: m.group(1).replace(' ', ''), text)
-
-        # Normalize multiple spaces
-        text = re.sub(r'\s+', ' ', text).strip()
+        # Unicode-safe spacing fix using dedicated module
+        try:
+            from .kannada_text_post import fix_kannada_spacing
+            text = fix_kannada_spacing(text)
+        except Exception:
+            # Fallback minimal rules: remove spaces around halant and matras
+            text = re.sub(r'([\u0C80-\u0CFF])\s+([\u0CBE-\u0CD6\u0CCD\u200C\u200D])', r'\1\2', text)
+            text = re.sub(r'([\u0CBE-\u0CD6\u0CCD\u200C\u200D])\s+([\u0C80-\u0CFF])', r'\1\2', text)
+            text = re.sub(r'\s+', ' ', text).strip()
 
         return text
 
