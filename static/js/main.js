@@ -519,68 +519,180 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    // File input event handlers
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const config = operationConfigs[currentOperation];
+            
+            if (config.multiple) {
+                selectedFiles = files;
+            } else {
+                selectedFiles = files.slice(0, 1);
+            }
+            
+            displaySelectedFiles();
+            updateProcessButton();
+            updatePreviewSection();
+        });
     }
 
-    // Utility method for debugging
-    log(message, data = null) {
-        if (window.console && console.log) {
-            console.log(`[KannadaPDF] ${message}`, data);
+    // Form submission handler
+    const operationForm = document.getElementById('operationForm');
+    if (operationForm) {
+        operationForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (selectedFiles.length === 0) {
+                showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+
+            const config = operationConfigs[currentOperation];
+            if (selectedFiles.length < config.minFiles) {
+                showAlert('error', `ಈ ಕಾರ್ಯಾಚರಣೆಗೆ ಕನಿಷ್ಠ ${config.minFiles} ಫೈಲ್‌ಗಳು ಬೇಕಾಗುತ್ತವೆ`);
+                return;
+            }
+
+            // Show loading modal
+            document.getElementById('operationModal').style.display = 'none';
+            document.getElementById('loadingModal').style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('operation', currentOperation);
+                
+                selectedFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+
+                // Add operation-specific parameters
+                const pagesInput = document.getElementById('pagesInput');
+                if (pagesInput && pagesInput.value.trim()) {
+                    formData.append('pages', pagesInput.value.trim());
+                }
+
+                const compressionLevel = document.getElementById('compressionLevel');
+                if (compressionLevel) {
+                    formData.append('compression_level', compressionLevel.value);
+                }
+
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Handle successful processing
+                    if (result.download_url) {
+                        showAlert('success', 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
+                        
+                        // Create download link
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = result.download_url;
+                        downloadLink.download = result.filename || 'processed_file';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                    } else {
+                        showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
+                    }
+                } else {
+                    throw new Error(result.error || 'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲವಾಗಿದೆ');
+                }
+            } catch (error) {
+                showAlert('error', 'ದೋಷ: ' + error.message);
+            } finally {
+                document.getElementById('loadingModal').style.display = 'none';
+                resetModalForm();
+            }
+        });
+    }
+
+    // Drag and drop functionality
+    const uploadArea = document.getElementById('uploadArea');
+    if (uploadArea) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('drag-over');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('drag-over');
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = Array.from(dt.files);
+            const config = operationConfigs[currentOperation];
+
+            if (config.multiple) {
+                selectedFiles = files;
+            } else {
+                selectedFiles = files.slice(0, 1);
+            }
+
+            // Update file input
+            const fileInput = document.getElementById('fileInput');
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
+            fileInput.files = dataTransfer.files;
+
+            displaySelectedFiles();
+            updateProcessButton();
+            updatePreviewSection();
         }
     }
 
-    // Method to handle browser back/forward
-    handleBrowserNavigation() {
-        window.addEventListener('popstate', () => {
-            this.closeModal();
-        });
-    }
+    // Modal event handlers
+    window.addEventListener('click', function(e) {
+        const operationModal = document.getElementById('operationModal');
+        const previewModal = document.getElementById('previewModal');
+        const loadingModal = document.getElementById('loadingModal');
 
-    // Initialize theme handling
-    initializeTheme() {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-        const updateTheme = (e) => {
-            document.body.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-        };
-        
-        updateTheme(prefersDark);
-        prefersDark.addEventListener('change', updateTheme);
-    }
+        if (e.target === operationModal) {
+            closeModal();
+        }
+        if (e.target === previewModal) {
+            closePreviewModal();
+        }
+        if (e.target === loadingModal) {
+            // Don't close loading modal on click
+        }
+    });
 
-    // Method to clean up resources
-    destroy() {
-        this.selectedFiles = [];
-        this.currentOperation = null;
-        this.sessionId = null;
-        
-        // Remove event listeners
-        document.querySelectorAll('.operation-btn').forEach(btn => {
-            btn.removeEventListener('click', this.selectOperation);
-        });
-    }
-}
-
-// Initialize the toolkit when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    window.kannadaPDF = new KannadaPDFToolkit();
-    
-    // Handle browser navigation
-    window.kannadaPDF.handleBrowserNavigation();
-    
-    // Initialize theme
-    window.kannadaPDF.initializeTheme();
-});
-
-// Handle page unload
-window.addEventListener('beforeunload', function() {
-    if (window.kannadaPDF) {
-        window.kannadaPDF.destroy();
-    }
+    // Keyboard event handlers
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const operationModal = document.getElementById('operationModal');
+            const previewModal = document.getElementById('previewModal');
+            
+            if (operationModal.style.display === 'block') {
+                closeModal();
+            } else if (previewModal.style.display === 'block') {
+                closePreviewModal();
+            }
+        }
+    });
 });
