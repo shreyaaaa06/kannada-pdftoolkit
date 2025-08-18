@@ -10,7 +10,6 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from docx import Document
-import fitz  # PyMuPDF
 import html
 import platform
 import subprocess
@@ -22,7 +21,17 @@ import gc
 from datetime import datetime
 import json
 import tempfile
-
+import os
+import platform
+import shutil
+import subprocess
+from pathlib import Path
+import platform
+import subprocess
+import shutil
+import os
+from pathlib import Path
+import threading
 class PDFOperations:
     def __init__(self):
         self.config = config.Config()
@@ -889,7 +898,164 @@ class PDFOperations:
         except Exception as e:
             print(f"Compression error: {str(e)}")
             raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
+    
+    def rotate_pdf(self, file_path, session_id, rotation_angle=90, pages="", apply_to_all=True):
+        """Rotate PDF pages by specified angle"""
+        try:
+            print(f"=== PDF ROTATION DEBUG ===")
+            print(f"File path: {file_path}")
+            print(f"Session ID: {session_id}")
+            print(f"Rotation angle: {rotation_angle}")
+            print(f"Pages: {pages}")
+            print(f"Apply to all: {apply_to_all}")
+            
+            # Validate input
+            if not os.path.exists(file_path):
+                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
+            
+            if rotation_angle not in [90, 180, 270, -90, -180, -270]:
+                rotation_angle = 90  # Default to 90 degrees
+            
+            # Read PDF
+            from PyPDF2 import PdfReader, PdfWriter
+            import io
+            
+            # First pass: Read the original PDF into memory
+            with open(file_path, 'rb') as original_file:
+                original_data = original_file.read()
+            
+            reader = PdfReader(io.BytesIO(original_data))
+            writer = PdfWriter()
+            total_pages = len(reader.pages)
+            
+            if total_pages == 0:
+                raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
+            
+            # Determine which pages to rotate
+            if pages.strip():
+                pages_to_rotate = self._parse_page_ranges_enhanced(pages, total_pages)
+                print(f"Rotating specific pages: {pages_to_rotate}")
+            else:
+                pages_to_rotate = list(range(1, total_pages + 1))
+                print(f"No specific pages - rotating all pages")
+                        
+            print(f"Pages to rotate: {pages_to_rotate}")
+            
+            # Process each page - create fresh reader for each page to avoid object sharing
+            for page_num in range(1, total_pages + 1):
+                if page_num in pages_to_rotate:
+                    # Create a fresh reader for the page to be rotated
+                    fresh_reader = PdfReader(io.BytesIO(original_data))
+                    page = fresh_reader.pages[page_num - 1]
+                    page.rotate(rotation_angle)
+                    writer.add_page(page)
+                    print(f"Rotated page {page_num} by {rotation_angle} degrees")
+                else:
+                    # Create a fresh reader for the non-rotated page
+                    fresh_reader = PdfReader(io.BytesIO(original_data))
+                    page = fresh_reader.pages[page_num - 1]
+                    writer.add_page(page)
+                    print(f"Added page {page_num} without rotation")
+            
+            # Create output path
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_rotated.pdf")
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            # Write rotated PDF
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            # Validate output
+            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                raise Exception("ತಿರುಗಿಸಿದ PDF ರಚಿಸಲಾಗಿಲ್ಲ")
+            
+            print(f"=== ROTATION SUCCESSFUL ===")
+            print(f"Output: {output_path}")
+            print(f"Rotated {len(pages_to_rotate)} pages by {rotation_angle} degrees")
+            
+            return output_path
+            
+        except Exception as e:
+            print(f"Rotation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise Exception(f"PDF ತಿರುಗಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
 
+    def _parse_page_ranges_enhanced(self, pages_str, total_pages):
+        """Parse page ranges like '1,3,5-10' into list of page numbers"""
+        try:
+            pages = []
+            parts = pages_str.split(',')
+            
+            for part in parts:
+                part = part.strip()
+                if '-' in part:
+                    start, end = map(int, part.split('-'))
+                    pages.extend(range(start, min(end + 1, total_pages + 1)))
+                else:
+                    page_num = int(part)
+                    if 1 <= page_num <= total_pages:
+                        pages.append(page_num)
+            
+            return list(set(pages))  # Remove duplicates
+        except Exception as e:
+            raise Exception(f"ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: {str(e)}")
+
+    def generate_page_previews(self, pdf_path, session_id, preview_folder):
+        """Generate page preview images for PDF - Updated to handle rotated pages"""
+        try:
+            # Create session-specific preview directory
+            session_preview_dir = os.path.join(preview_folder, session_id)
+            os.makedirs(session_preview_dir, exist_ok=True)
+            
+            # Open PDF with PyMuPDF for better image rendering
+            doc = fitz.open(pdf_path)
+            total_pages = len(doc)
+            
+            if total_pages == 0:
+                return None
+            
+            previews = []
+            
+            # Generate preview for each page (limit to first 50 pages for performance)
+            max_previews = min(total_pages, 50)
+            
+            for page_num in range(max_previews):
+                try:
+                    page = doc[page_num]
+                    
+                    # Create preview image
+                    mat = fitz.Matrix(0.5, 0.5)  # Scale down for preview
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Convert to PIL Image
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                    
+                    # Save preview image
+                    preview_filename = f"page_{page_num + 1}.png"
+                    preview_path = os.path.join(session_preview_dir, preview_filename)
+                    img.save(preview_path, "PNG")
+                    
+                    previews.append({
+                        'page_num': page_num + 1,
+                        'image_path': preview_path
+                    })
+                    
+                except Exception as page_error:
+                    print(f"Error generating preview for page {page_num + 1}: {page_error}")
+                    continue
+            
+            doc.close()
+            
+            return {
+                'total_pages': total_pages,
+                'previews': previews
+            }
+            
+        except Exception as e:
+            print(f"Preview generation error: {str(e)}")
+        return None
     def _compress_pymupdf(self, input_path, output_path, level):
         """Compress using PyMuPDF - Best method"""
         try:
@@ -1191,9 +1357,11 @@ class PDFOperations:
         return sorted(list(set(pages)))  # This should be OUTSIDE the for loop
         # Replace your existing word_to_pdf method with this complete version:
 
+
+
     def word_to_pdf(self, file_path, session_id):
         """
-        Enhanced Word to PDF conversion - FIXED VERSION with proper imports
+        Enhanced Word to PDF conversion - COMPLETE FIX with COM threading
         """
         try:
             print(f"=== WORD TO PDF CONVERSION ===")
@@ -1219,14 +1387,14 @@ class PDFOperations:
             except Exception as e:
                 raise Exception(f"Word ದಾಖಲೆ ಓದಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ: {str(e)}")
             
-            # Method 1: Simple ReportLab method (most reliable)
+            # Method 1: docx2pdf with proper COM threading
             try:
-                result = self._simple_word_to_pdf(file_path, session_id)
+                result = self._convert_with_docx2pdf_threaded(file_path, session_id)
                 if result:
-                    print("✓ Simple conversion successful")
+                    print("✓ docx2pdf conversion successful")
                     return result
             except Exception as e:
-                print(f"✗ Simple method failed: {e}")
+                print(f"✗ docx2pdf method failed: {e}")
             
             # Method 2: LibreOffice (if available)
             try:
@@ -1237,14 +1405,14 @@ class PDFOperations:
             except Exception as e:
                 print(f"✗ LibreOffice method failed: {e}")
             
-            # Method 3: docx2pdf (if available)
+            # Method 3: Simple ReportLab method (most reliable fallback)
             try:
-                result = self._convert_with_docx2pdf_simple(file_path, session_id)
+                result = self._simple_word_to_pdf_fixed(file_path, session_id)
                 if result:
-                    print("✓ docx2pdf conversion successful")
+                    print("✓ Simple conversion successful")
                     return result
             except Exception as e:
-                print(f"✗ docx2pdf method failed: {e}")
+                print(f"✗ Simple method failed: {e}")
             
             raise Exception("ಎಲ್ಲಾ ಪರಿವರ್ತನೆ ವಿಧಾನಗಳು ವಿಫಲವಾಗಿವೆ")
             
@@ -1252,187 +1420,78 @@ class PDFOperations:
             print(f"Word to PDF conversion error: {str(e)}")
             raise Exception(f"Word to PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
 
-    def _simple_word_to_pdf(self, file_path, session_id):
-        """Simple and reliable Word to PDF conversion"""
+    def _convert_with_docx2pdf_threaded(self, input_path, session_id):
+        """docx2pdf conversion with COM initialization in the worker thread"""
         try:
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
-            from reportlab.lib.units import inch
-            from reportlab.lib.pagesizes import A4
-            from docx import Document
-            
-            print("Starting simple Word to PDF conversion...")
-            
-            # Read Word document
-            doc = Document(file_path)
+            # Check if docx2pdf is available
+            try:
+                import docx2pdf
+            except ImportError:
+                print("docx2pdf not installed")
+                return None
             
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
             
-            # Create PDF document
-            pdf_doc = SimpleDocTemplate(
-                output_path,
-                pagesize=A4,
-                leftMargin=0.75*inch,
-                rightMargin=0.75*inch,
-                topMargin=1*inch,
-                bottomMargin=1*inch
-            )
+            # Remove existing output file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
             
-            story = []
-            styles = getSampleStyleSheet()
+            print(f"Converting {input_path} to {output_path}")
             
-            # Use built-in fonts that support more characters
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Title'],
-                fontName='Helvetica-Bold',
-                fontSize=16,
-                spaceAfter=20,
-                alignment=TA_CENTER
-            )
+            # CRITICAL FIX: COM must be initialized in the same thread that uses it
+            conversion_result = {'success': False, 'error': None, 'path': None}
             
-            heading_style = ParagraphStyle(
-                'CustomHeading',
-                parent=styles['Heading1'],
-                fontName='Helvetica-Bold',
-                fontSize=14,
-                spaceAfter=12,
-                spaceBefore=12
-            )
-            
-            normal_style = ParagraphStyle(
-                'CustomNormal',
-                parent=styles['Normal'],
-                fontName='Helvetica',
-                fontSize=11,
-                spaceAfter=6,
-                alignment=TA_JUSTIFY,
-                leading=14
-            )
-            
-            # Process paragraphs
-            for i, para in enumerate(doc.paragraphs):
-                text = para.text.strip()
-                if not text:
-                    story.append(Spacer(1, 6))
-                    continue
-                
-                # Clean text - handle special characters
-                clean_text = self._clean_text_simple(text)
-                
-                # Determine style
-                style_name = para.style.name.lower()
-                if 'title' in style_name:
-                    style = title_style
-                elif 'heading' in style_name:
-                    style = heading_style
-                else:
-                    style = normal_style
-                
+            def convert_worker():
+                """Worker function that initializes COM in its own thread"""
                 try:
-                    # Create paragraph
-                    pdf_para = Paragraph(clean_text, style)
-                    story.append(pdf_para)
-                    story.append(Spacer(1, 3))
+                    # Initialize COM in this thread
+                    if platform.system() == "Windows":
+                        import pythoncom
+                        pythoncom.CoInitialize()
+                        print("✓ COM initialized in worker thread")
                     
-                except Exception as para_error:
-                    print(f"Error with paragraph {i}: {para_error}")
-                    # Fallback - just add the text as ASCII
-                    try:
-                        ascii_text = text.encode('ascii', 'ignore').decode('ascii')
-                        if ascii_text.strip():
-                            pdf_para = Paragraph(ascii_text, normal_style)
-                            story.append(pdf_para)
-                            story.append(Spacer(1, 3))
-                    except:
-                        continue
-            
-            # Handle tables simply
-            for table in doc.tables:
-                try:
-                    # Convert table to simple text format
-                    table_text = self._table_to_text(table)
-                    if table_text:
-                        story.append(Spacer(1, 12))
-                        table_para = Paragraph(table_text, normal_style)
-                        story.append(table_para)
-                        story.append(Spacer(1, 12))
+                    # Perform conversion
+                    docx2pdf.convert(input_path, output_path)
+                    
+                    # Check if successful
+                    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                        conversion_result['success'] = True
+                        conversion_result['path'] = output_path
+                    else:
+                        conversion_result['error'] = "No output file created"
+                    
                 except Exception as e:
-                    print(f"Error processing table: {e}")
-                    continue
+                    conversion_result['error'] = str(e)
+                    print(f"Worker thread error: {e}")
+                finally:
+                    # Clean up COM in this thread
+                    if platform.system() == "Windows":
+                        try:
+                            import pythoncom
+                            pythoncom.CoUninitialize()
+                            print("✓ COM uninitialized in worker thread")
+                        except:
+                            pass
             
-            # Add default content if empty
-            if not story:
-                story.append(Paragraph("ದಾಖಲೆಯಲ್ಲಿ ಯಾವುದೇ ವಿಷಯ ಕಂಡುಬಂದಿಲ್ಲ", normal_style))
+            # Run conversion in thread with timeout
+            thread = threading.Thread(target=convert_worker)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=120)  # 2 minute timeout
             
-            # Build PDF
-            pdf_doc.build(story)
+            if thread.is_alive():
+                print("✗ Conversion timed out")
+                return None
             
-            # Validate output
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                print(f"PDF created successfully: {os.path.getsize(output_path)} bytes")
-                return output_path
-            
-            return None
-            
-        except Exception as e:
-            print(f"Simple conversion error: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-
-    def _clean_text_simple(self, text):
-        """Simple text cleaning for PDF generation"""
-        # Handle common problematic characters
-        replacements = {
-            '"': '"',
-            '"': '"',
-            ''': "'",
-            ''': "'",
-            '–': '-',
-            '—': '-',
-            '…': '...',
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;'
-        }
-        
-        for old, new in replacements.items():
-            text = text.replace(old, new)
-        
-        # Remove any remaining problematic characters
-        # Keep only printable ASCII and common Unicode
-        cleaned = ''
-        for char in text:
-            if ord(char) < 127 or ord(char) in range(2304, 2432):  # Basic ASCII + Devanagari range
-                cleaned += char
+            if conversion_result['success']:
+                print(f"✓ docx2pdf conversion successful: {os.path.getsize(conversion_result['path'])} bytes")
+                return conversion_result['path']
             else:
-                cleaned += '?'  # Replace unknown chars
-        
-        return cleaned
-
-    def _table_to_text(self, table):
-        """Convert Word table to simple text representation"""
-        try:
-            lines = []
-            for row in table.rows:
-                cells = []
-                for cell in row.cells:
-                    cell_text = cell.text.strip()
-                    if cell_text:
-                        cells.append(cell_text)
-                
-                if cells:
-                    lines.append(' | '.join(cells))
-            
-            if lines:
-                return '<br/>'.join(lines)
-            
-            return None
+                print(f"✗ Conversion failed: {conversion_result['error']}")
+                return None
             
         except Exception as e:
-            print(f"Table to text error: {e}")
+            print(f"✗ docx2pdf threaded conversion failed: {e}")
             return None
 
     def _convert_with_libreoffice_simple(self, input_path, session_id):
@@ -1515,8 +1574,215 @@ class PDFOperations:
             print(f"LibreOffice simple conversion failed: {e}")
             return None
 
-    def _convert_with_docx2pdf_simple(self, input_path, session_id):
-        """Simple docx2pdf conversion"""
+    def _simple_word_to_pdf_fixed(self, file_path, session_id):
+        """Simple and reliable Word to PDF conversion - COMPLETE FIX"""
+        try:
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
+            from reportlab.lib.units import inch
+            from reportlab.lib.pagesizes import A4
+            from docx import Document
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+
+            # Register Kannada font (optional - will fall back to default if fails)
+            font_registered = False
+            try:
+                font_path = 'static/fonts/NotoSansKannada-Regular.ttf'
+                if os.path.exists(font_path):
+                    pdfmetrics.registerFont(TTFont('NotoSansKannada', font_path))
+                    font_registered = True
+                    print("✓ Kannada font registered")
+                else:
+                    print(f"⚠️ Kannada font not found at: {font_path}")
+            except Exception as e:
+                print(f"⚠️ Kannada font registration failed: {e}")
+
+            print("Starting simple Word to PDF conversion...")
+            
+            # Read Word document
+            doc = Document(file_path)
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+            pdf_doc = SimpleDocTemplate(
+                output_path,
+                pagesize=A4,
+                leftMargin=0.75 * inch,
+                rightMargin=0.75 * inch,
+                topMargin=1 * inch,
+                bottomMargin=1 * inch
+            )
+            
+            # CRITICAL FIX: Initialize styles BEFORE using them
+            styles = getSampleStyleSheet()
+            
+            # Create custom styles with proper font fallback
+            font_name = 'NotoSansKannada' if font_registered else 'Helvetica'
+            
+            normal_style = ParagraphStyle(
+                'CustomNormal',
+                parent=styles['Normal'],
+                fontName=font_name,
+                fontSize=12,
+                alignment=TA_JUSTIFY,
+                leading=16,
+                spaceAfter=8
+            )
+
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Title'],
+                fontName=font_name,
+                fontSize=16,
+                alignment=TA_CENTER,
+                spaceAfter=20
+            )
+
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading1'],
+                fontName=font_name,
+                fontSize=14,
+                alignment=TA_LEFT,
+                spaceBefore=12,
+                spaceAfter=12
+            )
+            
+            story = []
+            
+            # Process paragraphs
+            for i, para in enumerate(doc.paragraphs):
+                text = para.text.strip()
+                if not text:
+                    story.append(Spacer(1, 6))
+                    continue
+                
+                # Clean text - handle special characters
+                clean_text = self._clean_text_simple(text)
+                
+                # Determine style based on paragraph style
+                style_name = para.style.name.lower() if para.style and para.style.name else ''
+                if 'title' in style_name:
+                    style = title_style
+                elif 'heading' in style_name:
+                    style = heading_style
+                else:
+                    style = normal_style
+                
+                try:
+                    # Create paragraph
+                    pdf_para = Paragraph(clean_text, style)
+                    story.append(pdf_para)
+                    story.append(Spacer(1, 3))
+                    
+                except Exception as para_error:
+                    print(f"Error with paragraph {i}: {para_error}")
+                    # Fallback - just add the text as ASCII
+                    try:
+                        ascii_text = text.encode('ascii', 'ignore').decode('ascii')
+                        if ascii_text.strip():
+                            pdf_para = Paragraph(ascii_text, normal_style)
+                            story.append(pdf_para)
+                            story.append(Spacer(1, 3))
+                    except:
+                        continue
+            
+            # Handle tables simply
+            for table in doc.tables:
+                try:
+                    # Convert table to simple text format
+                    table_text = self._table_to_text(table)
+                    if table_text:
+                        story.append(Spacer(1, 12))
+                        table_para = Paragraph(table_text, normal_style)
+                        story.append(table_para)
+                        story.append(Spacer(1, 12))
+                except Exception as e:
+                    print(f"Error processing table: {e}")
+                    continue
+            
+            # Add default content if empty
+            if not story:
+                story.append(Paragraph("ದಾಖಲೆಯಲ್ಲಿ ಯಾವುದೇ ವಿಷಯ ಕಂಡುಬಂದಿಲ್ಲ", normal_style))
+            
+            # Build PDF
+            pdf_doc.build(story)
+            
+            # Validate output
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                print(f"PDF created successfully: {os.path.getsize(output_path)} bytes")
+                return output_path
+            
+            return None
+            
+        except Exception as e:
+            print(f"Simple conversion error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _clean_text_simple(self, text):
+        """Simple text cleaning for PDF generation"""
+        # Handle common problematic characters
+        replacements = {
+            '"': '"',
+            '"': '"',
+            ''': "'",
+            ''': "'",
+            '–': '-',
+            '—': '-',
+            '…': '...',
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;'
+        }
+        
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
+        # FIXED: Keep all Kannada characters and don't replace with '?'
+        cleaned = ''
+        for char in text:
+            if ord(char) < 127:  # Basic ASCII
+                cleaned += char
+            elif ord(char) in range(2304, 2432):  # Devanagari range
+                cleaned += char
+            elif ord(char) in range(3200, 3327):  # Kannada Unicode range
+                cleaned += char
+            elif char in ['\n', '\r', '\t', ' ']:  # Whitespace characters
+                cleaned += char
+            else:
+                # CRITICAL FIX: Don't replace with '?' - keep the original character
+                cleaned += char  # CHANGED: This preserves Kannada characters that might be outside the range
+        
+        return cleaned
+
+    def _table_to_text(self, table):
+        """Convert Word table to simple text representation"""
+        try:
+            lines = []
+            for row in table.rows:
+                cells = []
+                for cell in row.cells:
+                    cell_text = cell.text.strip()
+                    if cell_text:
+                        cells.append(cell_text)
+                
+                if cells:
+                    lines.append(' | '.join(cells))
+            
+            if lines:
+                return '<br/>'.join(lines)
+            
+            return None
+            
+        except Exception as e:
+            print(f"Table to text error: {e}")
+            return None
+
+    def _convert_with_docx2pdf_threaded(self, input_path, session_id):
+        """docx2pdf conversion with COM initialization in worker thread - FIXED"""
         try:
             # Check if docx2pdf is available
             try:
@@ -1527,113 +1793,117 @@ class PDFOperations:
             
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
             
-            # Convert
+            # Remove existing output file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            
+            print(f"Converting {input_path} to {output_path}")
+            
+            # Shared result container
+            conversion_result = {'success': False, 'error': None, 'path': None}
+            
+            def convert_worker():
+                """Worker function that initializes COM in its own thread"""
+                try:
+                    # CRITICAL FIX: Initialize COM in THIS thread
+                    if platform.system() == "Windows":
+                        import pythoncom
+                        pythoncom.CoInitialize()
+                        print("✓ COM initialized in worker thread")
+                    
+                    # Perform conversion
+                    docx2pdf.convert(input_path, output_path)
+                    
+                    # Check if successful
+                    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                        conversion_result['success'] = True
+                        conversion_result['path'] = output_path
+                        print(f"✓ Conversion completed: {os.path.getsize(output_path)} bytes")
+                    else:
+                        conversion_result['error'] = "No output file created"
+                    
+                except Exception as e:
+                    conversion_result['error'] = str(e)
+                    print(f"✗ Worker thread error: {e}")
+                finally:
+                    # CRITICAL: Clean up COM in the same thread
+                    if platform.system() == "Windows":
+                        try:
+                            import pythoncom
+                            pythoncom.CoUninitialize()
+                            print("✓ COM uninitialized in worker thread")
+                        except Exception as cleanup_error:
+                            print(f"⚠️ COM cleanup error: {cleanup_error}")
+            
+            # Run conversion in thread with timeout
+            thread = threading.Thread(target=convert_worker)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=120)  # 2 minute timeout
+            
+            if thread.is_alive():
+                print("✗ Conversion timed out")
+                return None
+            
+            if conversion_result['success']:
+                return conversion_result['path']
+            else:
+                print(f"✗ Conversion failed: {conversion_result.get('error', 'Unknown error')}")
+                return None
+            
+        except Exception as e:
+            print(f"✗ docx2pdf threaded conversion failed: {e}")
+            return None
+
+    # Alternative simpler approach - avoid threading altogether
+    def _convert_with_docx2pdf_direct(self, input_path, session_id):
+        """Direct docx2pdf conversion without threading"""
+        try:
+            # Check if docx2pdf is available
+            try:
+                import docx2pdf
+            except ImportError:
+                print("docx2pdf not installed")
+                return None
+            
+            # Initialize COM before any operations
+            if platform.system() == "Windows":
+                import pythoncom
+                pythoncom.CoInitialize()
+                print("✓ COM initialized")
+            
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+            
+            # Remove existing output file if it exists
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            
+            print(f"Converting {input_path} to {output_path}")
+            
+            # Direct conversion
             docx2pdf.convert(input_path, output_path)
             
+            # Check if successful
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                print(f"✓ Direct conversion successful: {os.path.getsize(output_path)} bytes")
                 return output_path
             
             return None
             
         except Exception as e:
-            print(f"docx2pdf simple conversion failed: {e}")
+            print(f"✗ Direct docx2pdf conversion failed: {e}")
             return None
-        
-    def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=None, batch_size=20):
-        """
-        Generate thumbnail previews for PDF pages
-        
-        Args:
-            pdf_path (str): Path to the PDF file
-            session_id (str): Session identifier for organizing previews
-            preview_folder (str): Base folder for storing preview images
-            max_pages (int, optional): Maximum number of pages to generate previews for. 
-                                    If None, processes all pages
-            batch_size (int): Number of pages to process in each batch for memory management
-        
-        Returns:
-            dict: Preview data with page information and image paths
-        """
-        try:
-            # Create session-specific preview directory
-            session_preview_dir = os.path.join(preview_folder, session_id)
-            os.makedirs(session_preview_dir, exist_ok=True)
-        
-            # Open the PDF
-            pdf_document = fitz.open(pdf_path)
-            total_pages = len(pdf_document)
-        
-            # Process all pages if max_pages is None, otherwise limit
-            pages_to_process = total_pages if max_pages is None else min(total_pages, max_pages)
-            
-            print(f"Processing {pages_to_process} pages out of {total_pages} total pages...")
-        
-            previews = []
-            
-            # Process pages in batches to manage memory
-            for batch_start in range(0, pages_to_process, batch_size):
-                batch_end = min(batch_start + batch_size, pages_to_process)
-                print(f"Processing batch: pages {batch_start + 1} to {batch_end}")
-                
-                for page_num in range(batch_start, batch_end):
-                    try:
-                        # Get the page
-                        page = pdf_document[page_num]
-                    
-                        # Set zoom factor for good quality thumbnails
-                        zoom = 1.5  # Increase for higher quality, decrease for smaller files
-                        mat = fitz.Matrix(zoom, zoom)
-                    
-                        # Render page as image
-                        pix = page.get_pixmap(matrix=mat)
-                    
-                        # Convert to PIL Image
-                        img_data = pix.tobytes("png")
-                        img = Image.open(io.BytesIO(img_data))
-                    
-                        # Resize to thumbnail size (maintain aspect ratio)
-                        thumbnail_size = (200, 280)  # Width, Height
-                        img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
-                    
-                        # Save thumbnail
-                        filename = f"page_{page_num + 1}.png"
-                        file_path = os.path.join(session_preview_dir, filename)
-                        img.save(file_path, "PNG", optimize=True)
-                    
-                        # Add to previews list
-                        previews.append({
-                            'page_num': page_num + 1,
-                            'image_path': file_path,
-                            'width': img.width,
-                            'height': img.height
-                        })
-                        
-                        # Clean up memory
-                        pix = None
-                        img = None
-                    
-                    except Exception as e:
-                        print(f"Error generating preview for page {page_num + 1}: {str(e)}")
-                        continue
-                
-                # Optional: Force garbage collection after each batch
-                import gc
-                gc.collect()
-        
-            pdf_document.close()
-        
-            return {
-                'total_pages': total_pages,
-                'previews': previews,
-                'session_id': session_id,
-                'processed_pages': len(previews)
-            }
-        
-        except Exception as e:
-            print(f"Error generating PDF previews: {str(e)}")
-            return None
+        finally:
+            # Clean up COM
+            if platform.system() == "Windows":
+                try:
+                    import pythoncom
+                    pythoncom.CoUninitialize()
+                    print("✓ COM uninitialized")
+                except:
+                    pass
 
-    # Alternative method using pdf2image for full PDF processing
+        # Alternative method using pdf2image for full PDF processing
     def generate_page_previews_pdf2image(self, pdf_path, session_id, preview_folder, max_pages=None, batch_size=20):
         """
         Alternative method using pdf2image library for full PDF processing
@@ -1735,12 +2005,3 @@ class PDFOperations:
             print(f"Error getting page count: {str(e)}")
             return 0
 
-# Usage examples:
-# For processing all pages:
-# result = self.generate_page_previews(pdf_path, session_id, preview_folder)
-
-# For processing specific number of pages:
-# result = self.generate_page_previews(pdf_path, session_id, preview_folder, max_pages=100)
-
-# For large PDFs with custom batch size:
-# result = self.generate_page_previews(pdf_path, session_id, preview_folder, batch_size=10)
