@@ -27,7 +27,7 @@ class FileHandler:
         
         return extension in self.allowed_extensions.get(file_type, [])
     
-    def save_uploaded_file(self, file, session_id):
+    def save_uploaded_file(self, file, session_id, file_type='all'):
         """Save uploaded file and return path"""
         try:
             if not file or not file.filename:
@@ -41,14 +41,14 @@ class FileHandler:
             if file_size > self.max_file_size:
                 raise Exception(f"ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ: {file.filename}")
             
-            # Check file type
-            if not self.allowed_file(file.filename):
+            # Check file type - FIXED: Use the passed file_type parameter instead of hardcoded 'word'
+            if not self.allowed_file(file.filename, file_type=file_type):
                 raise Exception(f"ಬೆಂಬಲಿಸದ ಫೈಲ್ ಪ್ರಕಾರ: {file.filename}")
             
             # Generate secure filename
-            filename = secure_filename(file.filename)
-            if not filename:
-                filename = f"file_{uuid.uuid4().hex[:8]}.pdf"
+            original_ext = os.path.splitext(file.filename)[1]
+            filename = f"file_{uuid.uuid4().hex[:8]}{original_ext}"
+
             
             # Add session prefix to avoid conflicts
             filename = f"{session_id}_{filename}"

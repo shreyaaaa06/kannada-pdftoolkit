@@ -8,16 +8,13 @@ import config
 import fitz  # PyMuPDF
 from PIL import Image
 import io
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-import traceback
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
-app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  #1GB
 
 # Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -108,9 +105,6 @@ def upload_file():
             for file in files:
                 if file and file.filename:
                     file_path = file_handler.save_uploaded_file(file, session_id)
-# Add this line to explicitly close the file
-                    if hasattr(file, 'close'):
-                        file.close()
                     if file_path:
                         file_paths.append(file_path)
                         print(f"Saved file: {file_path}")
@@ -122,11 +116,11 @@ def upload_file():
         pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
         
-        # Get split-specific parameters
+        # NEW: Get split-specific parameters
         split_method = request.form.get('split_method', 'pages')
         target_size_mb = request.form.get('target_size_mb', '10')
         pages_per_chunk = request.form.get('pages_per_chunk', '20')
-        max_file_size = request.form.get('max_file_size', '1000')
+        max_file_size = request.form.get('max_file_size', '100')
         
         print(f"Pages parameter: '{pages}'")
         print(f"Compression: {compression}")
@@ -167,15 +161,15 @@ def upload_file():
                     print(f"PDF validation error: {pdf_error}")
                     return jsonify({'success': False, 'error': f'PDF ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(pdf_error)}'})
                 
-                # Call split_pdf with proper parameters based on split method
+                # FIXED: Call split_pdf with proper parameters based on split method
                 try:
                     target_size_mb_int = int(target_size_mb) if target_size_mb.isdigit() else 10
                     pages_per_chunk_int = int(pages_per_chunk) if pages_per_chunk.isdigit() else 20
-                    max_file_size_int = int(max_file_size) if max_file_size.isdigit() else 1000
+                    max_file_size_int = int(max_file_size) if max_file_size.isdigit() else 100
                 except ValueError:
                     target_size_mb_int = 10
                     pages_per_chunk_int = 20
-                    max_file_size_int = 1000
+                    max_file_size_int = 100
                 
                 result_path = pdf_ops.split_pdf(
                     pdf_path, 
@@ -192,49 +186,7 @@ def upload_file():
                 if not pages:
                     return jsonify({'success': False, 'error': 'ಹೊರತೆಗೆಯಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
                 result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
-
-            elif operation == 'rotate':
-                print("=== ROTATION OPERATION DEBUG ===")
-                print(f"Raw form data: {dict(request.form)}")
                 
-                # Get and validate rotation parameters
-                rotation_angle_raw = request.form.get('rotation_angle', '90')
-                pages_param = request.form.get('pages', '')
-                apply_to_all_raw = request.form.get('apply_to_all', 'false')
-                
-                print(f"rotation_angle (raw): '{rotation_angle_raw}' (type: {type(rotation_angle_raw)})")
-                print(f"pages_param: '{pages_param}'")
-                print(f"apply_to_all (raw): '{apply_to_all_raw}' (type: {type(apply_to_all_raw)})")
-                
-                # Convert and validate rotation angle
-                try:
-                    rotation_angle = int(rotation_angle_raw)
-                    print(f"rotation_angle (converted): {rotation_angle} (type: {type(rotation_angle)})")
-                except (ValueError, TypeError) as e:
-                    print(f"Error converting rotation_angle: {e}")
-                    rotation_angle = 90
-                
-                # Convert apply_to_all
-                if isinstance(apply_to_all_raw, str):
-                    apply_to_all = apply_to_all_raw.lower() in ['true', '1', 'yes', 'on']
-                else:
-                    apply_to_all = bool(apply_to_all_raw)
-                
-                print(f"apply_to_all (converted): {apply_to_all} (type: {type(apply_to_all)})")
-                print(f"file_paths[0]: {file_paths[0] if file_paths else 'No files'}")
-                print("=== CALLING ROTATE_PDF ===")
-                
-                result_path = pdf_ops.rotate_pdf(
-                    file_paths[0], 
-                    session_id, 
-                    rotation_angle, 
-                    pages_param, 
-                    apply_to_all
-                )
-                
-                print(f"Result path: {result_path}")
-                print("=== ROTATION OPERATION COMPLETE ===")
-
             elif operation == 'delete':
                 print("Processing delete operation")
                 if not pages:
@@ -256,64 +208,24 @@ def upload_file():
             elif operation == 'pdf_to_word':
                 print("Processing PDF to Word operation")
                 result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
-
-            elif operation == 'word_to_pdf':
-                print("=== PROCESSING WORD TO PDF OPERATION ===")
-                print(f"File paths: {file_paths}")
-                
-                if not file_paths:
-                    return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಅಗತ್ಯ'})
-                
-                word_file_path = file_paths[0]
-                print(f"Processing Word file: {word_file_path}")
-                
-                # Validate file exists
-                if not os.path.exists(word_file_path):
-                    return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'})
-                
-                # Check file extension
-                file_ext = os.path.splitext(word_file_path)[1].lower()
-                if file_ext not in ['.doc', '.docx']:
-                    return jsonify({'success': False, 'error': 'ಮಾನ್ಯವಾದ Word ಫೈಲ್ ಅಲ್ಲ (.doc ಅಥವಾ .docx ಬೇಕು)'})
-                
-                print(f"File extension valid: {file_ext}")
-                print(f"File size: {os.path.getsize(word_file_path)} bytes")
-                
-                # Call the conversion function
-                try:
-                    result_path = pdf_ops.word_to_pdf(word_file_path, session_id)
-                    print(f"word_to_pdf returned: {result_path}")
+            elif operation == 'rotate':
+                print("Processing rotate operation")
+                rotation_angle = int(request.form.get('rotation_angle', '90'))
+                pages_param = request.form.get('pages', '')
+                apply_to_all = request.form.get('apply_to_all', 'false') == 'true'
+                result_path = pdf_ops.rotate_pdf(file_paths[0], session_id, rotation_angle, pages_param, apply_to_all)
                     
-                    if result_path and os.path.exists(result_path):
-                        print(f"✓ Word to PDF conversion successful: {os.path.getsize(result_path)} bytes")
-                    else:
-                        print("✗ Word to PDF conversion failed - no result file")
-                        
-                except Exception as word_error:
-                    print(f"✗ Word to PDF conversion error: {word_error}")
-                    traceback.print_exc()
-                    return jsonify({'success': False, 'error': f'Word to PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(word_error)}'})
+            elif operation == 'word_to_pdf':
+                print("Processing Word to PDF operation")
+                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
                 
-                print("=== WORD TO PDF OPERATION COMPLETE ===")
-            
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
                 
         except Exception as op_error:
             print(f"Operation error: {str(op_error)}")
-            traceback.print_exc()
             return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(op_error)}'})
-        try:
-        # Clean up input files for word_to_pdf operations
-            if operation == 'word_to_pdf':
-                for file_path in file_paths:
-                    if os.path.exists(file_path):
-                        try:
-                            os.remove(file_path)  # Remove the uploaded Word file
-                        except:
-                            pass  # Ignore if file is still locked
-        except:
-            pass  # Ignore if file is still locked
+        
         # Validate result
         if not result_path:
             return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ - ಯಾವುದೇ ಫಲಿತಾಂಶ ಇಲ್ಲ'})
@@ -342,11 +254,10 @@ def upload_file():
             'filename': filename,
             'can_chain': True
         })
-        # At the end of your upload_file() function, before returning success, add:
-    # At the end of your upload_file() function, before returning success, add:
-
+            
     except Exception as e:
         print(f"Upload error: {str(e)}")
+        import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
 

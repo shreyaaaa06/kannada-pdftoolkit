@@ -10,6 +10,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from docx import Document
+import fitz  # PyMuPDF
 import html
 import platform
 import subprocess
@@ -888,7 +889,151 @@ class PDFOperations:
         except Exception as e:
             print(f"Compression error: {str(e)}")
             raise Exception(f"PDF ಸಂಕುಚನ ವಿಫಲ: {str(e)}")
+    
+    def rotate_pdf(self, file_path, session_id, rotation_angle=90, pages="", apply_to_all=True):
+        """Rotate PDF pages by specified angle"""
+        try:
+            print(f"=== PDF ROTATION DEBUG ===")
+            print(f"File path: {file_path}")
+            print(f"Session ID: {session_id}")
+            print(f"Rotation angle: {rotation_angle}")
+            print(f"Pages: {pages}")
+            print(f"Apply to all: {apply_to_all}")
+            
+            # Validate input
+            if not os.path.exists(file_path):
+                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
+            
+            if rotation_angle not in [90, 180, 270, -90, -180, -270]:
+                rotation_angle = 90  # Default to 90 degrees
+            
+            # Read PDF
+            from PyPDF2 import PdfReader, PdfWriter
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            total_pages = len(reader.pages)
+            
+            if total_pages == 0:
+                raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
+            
+            # Determine which pages to rotate
+            if apply_to_all or not pages.strip():
+                pages_to_rotate = list(range(1, total_pages + 1))
+            else:
+                pages_to_rotate = self._parse_page_ranges_enhanced(pages, total_pages)
+            
+            print(f"Pages to rotate: {pages_to_rotate}")
+            
+            # Process each page
+            for page_num in range(1, total_pages + 1):
+                page = reader.pages[page_num - 1]
+                
+                if page_num in pages_to_rotate:
+                    # Rotate the page
+                    page.rotate(rotation_angle)
+                    print(f"Rotated page {page_num} by {rotation_angle} degrees")
+                
+                writer.add_page(page)
+            
+            # Create output path
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_rotated.pdf")
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            # Write rotated PDF
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            # Validate output
+            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                raise Exception("ತಿರುಗಿಸಿದ PDF ರಚಿಸಲಾಗಿಲ್ಲ")
+            
+            print(f"=== ROTATION SUCCESSFUL ===")
+            print(f"Output: {output_path}")
+            print(f"Rotated {len(pages_to_rotate)} pages by {rotation_angle} degrees")
+            
+            return output_path
+            
+        except Exception as e:
+            print(f"Rotation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise Exception(f"PDF ತಿರುಗಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
 
+    def _parse_page_ranges_enhanced(self, pages_str, total_pages):
+        """Parse page ranges like '1,3,5-10' into list of page numbers"""
+        try:
+            pages = []
+            parts = pages_str.split(',')
+            
+            for part in parts:
+                part = part.strip()
+                if '-' in part:
+                    start, end = map(int, part.split('-'))
+                    pages.extend(range(start, min(end + 1, total_pages + 1)))
+                else:
+                    page_num = int(part)
+                    if 1 <= page_num <= total_pages:
+                        pages.append(page_num)
+            
+            return list(set(pages))  # Remove duplicates
+        except Exception as e:
+            raise Exception(f"ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: {str(e)}")
+
+    def generate_page_previews(self, pdf_path, session_id, preview_folder):
+        """Generate page preview images for PDF - Updated to handle rotated pages"""
+        try:
+            # Create session-specific preview directory
+            session_preview_dir = os.path.join(preview_folder, session_id)
+            os.makedirs(session_preview_dir, exist_ok=True)
+            
+            # Open PDF with PyMuPDF for better image rendering
+            doc = fitz.open(pdf_path)
+            total_pages = len(doc)
+            
+            if total_pages == 0:
+                return None
+            
+            previews = []
+            
+            # Generate preview for each page (limit to first 50 pages for performance)
+            max_previews = min(total_pages, 50)
+            
+            for page_num in range(max_previews):
+                try:
+                    page = doc[page_num]
+                    
+                    # Create preview image
+                    mat = fitz.Matrix(0.5, 0.5)  # Scale down for preview
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Convert to PIL Image
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                    
+                    # Save preview image
+                    preview_filename = f"page_{page_num + 1}.png"
+                    preview_path = os.path.join(session_preview_dir, preview_filename)
+                    img.save(preview_path, "PNG")
+                    
+                    previews.append({
+                        'page_num': page_num + 1,
+                        'image_path': preview_path
+                    })
+                    
+                except Exception as page_error:
+                    print(f"Error generating preview for page {page_num + 1}: {page_error}")
+                    continue
+            
+            doc.close()
+            
+            return {
+                'total_pages': total_pages,
+                'previews': previews
+            }
+            
+        except Exception as e:
+            print(f"Preview generation error: {str(e)}")
+        return None
     def _compress_pymupdf(self, input_path, output_path, level):
         """Compress using PyMuPDF - Best method"""
         try:
@@ -1132,10 +1277,8 @@ class PDFOperations:
             raise Exception(f"ಚಿತ್ರ PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
     
     
-    
     def pdf_to_word(self, file_path, session_id):
         """Convert PDF to Word document - FIXED VERSION"""
-        
         try:
             doc = fitz.open(file_path)
             
@@ -1211,8 +1354,7 @@ class PDFOperations:
             if file_size == 0:
                 raise Exception("ಖಾಲಿ Word ದಾಖಲೆ")
             
-        except Exception as e:
-            pass    # Test if file is readable
+            # Test if file is readable
             try:
                 from docx import Document
                 test_doc = Document(file_path)
@@ -1229,8 +1371,6 @@ class PDFOperations:
                     return result
             except Exception as e:
                 print(f"✗ Simple method failed: {e}")
-                import traceback
-                traceback.print_exc()  # ADD THIS LINE
             
             # Method 2: LibreOffice (if available)
             try:
@@ -1240,19 +1380,6 @@ class PDFOperations:
                     return result
             except Exception as e:
                 print(f"✗ LibreOffice method failed: {e}")
-                import traceback
-                traceback.print_exc()  # ADD THIS LINE
-            
-        # Method 3: docx2pdf (if available)
-        try:
-            result = self._convert_with_docx2pdf_simple(file_path, session_id)
-            if result:
-                print("✓ docx2pdf conversion successful")
-                return result
-        except Exception as e:
-            print(f"✗ docx2pdf method failed: {e}")
-            import traceback
-            traceback.print_exc()  # ADD THIS LINE
             
             # Method 3: docx2pdf (if available)
             try:
@@ -1272,73 +1399,29 @@ class PDFOperations:
     def _simple_word_to_pdf(self, file_path, session_id):
         """Simple and reliable Word to PDF conversion"""
         try:
-            print(f"=== SIMPLE WORD TO PDF DEBUG ===")
-            print(f"Input file exists: {os.path.exists(file_path)}")
-            print(f"Input file size: {os.path.getsize(file_path) if os.path.exists(file_path) else 'N/A'}")
-            print(f"Output folder exists: {os.path.exists(self.config.OUTPUT_FOLDER)}")
-            print(f"Output folder: {self.config.OUTPUT_FOLDER}")
             from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
             from reportlab.lib.units import inch
             from reportlab.lib.pagesizes import A4
             from docx import Document
-            from reportlab.pdfbase import pdfmetrics
-            from reportlab.pdfbase.ttfonts import TTFont
-
-# Register Kannada font
-            try:
-                pdfmetrics.registerFont(TTFont('NotoSansKannada', 'static/fonts/NotoSansKannada-Regular.ttf'))
-            except Exception as e:
-                print(f"⚠️ Kannada font registration failed: {e}")
-
+            
             print("Starting simple Word to PDF conversion...")
             
             # Read Word document
             doc = Document(file_path)
             
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
+            
+            # Create PDF document
             pdf_doc = SimpleDocTemplate(
                 output_path,
                 pagesize=A4,
-                leftMargin=0.75 * inch,
-                rightMargin=0.75 * inch,
-                topMargin=1 * inch,
-                bottomMargin=1 * inch
+                leftMargin=0.75*inch,
+                rightMargin=0.75*inch,
+                topMargin=1*inch,
+                bottomMargin=1*inch
             )
-            # Create PDF document
-            from reportlab.lib.styles import ParagraphStyle
-            from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
-
-            normal_style = ParagraphStyle(
-                'CustomNormal',
-                parent=styles['Normal'],
-                fontName='NotoSansKannada',
-                fontSize=12,
-                alignment=TA_JUSTIFY,
-                leading=16,
-                spaceAfter=8
-            )
-
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Title'],
-                fontName='NotoSansKannada',
-                fontSize=16,
-                alignment=TA_CENTER,
-                spaceAfter=20
-            )
-
-            heading_style = ParagraphStyle(
-                'CustomHeading',
-                parent=styles['Heading1'],
-                fontName='NotoSansKannada',
-                fontSize=14,
-                alignment=TA_LEFT,
-                spaceBefore=12,
-                spaceAfter=12
-            )
-
             
             story = []
             styles = getSampleStyleSheet()
@@ -1577,7 +1660,7 @@ class PDFOperations:
             return None
 
     def _convert_with_docx2pdf_simple(self, input_path, session_id):
-        """Simple docx2pdf conversion with proper COM cleanup"""
+        """Simple docx2pdf conversion"""
         try:
             # Check if docx2pdf is available
             try:
@@ -1586,64 +1669,20 @@ class PDFOperations:
                 print("docx2pdf not installed")
                 return None
             
-            import platform
-            pythoncom_available = False
-            
-            # Handle COM initialization for Windows
-            if platform.system() == "Windows":
-                try:
-                    import pythoncom
-                    pythoncom_available = True
-                    
-                    # Force uninitialize first (in case it's already initialized)
-                    try:
-                        pythoncom.CoUninitialize()
-                    except:
-                        pass
-                    
-                    # Now initialize fresh
-                    pythoncom.CoInitialize()
-                    print("COM initialized successfully")
-                    
-                except ImportError:
-                    print("pythoncom not available")
-                except Exception as com_error:
-                    print(f"COM initialization failed: {com_error}")
-            
             output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_from_word.pdf")
             
-            try:
-                # Convert
-                print(f"Converting {input_path} to {output_path}")
-                docx2pdf.convert(input_path, output_path)
-                
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                    print(f"docx2pdf conversion successful: {os.path.getsize(output_path)} bytes")
-                    return output_path
-                else:
-                    print("docx2pdf produced no output or empty file")
-                    return None
-                    
-            finally:
-                # CRITICAL: Always clean up COM
-                if platform.system() == "Windows" and pythoncom_available:
-                    try:
-                        import pythoncom
-                        pythoncom.CoUninitialize()
-                        print("COM uninitialized properly")
-                    except Exception as cleanup_error:
-                        print(f"COM cleanup error: {cleanup_error}")
+            # Convert
+            docx2pdf.convert(input_path, output_path)
+            
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
+            
+            return None
             
         except Exception as e:
-            print(f"docx2pdf conversion failed: {e}")
-            # Emergency COM cleanup
-            if platform.system() == "Windows":
-                try:
-                    import pythoncom
-                    pythoncom.CoUninitialize()
-                except:
-                    pass
+            print(f"docx2pdf simple conversion failed: {e}")
             return None
+        
     def generate_page_previews(self, pdf_path, session_id, preview_folder, max_pages=None, batch_size=20):
         """
         Generate thumbnail previews for PDF pages
@@ -1839,214 +1878,4 @@ class PDFOperations:
         except Exception as e:
             print(f"Error getting page count: {str(e)}")
             return 0
-        
-    def rotate_pdf(self, file_path, session_id, rotation_angle=90, pages="", apply_to_all=True):
-        """Rotate PDF pages by specified angle"""
-        try:
-            print(f"=== PDF ROTATION DEBUG ===")
-            print(f"File path: {file_path}")
-            print(f"Session ID: {session_id}")
-            print(f"Rotation angle (raw): {rotation_angle}")
-            print(f"Rotation angle type: {type(rotation_angle)}")
-            print(f"Pages: {pages}")
-            print(f"Apply to all: {apply_to_all}")
-            
-            # Validate input
-            if not os.path.exists(file_path):
-                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
-            
-            # Convert rotation_angle to integer if it's a string
-            if isinstance(rotation_angle, str):
-                rotation_angle = int(rotation_angle)
-            
-            # Validate and normalize rotation angle
-            if rotation_angle not in [90, 180, 270, -90, -180, -270]:
-                print(f"Invalid rotation angle: {rotation_angle}, defaulting to 90")
-                rotation_angle = 90
-            
-            print(f"Final rotation angle: {rotation_angle}")
-            
-            # Read PDF
-            from PyPDF2 import PdfReader, PdfWriter
-            reader = PdfReader(file_path)
-            writer = PdfWriter()
-            total_pages = len(reader.pages)
-            
-            if total_pages == 0:
-                raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
-            
-            # Determine which pages to rotate
-            if apply_to_all or not pages.strip():
-                pages_to_rotate = list(range(1, total_pages + 1))
-            else:
-                pages_to_rotate = self._parse_page_ranges_enhanced(pages, total_pages)
-            
-            print(f"Pages to rotate: {pages_to_rotate}")
-            
-            # Process each page
-            for page_num in range(1, total_pages + 1):
-                page = reader.pages[page_num - 1]
-                
-                if page_num in pages_to_rotate:
-                    # Debug: Print current page rotation before applying
-                    current_rotation = page.get('/Rotate', 0)
-                    print(f"Page {page_num} current rotation: {current_rotation}")
-                    
-                    # Apply rotation
-                    page.rotate(rotation_angle)
-                    
-                    # Debug: Print rotation after applying
-                    new_rotation = page.get('/Rotate', 0)
-                    print(f"Page {page_num} after rotation by {rotation_angle}°: {new_rotation}")
-                
-                writer.add_page(page)
-            
-            # Create output path
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_rotated.pdf")
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            
-            # Write rotated PDF
-            with open(output_path, 'wb') as output_file:
-                writer.write(output_file)
-            
-            # Validate output
-            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                raise Exception("ತಿರುಗಿಸಿದ PDF ರಚಿಸಲಾಗಿಲ್ಲ")
-            
-            print(f"=== ROTATION SUCCESSFUL ===")
-            print(f"Output: {output_path}")
-            print(f"Rotated {len(pages_to_rotate)} pages by {rotation_angle} degrees")
-            
-            return output_path
-            
-        except Exception as e:
-            print(f"Rotation error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise Exception(f"PDF ತಿರುಗಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
 
-    def _parse_page_ranges_enhanced(self, pages_str, total_pages):
-        """Parse page ranges like '1,3,5-10' into list of page numbers"""
-        try:
-            pages = []
-            parts = pages_str.split(',')
-            
-            for part in parts:
-                part = part.strip()
-                if '-' in part:
-                    start, end = map(int, part.split('-'))
-                    pages.extend(range(start, min(end + 1, total_pages + 1)))
-                else:
-                    page_num = int(part)
-                    if 1 <= page_num <= total_pages:
-                        pages.append(page_num)
-            
-            return list(set(pages))  # Remove duplicates
-        except Exception as e:
-            raise Exception(f"ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: {str(e)}")
-
-    # Alternative implementation using different rotation approach
-    def rotate_pdf_alternative(self, file_path, session_id, rotation_angle=90, pages="", apply_to_all=True):
-        """Alternative PDF rotation method with explicit rotation mapping"""
-        try:
-            print(f"=== ALTERNATIVE PDF ROTATION DEBUG ===")
-            print(f"File path: {file_path}")
-            print(f"Rotation angle (raw): {rotation_angle}")
-            
-            # Validate input
-            if not os.path.exists(file_path):
-                raise Exception("PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ")
-            
-            # Convert rotation_angle to integer if it's a string
-            if isinstance(rotation_angle, str):
-                rotation_angle = int(rotation_angle)
-            
-            # Map rotation angles explicitly
-            rotation_mapping = {
-                90: 90,    # Right rotation
-                180: 180,  # Upside down
-                270: 270,  # Left rotation (same as -90)
-                -90: 270   # Left rotation (convert to positive equivalent)
-            }
-            
-            if rotation_angle not in rotation_mapping:
-                print(f"Invalid rotation angle: {rotation_angle}, defaulting to 90")
-                rotation_angle = 90
-            
-            final_rotation = rotation_mapping[rotation_angle]
-            print(f"Mapped rotation angle: {rotation_angle} -> {final_rotation}")
-            
-            # Read PDF
-            from PyPDF2 import PdfReader, PdfWriter
-            reader = PdfReader(file_path)
-            writer = PdfWriter()
-            total_pages = len(reader.pages)
-            
-            if total_pages == 0:
-                raise Exception("PDF ಯಲ್ಲಿ ಯಾವುದೇ ಪುಟಗಳಿಲ್ಲ")
-            
-            # Determine which pages to rotate
-            if apply_to_all or not pages.strip():
-                pages_to_rotate = list(range(1, total_pages + 1))
-            else:
-                pages_to_rotate = self._parse_page_ranges_enhanced(pages, total_pages)
-            
-            print(f"Pages to rotate: {pages_to_rotate}")
-            
-            # Process each page
-            for page_num in range(1, total_pages + 1):
-                page = reader.pages[page_num - 1]
-                
-                if page_num in pages_to_rotate:
-                    print(f"Rotating page {page_num} by {final_rotation} degrees")
-                    page.rotate(final_rotation)
-                
-                writer.add_page(page)
-            
-            # Create output path
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_rotated.pdf")
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            
-            # Write rotated PDF
-            with open(output_path, 'wb') as output_file:
-                writer.write(output_file)
-            
-            # Validate output
-            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                raise Exception("ತಿರುಗಿಸಿದ PDF ರಚಿಸಲಾಗಿಲ್ಲ")
-            
-            print(f"=== ROTATION SUCCESSFUL ===")
-            print(f"Output: {output_path}")
-            
-            return output_path
-            
-        except Exception as e:
-            print(f"Rotation error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise Exception(f"PDF ತಿರುಗಿಸುವಿಕೆ ವಿಫಲ: {str(e)}")
-
-    def _parse_page_ranges_enhanced(self, pages_str, total_pages):
-        """Parse page ranges like '1,3,5-10' into list of page numbers"""
-        try:
-            if not pages_str or not pages_str.strip():
-                return []
-                
-            pages = []
-            parts = pages_str.split(',')
-            
-            for part in parts:
-                part = part.strip()
-                if '-' in part:
-                    start, end = map(int, part.split('-'))
-                    pages.extend(range(start, min(end + 1, total_pages + 1)))
-                else:
-                    page_num = int(part)
-                    if 1 <= page_num <= total_pages:
-                        pages.append(page_num)
-            
-            return sorted(list(set(pages)))  # Remove duplicates and sort
-        except Exception as e:
-            raise Exception(f"ಅಮಾನ್ಯ ಪುಟ ಸಂಖ್ಯೆಗಳು: {str(e)}")
-
-    

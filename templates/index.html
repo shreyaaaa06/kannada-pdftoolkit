@@ -818,7 +818,6 @@
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
-
                 <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-redo-alt"></i></div>
                     <h3 class="operation-title">PDF ತಿರುಗಿಸಿ</h3>
@@ -826,11 +825,12 @@
                     <button class="btn btn-primary" onclick="selectOperation('rotate')">
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
-                    </div> 
-                    
+                </div>
             </div>
         </section>
     </div>
+
+
 
     <!-- Operation Modal -->
     <div id="operationModal" class="modal">
@@ -1104,117 +1104,124 @@
         };
 
         function selectOperation(operation) {
-    currentOperation = operation;
-    const config = operationConfigs[operation];
-    
-    // First restore the original content
-    restoreOriginalModalContent();
-    
-    // Then set the values
-    document.getElementById('modalTitle').textContent = config.title;
-    document.getElementById('selectedOperation').value = operation;
-    document.getElementById('fileInput').accept = config.accept;
-    document.getElementById('fileInput').multiple = config.multiple;
-    document.getElementById('uploadSubtext').textContent = config.supportText;
-    
-    showOperationOptions(config.options, config.hasPreview);
-    resetForm();
-    document.getElementById('operationModal').style.display = 'block';
-}
-
-       function restoreOriginalModalContent() {
-    const modalBody = document.querySelector('#operationModal .modal-body');
-    const config = operationConfigs[currentOperation];
-    
-    modalBody.innerHTML = `
-        <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
-            <input type="hidden" name="operation" id="selectedOperation" value="${currentOperation}">
-            <input type="hidden" name="selected_pages" id="selectedPagesInput">
+            currentOperation = operation;
+            const config = operationConfigs[operation];
             
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </div>
-                <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
-                <div class="upload-subtext" id="uploadSubtext">${config.supportText}</div>
-                <input type="file" name="files" id="fileInput" ${config.multiple ? 'multiple' : ''} accept="${config.accept}" style="display: none;">
-            </div>
+            document.getElementById('modalTitle').textContent = config.title;
+            document.getElementById('selectedOperation').value = operation;
+            document.getElementById('fileInput').accept = config.accept;
+            document.getElementById('fileInput').multiple = config.multiple;
+            document.getElementById('uploadSubtext').textContent = config.supportText;
+            
+            showOperationOptions(config.options, config.hasPreview);
+            resetForm();
+            restoreOriginalModalContent();
+            document.getElementById('operationModal').style.display = 'block';
+        }
 
-            <div id="filesList" class="file-list" style="display: none;"></div>
+        function restoreOriginalModalContent() {
+            const modalBody = document.querySelector('#operationModal .modal-body');
+            const config = operationConfigs[currentOperation];
+            
+            modalBody.innerHTML = `
+                <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
+                    <input type="hidden" name="operation" id="selectedOperation" value="${currentOperation}">
+                    <input type="hidden" name="selected_pages" id="selectedPagesInput">
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆಯಿರಿ ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ</div>
+                        <div class="upload-subtext" id="uploadSubtext">${config.supportText}</div>
+                        <input type="file" name="files" id="fileInput" ${config.multiple ? 'multiple' : ''} accept="${config.accept}" style="display: none;">
+                    </div>
 
-            <div id="previewSection" style="display: none; margin-bottom: 1rem;">
-                <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
-                    <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
-                </button>
-            </div>
+                    <div id="filesList" class="file-list" style="display: none;"></div>
 
-            <div id="operationOptions" style="display: none;">
-                <div class="form-group" id="pagesGroup" style="display: none;">
-                    <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
-                    <input type="text" name="pages" id="pagesInput" class="form-input" placeholder="ಉದಾ: 1,3,5-10">
-                    <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
-                </div>
+                    <div id="previewSection" style="display: ${config.hasPreview ? 'none' : 'none'}; margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
+                            <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
 
-                <div class="form-group" id="compressionGroup" style="display: none;">
-                    <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
-                    <select name="compression" id="compressionSelect" class="form-select">
-                        <option value="low">ಕಡಿಮೆ (ಉತ್ತಮ ಗುಣಮಟ್ಟ)</option>
-                        <option value="medium" selected>ಮಧ್ಯಮ</option>
-                        <option value="high">ಹೆಚ್ಚು (ಚಿಕ್ಕ ಗಾತ್ರ)</option>
-                    </select>
-                </div>
+                    <div id="operationOptions" style="display: ${config.options.length > 0 ? 'block' : 'none'};">
+                        <div class="form-group" id="pagesGroup" style="display: ${config.options.includes('pages') ? 'block' : 'none'};">
+                            <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
+                            <input type="text" name="pages" id="pagesInput" class="form-input" 
+                                   placeholder="ಉದಾ: 1,3,5-10">
+                            <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
+                        </div>
 
-                <div class="form-group" id="rotationAngleGroup" style="display: none;">
-                    <label class="form-label" for="rotationAngleSelect">ತಿರುಗುವ ಕೋನ</label>
-                    <select name="rotation_angle" id="rotationAngleSelect" class="form-select">
-                        <option value="90">90° (ಬಲಕ್ಕೆ)</option>
-                        <option value="180">180° (ವಿಪರೀತ)</option>
-                        <option value="270">270° (ಎಡಕ್ಕೆ)</option>
-                        <option value="-90">-90° (ಎಡಕ್ಕೆ)</option>
-                    </select>
-                </div>
+                        <div class="form-group" id="compressionGroup" style="display: ${config.options.includes('compression') ? 'block' : 'none'};">
+                            <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
+                            <select name="compression" id="compressionSelect" class="form-select">
+                                <option value="low">ಕಡಿಮೆ (ಉತ್ತಮ ಗುಣಮಟ್ಟ)</option>
+                                <option value="medium" selected>ಮಧ್ಯಮ</option>
+                                <option value="high">ಹೆಚ್ಚು (ಚಿಕ್ಕ ಗಾತ್ರ)</option>
+                            </select>
+                        </div>
+                    </div>
+                     
+                    
+                        <div class="form-group" id="rotationAngleGroup" style="display: ${config.options.includes('rotation_angle') ? 'block' : 'none'};">
+                        <label class="form-label" for="rotationAngleSelect">ತಿರುಗುವ ಕೋನ</label>
+                        <select name="rotation_angle" id="rotationAngleSelect" class="form-select">
+                            <option value="90">90° (ಬಲಕ್ಕೆ)</option>
+                            <option value="180">180° (ವಿಪರೀತ)</option>
+                            <option value="270">270° (ಎಡಕ್ಕೆ)</option>
+                            <option value="-90">-90° (ಎಡಕ್ಕೆ)</option>
+                        </select>
+                    </div>
 
-                <div class="form-group" id="applyToAllGroup" style="display: none;">
-                    <label class="form-label">
-                        <input type="checkbox" name="apply_to_all" id="applyToAllCheckbox" checked>
-                        ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸಿ
-                    </label>
-                    <small>ಇದನ್ನು ಆಫ್ ಮಾಡಿದರೆ ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು</small>
-                </div>
+                    <div class="form-group" id="applyToAllGroup" style="display: ${config.options.includes('apply_to_all') ? 'block' : 'none'};">
+                        <label class="form-label">
+                            <input type="checkbox" name="apply_to_all" id="applyToAllCheckbox" checked>
+                            ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸಿ
+                        </label>
+                        <small>ಇದನ್ನು ಆಫ್ ಮಾಡಿದರೆ ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು</small>
+                    </div>
+                 
 
-                <div class="form-group" id="splitMethodGroup" style="display: none;">
-                    <label class="form-label" for="splitMethodSelect">ವಿಭಾಗ ವಿಧಾನ</label>
-                    <select name="split_method" id="splitMethodSelect" class="form-select" onchange="handleSplitMethodChange()">
-                        <option value="pages">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು/ವ್ಯಾಪ್ತಿಗಳು</option>
-                        <option value="size">ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ</option>
-                        <option value="auto">ಸ್ವಯಂಚಾಲಿತ ಚಂಕ್‌ಗಳು</option>
-                    </select>
-                </div>
+                    <div class="form-group" id="splitMethodGroup" style="display: ${config.options.includes('split_method') ? 'block' : 'none'};">
+                        <label class="form-label" for="splitMethodSelect">ವಿಭಾಗ ವಿಧಾನ</label>
+                        <select name="split_method" id="splitMethodSelect" class="form-select" onchange="handleSplitMethodChange()">
+                            <option value="pages">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು/ವ್ಯಾಪ್ತಿಗಳು</option>
+                            <option value="size">ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ</option>
+                            <option value="auto">ಸ್ವಯಂಚಾಲಿತ ಚಂಕ್‌ಗಳು</option>
+                        </select>
+                    </div>
 
-                <div class="form-group" id="fileSizeGroup" style="display: none;">
-                    <label class="form-label" for="maxSizeInput">ಪ್ರತಿ ಫೈಲ್ ಗರಿಷ್ಠ ಗಾತ್ರ (MB)</label>
-                    <input type="number" name="target_size_mb" id="maxSizeInput" class="form-input" placeholder="10" min="1" max="50" value="10">
-                    <small>ಪ್ರತಿ ಭಾಗದ ಅಂದಾಜು ಗಾತ್ರ</small>
-                </div>
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                        <label class="form-label" for="maxSizeInput">ಪ್ರತಿ ಫೈಲ್ ಗರಿಷ್ಠ ಗಾತ್ರ (MB)</label>
+                        <input type="number" name="target_size_mb" id="maxSizeInput" class="form-input" 
+                            placeholder="10" min="1" max="50" value="10">
+                        <small>ಪ್ರತಿ ಭಾಗದ ಅಂದಾಜು ಗಾತ್ರ</small>
+                    </div>
 
-                <div class="form-group" id="autoChunkGroup" style="display: none;">
-                    <label class="form-label" for="chunkSizeInput">ಪ್ರತಿ ಚಂಕ್‌ನಲ್ಲಿ ಪುಟಗಳು</label>
-                    <input type="number" name="pages_per_chunk" id="chunkSizeInput" class="form-input" placeholder="20" min="5" max="100" value="20">
-                    <small>ಪ್ರತಿ ಫೈಲ್‌ನಲ್ಲಿ ಎಷ್ಟು ಪುಟಗಳು</small>
-                </div>
-            </div>
+                    <div class="form-group" id="autoChunkGroup" style="display: none;">
+                        <label class="form-label" for="chunkSizeInput">ಪ್ರತಿ ಚಂಕ್‌ನಲ್ಲಿ ಪುಟಗಳು</label>
+                        <input type="number" name="pages_per_chunk" id="chunkSizeInput" class="form-input" 
+                            placeholder="20" min="5" max="100" value="20">
+                        <small>ಪ್ರತಿ ಫೈಲ್‌ನಲ್ಲಿ ಎಷ್ಟು ಪುಟಗಳು</small>
+                    </div>
 
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary" id="processBtn" disabled>
-                    <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
-                </button>
-            </div>
-        </form>
-    `;
-    
-    // Re-bind event listeners after content is restored
-    bindEventListeners();
-}
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                    <label class="form-label" for="maxSizeInput">ಗರಿಷ್ಠ ಫೈಲ್ ಗಾತ್ರ (MB)</label>
+                    <input type="number" name="max_file_size" id="maxSizeInput" class="form-input" 
+                    placeholder="10" min="1" max="100">
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="processBtn" disabled>
+                            <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
+                        </button>
+                    </div>
+                </form>
+            `;
+            
+            bindEventListeners();
+        }
 
         function bindEventListeners() {
             const uploadArea = document.getElementById('uploadArea');
@@ -1265,7 +1272,6 @@
                 }
             });
             
-            
             const operationOptions = document.getElementById('operationOptions');
             if (operationOptions) {
                 if (options.length > 0) {
@@ -1280,9 +1286,6 @@
                     operationOptions.style.display = 'none';
                 }
             }
-
-
-            
         }
 
         function closeModal() {
@@ -1298,60 +1301,28 @@
         }
 
         function resetForm() {
-    selectedFiles = [];
-    selectedPages.clear();
-    currentPreviewData = null;
-    
-    const filesList = document.getElementById('filesList');
-    const processBtn = document.getElementById('processBtn');
-    const fileInput = document.getElementById('fileInput');
-    const previewSection = document.getElementById('previewSection');
-    
-    if (filesList) {
-        filesList.style.display = 'none';
-        filesList.innerHTML = '';
-    }
-    if (processBtn) {
-        processBtn.disabled = true;
-    }
-    if (fileInput) {
-        fileInput.value = '';
-    }
-    if (previewSection) {
-        previewSection.style.display = 'none';
-    }
-}
-    function handleCropPresetChange() {
-    const preset = document.getElementById('cropPresetSelect').value;
-    const customSettings = document.getElementById('customCropSettings');
-    const inputs = customSettings.querySelectorAll('input');
-    
-    switch(preset) {
-        case 'remove_margins':
-            inputs[0].value = 10; // top
-            inputs[1].value = 10; // bottom
-            inputs[2].value = 10; // left
-            inputs[3].value = 10; // right
-            break;
-        case 'center_crop':
-            inputs[0].value = 20; // top
-            inputs[1].value = 20; // bottom
-            inputs[2].value = 15; // left
-            inputs[3].value = 15; // right
-            break;
-        case 'header_footer':
-            inputs[0].value = 25; // top
-            inputs[1].value = 25; // bottom
-            inputs[2].value = 0;  // left
-            inputs[3].value = 0;  // right
-            break;
-        case 'custom':
-        default:
-            // Keep current values for custom
-            break;
-    }
-}
-
+            selectedFiles = [];
+            selectedPages.clear();
+            currentPreviewData = null;
+            const filesList = document.getElementById('filesList');
+            const processBtn = document.getElementById('processBtn');
+            const fileInput = document.getElementById('fileInput');
+            const previewSection = document.getElementById('previewSection');
+            
+            if (filesList) {
+                filesList.style.display = 'none';
+                filesList.innerHTML = '';
+            }
+            if (processBtn) {
+                processBtn.disabled = true;
+            }
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            if (previewSection) {
+                previewSection.style.display = 'none';
+            }
+        }
 
         function handleFileSelection(files) {
             const config = operationConfigs[currentOperation];
@@ -1747,7 +1718,7 @@
             }
 
         async function handleFormSubmission(e) {
-        e.preventDefault();
+    e.preventDefault();
     
     const config = operationConfigs[currentOperation];
     if (selectedFiles.length < (config.minFiles || 1)) {
@@ -1835,7 +1806,6 @@
         showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
     }
 }
-
         function showLoadingModal() {
             document.getElementById('loadingModal').style.display = 'block';
         }
