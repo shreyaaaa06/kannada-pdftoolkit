@@ -1,0 +1,33 @@
+# Core
+numpy>=1.26
+Flask>=3.1
+Werkzeug>=3.1
+python-dotenv>=1.0
+requests>=2.31
+
+# PDF processing
+pdf2image>=1.17
+pdfplumber>=0.11
+PyPDF2>=3.0
+PyMuPDF==1.23.14  # fitz
+
+# OCR & image handling
+opencv-python-headless>=4.12
+Pillow>=11
+pytesseract>=0.3
+
+# Google Cloud SDKs
+google-cloud-storage>=2.18
+google-cloud-documentai>=2.28
+google-cloud-vision>=3.10
+google-api-python-client>=2.129
+google-auth>=2.20
+google-auth-httplib2>=0.2
+google-auth-oauthlib>=1.2
+
+# Document generation
+python-docx>=1.2
+
+# Utilities
+tenacity>=8.2     # retries
+tqdm>=4.66        # optional progress, can omit in production
