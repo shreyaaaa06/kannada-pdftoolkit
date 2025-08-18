@@ -8,7 +8,7 @@ class Config:
         self.OUTPUT_FOLDER = os.path.join(self.BASE_DIR, 'output')
         
         # File settings
-        self.MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+        self.MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
         self.ALLOWED_EXTENSIONS = {
             'pdf': ['.pdf'],
             'word': ['.doc', '.docx'],
