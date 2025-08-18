@@ -6,8 +6,10 @@ from modules.unified_pdf_converter import UnifiedPDFConverter
 from modules.legacy_kannada import is_kannada_text
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables explicitly from textUtils/.env (CWD-agnostic)
+from pathlib import Path
+_BASE = Path(__file__).resolve().parent
+load_dotenv((_BASE / ".env").as_posix())
 
 # Configure logging
 logging.basicConfig(

@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify, send_file, session, url_for
 import os
 import uuid
+import sys
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
