@@ -1106,7 +1106,7 @@
         function selectOperation(operation) {
             currentOperation = operation;
             const config = operationConfigs[operation];
-            
+            restoreOriginalModalContent();
             document.getElementById('modalTitle').textContent = config.title;
             document.getElementById('selectedOperation').value = operation;
             document.getElementById('fileInput').accept = config.accept;
@@ -1115,12 +1115,12 @@
             
             showOperationOptions(config.options, config.hasPreview);
             resetForm();
-            restoreOriginalModalContent();
             document.getElementById('operationModal').style.display = 'block';
         }
 
         function restoreOriginalModalContent() {
             const modalBody = document.querySelector('#operationModal .modal-body');
+            if (!modalBody) return;
             const config = operationConfigs[currentOperation];
             
             modalBody.innerHTML = `
@@ -1221,6 +1221,9 @@
             `;
             
             bindEventListeners();
+            setTimeout(() => {
+        bindEventListeners();
+    }, 100);
         }
 
         function bindEventListeners() {
@@ -1323,6 +1326,31 @@
                 previewSection.style.display = 'none';
             }
         }
+        function resetFormState() {
+    // Clear all form state
+    selectedFiles = [];
+    selectedPages.clear();
+    currentPreviewData = null;
+    
+    // Reset file input
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Clear any form values
+    const pagesInput = document.getElementById('pagesInput');
+    if (pagesInput) {
+        pagesInput.value = '';
+    }
+    
+    const selectedPagesInput = document.getElementById('selectedPagesInput');
+    if (selectedPagesInput) {
+        selectedPagesInput.value = '';
+    }
+    
+    console.log('Form state reset completed');
+}
 
         function handleFileSelection(files) {
             const config = operationConfigs[currentOperation];
@@ -1737,7 +1765,7 @@
         formData.append('files', file);
     });
     
-    // Use selected pages from preview or manual input
+    // Add all form parameters
     const selectedPagesInput = document.getElementById('selectedPagesInput');
     const pagesInput = document.getElementById('pagesInput');
     
@@ -1767,29 +1795,20 @@
         formData.append('pages_per_chunk', chunkSizeInput.value);
     }
     
-    // FIXED: Add rotation parameters BEFORE the fetch request
     const rotationAngleSelect = document.getElementById('rotationAngleSelect');
     if (rotationAngleSelect && rotationAngleSelect.value) {
-        console.log('Adding rotation_angle to formData:', rotationAngleSelect.value);
         formData.append('rotation_angle', rotationAngleSelect.value);
     }
     
     const applyToAllCheckbox = document.getElementById('applyToAllCheckbox');
     if (applyToAllCheckbox) {
-        console.log('Adding apply_to_all to formData:', applyToAllCheckbox.checked);
         formData.append('apply_to_all', applyToAllCheckbox.checked);
-    }
-    
-    // Debug: Log all form data being sent
-    console.log('=== FORM DATA DEBUG ===');
-    for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
     }
     
     document.getElementById('operationModal').style.display = 'none';
     showLoadingModal();
     
-    try {
+       try {
         const response = await fetch('/upload', {
             method: 'POST',
             body: formData
@@ -1799,46 +1818,85 @@
         
         if (result.success) {
             showSuccessModal(result);
+            // CRITICAL: Complete reset after successful operation
+            resetFormState();
+            selectedFiles = []; // Clear the file array
+            
+            // Clear the file input properly
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.value = '';
+                fileInput.files = new DataTransfer().files; // Clear the FileList
+            }
         } else {
             showErrorModal(result.error);
         }
     } catch (error) {
         showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
+    } finally {
+        document.getElementById('loadingModal').style.display = 'none';
     }
+}
+
+function clearFileInputState() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        // Clear the input value
+        fileInput.value = '';
+        
+        // Create new DataTransfer object to clear FileList
+        const dt = new DataTransfer();
+        fileInput.files = dt.files;
+        
+        // Remove any event listeners and re-add them
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+    }
+    
+    selectedFiles = [];
+    console.log('File input state completely cleared');
 }
         function showLoadingModal() {
             document.getElementById('loadingModal').style.display = 'block';
         }
 
         function showSuccessModal(result) {
-            const modal = document.getElementById('operationModal');
-            const modalBody = modal.querySelector('.modal-body');
-            
-            modalBody.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 4rem; color: #4caf50; margin-bottom: 1rem;">✅</div>
-                    <h3>ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!</h3>
-                    <p style="margin: 1rem 0;">${result.message}</p>
-                    <div style="margin-top: 2rem;">
-                        <a href="${result.download_url}" class="btn btn-primary" 
-                           download="${result.filename}" style="margin-right: 1rem;">
-                            <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
-                        </a>
-                        <button class="btn" onclick="selectOperation('${currentOperation}')" 
-                                style="background: #6c757d; color: white; margin-right: 1rem;">
-                            <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
-                        </button>
-                        <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
-                            ಮುಚ್ಚಿ
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('loadingModal').style.display = 'none';
-            modal.style.display = 'block';
-        }
+    const modal = document.getElementById('operationModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    modalBody.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div style="font-size: 4rem; color: #4caf50; margin-bottom: 1rem;">✅</div>
+            <h3>ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!</h3>
+            <p style="margin: 1rem 0;">${result.message}</p>
+            <div style="margin-top: 2rem;">
+                <a href="${result.download_url}" class="btn btn-primary" 
+                   download="${result.filename}" style="margin-right: 1rem;">
+                    <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+                </a>
+                <button class="btn" onclick="startNewOperation('${currentOperation}')" 
+                        style="background: #6c757d; color: white; margin-right: 1rem;">
+                    <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
+                </button>
+                <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
+                    ಮುಚ್ಚಿ
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('loadingModal').style.display = 'none';
+    modal.style.display = 'block';
+}
 
+function startNewOperation(operation) {
+    closeModal();
+    resetFormState();
+    clearFileInputState(); // Add this line
+    setTimeout(() => {
+        selectOperation(operation);
+    }, 100);
+}
         function showErrorModal(errorMessage) {
             const modal = document.getElementById('operationModal');
             const modalBody = modal.querySelector('.modal-body');
