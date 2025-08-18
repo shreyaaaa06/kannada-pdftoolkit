@@ -8,7 +8,20 @@ import config
 import fitz  # PyMuPDF
 from PIL import Image
 import io
-
+from dotenv import load_dotenv
+# Load project env and override any pre-set shell vars
+load_dotenv(dotenv_path=os.path.join('textUtils', '.env'), override=True)
+# Normalize GOOGLE_APPLICATION_CREDENTIALS to an absolute path if given relatively
+cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if cred_path and not os.path.isabs(cred_path):
+    candidates = [
+        os.path.join('textUtils', cred_path),
+        os.path.join('textUtils', 'secrets', os.path.basename(cred_path)),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(c)
+            break
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -177,8 +190,14 @@ def upload_file():
                 result_path = pdf_ops.images_to_pdf(file_paths, session_id)
                 
             elif operation == 'pdf_to_word':
-                print("Processing PDF to Word operation")
-                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+                print("Processing PDF to Word (TextUtils) operation")
+                from textUtils.modules.unified_pdf_converter import UnifiedPDFConverter
+                input_pdf = file_paths[0]
+                out_docx = os.path.join(app.config['OUTPUT_FOLDER'], f"{session_id}_converted.docx")
+                out_txt = os.path.join(app.config['OUTPUT_FOLDER'], f"{session_id}_converted.txt")
+                converter = UnifiedPDFConverter()
+                converter.convert_pdf_to_word(input_pdf, out_docx, out_txt, mode="auto")
+                result_path = out_docx
                 
             elif operation == 'word_to_pdf':
                 print("Processing Word to PDF operation")
