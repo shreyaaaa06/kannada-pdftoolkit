@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify, send_file, session, url_for
 import os
 import uuid
+import sys
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
@@ -9,8 +10,38 @@ import fitz  # PyMuPDF
 from PIL import Image
 import io
 
+# Load TextUtils environment early so env vars and secrets are available
+try:
+    from dotenv import load_dotenv  # requires python-dotenv
+    TEXTUTILS_DIR = os.path.join(os.path.dirname(__file__), 'textUtils')
+    # Load .env from textUtils
+    load_dotenv(os.path.join(TEXTUTILS_DIR, '.env'))
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS is absolute and points to secrets if needed
+    gac = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    if gac and not os.path.isabs(gac):
+        candidate = os.path.join(TEXTUTILS_DIR, 'secrets', gac)
+        if not os.path.exists(candidate):
+            candidate = os.path.join(TEXTUTILS_DIR, gac)
+        if os.path.exists(candidate):
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = candidate
+    # Make sure we can import textUtils modules
+    if TEXTUTILS_DIR not in sys.path:
+        sys.path.append(TEXTUTILS_DIR)
+except Exception as _env_err:
+    # Proceed without blocking other features; pdf->word will report detailed error if needed
+    print(f"TextUtils env load warning: {_env_err}")
+
+# Try importing the UnifiedPDFConverter from TextUtils
+try:
+    # Import directly from 'modules' since we added textUtils dir to sys.path
+    from modules.unified_pdf_converter import UnifiedPDFConverter
+except Exception as _imp_err:
+    UnifiedPDFConverter = None
+    print(f"TextUtils import warning: {_imp_err}")
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+# Allow overriding secret via env if provided
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
@@ -206,8 +237,44 @@ def upload_file():
                 result_path = pdf_ops.images_to_pdf(file_paths, session_id)
                 
             elif operation == 'pdf_to_word':
-                print("Processing PDF to Word operation")
-                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+                print("Processing PDF to Word operation (TextUtils)")
+                if not file_paths:
+                    return jsonify({'success': False, 'error': 'PDF ಫೈಲ್ ಅಗತ್ಯ'})
+                input_pdf = file_paths[0]
+
+                if UnifiedPDFConverter is None:
+                    return jsonify({'success': False, 'error': 'TextUtils modules not available. Install dependencies and ensure imports work.'})
+
+                # Prepare output paths in main app's output folder
+                output_docx = os.path.join(app.config['OUTPUT_FOLDER'], f"{session_id}_converted.docx")
+                output_txt = os.path.join(app.config['OUTPUT_FOLDER'], f"{session_id}_converted.txt")
+
+                # Configure converter from env or sensible defaults
+                use_google = os.getenv('USE_GOOGLE_VISION', 'false').lower() == 'true'
+                debug_mode = os.getenv('TEXTUTILS_DEBUG', 'false').lower() == 'true'
+                force_ocr = os.getenv('FORCE_OCR', 'false').lower() == 'true'
+                mode = os.getenv('PDF_MODE', 'auto')  # auto | digital | scanned | fast
+                store_gcs = os.getenv('STORE_GCS', 'false').lower() == 'true'
+
+                converter = UnifiedPDFConverter(
+                    use_google_vision=use_google,
+                    debug_mode=debug_mode
+                )
+
+                # Run conversion via TextUtils
+                docx_path, txt_path, gcs_urls = converter.convert_pdf_to_word(
+                    input_pdf,
+                    output_docx,
+                    output_txt,
+                    title=None,
+                    author=None,
+                    force_ocr=force_ocr,
+                    mode=mode,
+                    store_gcs=store_gcs
+                )
+
+                # Prefer local docx path as result for download chaining
+                result_path = docx_path
                 
             elif operation == 'word_to_pdf':
                 print("Processing Word to PDF operation")
