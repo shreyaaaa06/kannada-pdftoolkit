@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PDF Sorting and Lock Toolkit
 
 This is a specialized toolkit focused on two core PDF operations:
@@ -144,3 +145,7 @@ Government of Karnataka - Digital Karnataka Initiative
 
 ## Support
 For technical support or feature requests, contact the Digital Karnataka team.
+=======
+# kannada-pdftoolkit
+initial project
+>>>>>>> 398496be4ed2d647ce6ea56bcc7a1557dcdca308
