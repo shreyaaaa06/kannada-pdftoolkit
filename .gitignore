@@ -47,3 +47,6 @@ static/uploads/
 
 # OneDrive temporary files
 ~$*
+
+# Ignore nested repo and workspace copy
+kannada-pdftoolkit/
