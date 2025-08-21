@@ -1,0 +1,49 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env
+.env.*
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Project outputs and user uploads
+uploads/
+output/
+static/previews/
+static/uploads/
+
+# Logs and misc
+*.log
+.cache/
+
+# OneDrive temporary files
+~$*

@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ಪುಟ ಸಾರಿಸುವಿಕೆ ಮತ್ತು PDF ಲಾಕ್ ಉಪಕರಣಗಳು - ಕರ್ನಾಟಕ ಸರ್ಕಾರ">
+    <title>PDF ಸಾರಿಸುವಿಕೆ ಮತ್ತು ಲಾಕ್ ಉಪಕರಣಗಳು | ಕರ್ನಾಟಕ ಸರ್ಕಾರ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --biscuit-cream: #f5f1e8;
+            --biscuit-light: #e8e0d1;
+            --light-brown: #8b7355;
+            --brown-text: #5d4037;
+            --gold: #d4af37;
+            --dark-text: #3e2723;
+            --white: #ffffff;
+            --shadow: rgba(139, 115, 85, 0.2);
+            --gov-blue: #1e3a8a;
+            --gov-orange: #ff6600;
+            --success-green: #16a34a;
+            --danger-red: #dc2626;
+        }
+
+        body {
+            font-family: 'Noto Sans Kannada', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--biscuit-cream) 0%, var(--biscuit-light) 100%);
+            color: var(--dark-text);
+            min-height: 100vh;
+        }
+
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gov-blue) 0%, var(--light-brown) 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(30, 58, 138, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-green) 0%, #059669 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-red) 0%, #b91c1c 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--light-brown);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--gov-blue);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--success-green);
+            background: rgba(22, 163, 74, 0.1);
+        }
+
+        .operation-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            border: 1px solid rgba(139, 115, 85, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .operation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(139, 115, 85, 0.3);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .preview-item:hover {
+            border-color: var(--gov-blue);
+            transform: scale(1.05);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: rgba(22, 163, 74, 0.1);
+            border: 1px solid var(--success-green);
+            color: var(--success-green);
+        }
+
+        .message.error {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid var(--danger-red);
+            color: var(--danger-red);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--biscuit-light);
+            border-radius: 8px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--gov-blue);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: var(--gov-blue);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="glass-morphism p-8">
+                <h1 class="text-4xl font-bold text-gov-blue mb-4">
+                    <i class="fas fa-sort-amount-up mr-3"></i>
+                    PDF ಸಾರಿಸುವಿಕೆ ಮತ್ತು ಲಾಕ್ ಉಪಕರಣಗಳು
+                </h1>
+                <p class="text-lg text-brown-text">
+                    ಕನ್ನಡ ಪುಟ ಸಂಖ್ಯೆಗಳ ಆಧಾರದ ಮೇಲೆ PDF ಪುಟಗಳನ್ನು ಸಾರಿಸಿ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಣೆ ಸೇರಿಸಿ
+                </p>
+                <p class="text-sm text-light-brown mt-2">ಕರ್ನಾಟಕ ಸರ್ಕಾರ - ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ಉಪಕ್ರಮ</p>
+            </div>
+        </header>
+
+        <!-- Main Tool Section -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Tab Navigation -->
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('sort')">
+                    <i class="fas fa-sort-numeric-up mr-2"></i>
+                    ಪುಟ ಸಾರಿಸುವಿಕೆ
+                </div>
+                <div class="tab" onclick="switchTab('protect')">
+                    <i class="fas fa-lock mr-2"></i>
+                    PDF ರಕ್ಷಣೆ
+                </div>
+                <div class="tab" onclick="switchTab('unlock')">
+                    <i class="fas fa-unlock mr-2"></i>
+                    PDF ಅನ್‌ಲಾಕ್
+                </div>
+            </div>
+
+            <!-- Sorting Tab -->
+            <div id="sort-tab" class="tab-content active">
+                <div class="operation-card">
+                    <h2 class="text-2xl font-bold mb-4 text-gov-blue">
+                        <i class="fas fa-sort-amount-up mr-2"></i>
+                        ಕನ್ನಡ ಪುಟ ಸಂಖ್ಯೆಗಳ ಆಧಾರದ ಮೇಲೆ ಸಾರಿಸುವಿಕೆ
+                    </h2>
+                    <p class="text-brown-text mb-6">
+                        PDF ಫೈಲ್‌ನಲ್ಲಿರುವ ಕನ್ನಡ ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ಪತ್ತೆ ಮಾಡಿ ಸರಿಯಾದ ಕ್ರಮದಲ್ಲಿ ಪುಟಗಳನ್ನು ಸಾರಿಸುತ್ತದೆ
+                    </p>
+
+                    <!-- File Upload for Sorting -->
+                    <div class="file-upload-area" id="sortUploadArea">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-light-brown mb-4"></i>
+                        <p class="text-lg mb-2">PDF ಫೈಲ್ ಇಲ್ಲಿ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ</p>
+                        <p class="text-sm text-brown-text mb-4">ಅಥವಾ ಕ್ಲಿಕ್ ಮಾಡಿ ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಲು</p>
+                        <input type="file" id="sortFileInput" accept=".pdf" class="hidden">
+                        <button onclick="document.getElementById('sortFileInput').click()" class="btn-primary">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div id="sortPreviewSection" class="hidden">
+                        <h3 class="text-xl font-bold mt-6 mb-4">ಪೂರ್ವವೀಕ್ಷಣೆ:</h3>
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchPreview('original')">ಮೂಲ ಕ್ರಮ</div>
+                            <div class="tab" onclick="switchPreview('sorted')">ಸಾರಿಸಿದ ಕ್ರಮ</div>
+                        </div>
+                        <div id="originalPreview" class="preview-grid"></div>
+                        <div id="sortedPreview" class="preview-grid hidden"></div>
+                        
+                        <button id="sortBtn" class="btn-success mt-6" onclick="processSorting()">
+                            <i class="fas fa-sort-amount-up mr-2"></i>
+                            ಪುಟಗಳನ್ನು ಸಾರಿಸಿ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protection Tab -->
+            <div id="protect-tab" class="tab-content">
+                <div class="operation-card">
+                    <h2 class="text-2xl font-bold mb-4 text-gov-blue">
+                        <i class="fas fa-lock mr-2"></i>
+                        PDF ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಣೆ
+                    </h2>
+                    <p class="text-brown-text mb-6">
+                        ನಿಮ್ಮ PDF ಫೈಲ್‌ಗೆ ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಣೆ ಸೇರಿಸಿ
+                    </p>
+
+                    <!-- File Upload for Protection -->
+                    <div class="file-upload-area" id="protectUploadArea">
+                        <i class="fas fa-shield-alt text-4xl text-light-brown mb-4"></i>
+                        <p class="text-lg mb-2">ರಕ್ಷಿಸಬೇಕಾದ PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ</p>
+                        <input type="file" id="protectFileInput" accept=".pdf" class="hidden">
+                        <button onclick="document.getElementById('protectFileInput').click()" class="btn-primary">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
+
+                    <!-- Password Form -->
+                    <div id="protectForm" class="hidden mt-6">
+                        <div class="form-group">
+                            <label for="protectionPassword">ಪಾಸ್‌ವರ್ಡ್:</label>
+                            <input type="password" id="protectionPassword" placeholder="ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು" minlength="6" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಣ:</label>
+                            <input type="password" id="confirmPassword" placeholder="ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತೆ ನಮೂದಿಸಿ" required>
+                        </div>
+                        <button id="protectBtn" class="btn-danger" onclick="processProtection()">
+                            <i class="fas fa-lock mr-2"></i>
+                            PDF ರಕ್ಷಿಸಿ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unlock Tab -->
+            <div id="unlock-tab" class="tab-content">
+                <div class="operation-card">
+                    <h2 class="text-2xl font-bold mb-4 text-gov-blue">
+                        <i class="fas fa-unlock mr-2"></i>
+                        PDF ಅನ್‌ಲಾಕ್
+                    </h2>
+                    <p class="text-brown-text mb-6">
+                        ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತ PDF ಫೈಲ್ ಅನ್‌ಲಾಕ್ ಮಾಡಿ
+                    </p>
+
+                    <!-- File Upload for Unlock -->
+                    <div class="file-upload-area" id="unlockUploadArea">
+                        <i class="fas fa-unlock-alt text-4xl text-light-brown mb-4"></i>
+                        <p class="text-lg mb-2">ಲಾಕ್ ಆಗಿರುವ PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ</p>
+                        <input type="file" id="unlockFileInput" accept=".pdf" class="hidden">
+                        <button onclick="document.getElementById('unlockFileInput').click()" class="btn-primary">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ
+                        </button>
+                    </div>
+
+                    <!-- Unlock Form -->
+                    <div id="unlockForm" class="hidden mt-6">
+                        <div id="encryptionStatus" class="mb-4"></div>
+                        <div class="form-group">
+                            <label for="unlockPassword">PDF ಪಾಸ್‌ವರ್ಡ್:</label>
+                            <input type="password" id="unlockPassword" placeholder="PDF ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ" required>
+                        </div>
+                        <button id="unlockBtn" class="btn-success" onclick="processUnlock()">
+                            <i class="fas fa-unlock mr-2"></i>
+                            PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="operation-card hidden">
+                <h3 class="text-xl font-bold mb-4 text-success-green">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    ಫಲಿತಾಂಶ
+                </h3>
+                <div id="resultMessage"></div>
+                <div id="downloadSection" class="mt-4 hidden">
+                    <a id="downloadLink" class="btn-success" download>
+                        <i class="fas fa-download mr-2"></i>
+                        ಫೈಲ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messageContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'sort';
+        let sortPreviewData = null;
+        let currentFiles = {};
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            currentTab = tabName;
+            clearMessages();
+            hideResults();
+        }
+
+        // Preview switching for sorting
+        function switchPreview(type) {
+            document.querySelectorAll('#sortPreviewSection .tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (type === 'original') {
+                document.getElementById('originalPreview').classList.remove('hidden');
+                document.getElementById('sortedPreview').classList.add('hidden');
+            } else {
+                document.getElementById('originalPreview').classList.add('hidden');
+                document.getElementById('sortedPreview').classList.remove('hidden');
+            }
+        }
+
+        // File upload handlers
+        document.getElementById('sortFileInput').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'sort');
+        });
+
+        document.getElementById('protectFileInput').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'protect');
+        });
+
+        document.getElementById('unlockFileInput').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 'unlock');
+        });
+
+        // Drag and drop handlers
+        ['sortUploadArea', 'protectUploadArea', 'unlockUploadArea'].forEach(areaId => {
+            const area = document.getElementById(areaId);
+            area.addEventListener('dragover', handleDragOver);
+            area.addEventListener('dragleave', handleDragLeave);
+            area.addEventListener('drop', handleDrop);
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const tabName = e.currentTarget.id.replace('UploadArea', '');
+                handleFileUpload(files[0], tabName);
+            }
+        }
+
+        // File upload handling
+        function handleFileUpload(file, operation) {
+            if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+                showMessage('PDF ಫೈಲ್ ಮಾತ್ರ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', 'error');
+                return;
+            }
+
+            currentFiles[operation] = file;
+            showMessage(`${file.name} ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ`, 'success');
+
+            if (operation === 'sort') {
+                generateSortingPreview(file);
+            } else if (operation === 'protect') {
+                document.getElementById('protectForm').classList.remove('hidden');
+            } else if (operation === 'unlock') {
+                checkEncryption(file);
+            }
+        }
+
+        // Generate sorting preview
+        function generateSortingPreview(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showMessage('ಪೂರ್ವವೀಕ್ಷಣೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+            fetch('/generate-sort-preview', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    sortPreviewData = data;
+                    displaySortingPreview(data);
+                    document.getElementById('sortPreviewSection').classList.remove('hidden');
+                    clearMessages();
+                } else {
+                    showMessage(data.error || 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆಯಲ್ಲಿ ದೋಷ: ' + error.message, 'error');
+            });
+        }
+
+        // Display sorting preview
+        function displaySortingPreview(data) {
+            const originalContainer = document.getElementById('originalPreview');
+            const sortedContainer = document.getElementById('sortedPreview');
+
+            originalContainer.innerHTML = '';
+            sortedContainer.innerHTML = '';
+
+            // Original order
+            data.previews.forEach(preview => {
+                const item = createPreviewItem(preview);
+                originalContainer.appendChild(item);
+            });
+
+            // Sorted order
+            data.sorted_order.forEach(preview => {
+                const item = createPreviewItem(preview);
+                sortedContainer.appendChild(item);
+            });
+        }
+
+        // Create preview item
+        function createPreviewItem(preview) {
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            item.innerHTML = `
+                ${preview.thumbnail_path ? `<img src="${preview.thumbnail_path}" alt="ಪುಟ ${preview.page_num}">` : '<div class="h-32 bg-gray-200 rounded"></div>'}
+                <p class="text-sm font-medium">ಪುಟ ${preview.page_num}</p>
+                <p class="text-xs text-brown-text">ಸಂಖ್ಯೆ: ${preview.extracted_number}</p>
+            `;
+            return item;
+        }
+
+        // Check encryption status
+        function checkEncryption(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/check-encryption', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const statusDiv = document.getElementById('encryptionStatus');
+                if (data.success) {
+                    if (data.is_encrypted) {
+                        statusDiv.innerHTML = '<div class="message error"><i class="fas fa-lock mr-2"></i>ಈ PDF ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತವಾಗಿದೆ</div>';
+                        document.getElementById('unlockForm').classList.remove('hidden');
+                    } else {
+                        statusDiv.innerHTML = '<div class="message success"><i class="fas fa-unlock mr-2"></i>ಈ PDF ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತವಾಗಿಲ್ಲ</div>';
+                    }
+                } else {
+                    showMessage(data.error || 'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಪರಿಶೀಲನೆ ವಿಫಲ', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಪರಿಶೀಲನೆಯಲ್ಲಿ ದೋಷ: ' + error.message, 'error');
+            });
+        }
+
+        // Process sorting
+        function processSorting() {
+            if (!currentFiles.sort) {
+                showMessage('ಮೊದಲು PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sortBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> ಸಾರಿಸಲಾಗುತ್ತಿದೆ...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('files', currentFiles.sort);
+            formData.append('operation', 'sort');
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    showMessage(data.error || 'ಸಾರಿಸುವಿಕೆ ವಿಫಲವಾಗಿದೆ', 'error');
+                }
+            })
+            .catch(error => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showMessage('ಸಾರಿಸುವಿಕೆಯಲ್ಲಿ ದೋಷ: ' + error.message, 'error');
+            });
+        }
+
+        // Process protection
+        function processProtection() {
+            const password = document.getElementById('protectionPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!currentFiles.protect) {
+                showMessage('ಮೊದಲು PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು ಇರಬೇಕು', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('protectBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> ರಕ್ಷಿಸಲಾಗುತ್ತಿದೆ...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('files', currentFiles.protect);
+            formData.append('operation', 'protect');
+            formData.append('protection_password', password);
+            formData.append('confirm_password', confirmPassword);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+                if (data.success) {
+                    showResults(data);
+                    // Clear password fields
+                    document.getElementById('protectionPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showMessage(data.error || 'ರಕ್ಷಣೆ ವಿಫಲವಾಗಿದೆ', 'error');
+                }
+            })
+            .catch(error => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showMessage('ರಕ್ಷಣೆಯಲ್ಲಿ ದೋಷ: ' + error.message, 'error');
+            });
+        }
+
+        // Process unlock
+        function processUnlock() {
+            const password = document.getElementById('unlockPassword').value;
+
+            if (!currentFiles.unlock) {
+                showMessage('ಮೊದಲು PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', 'error');
+                return;
+            }
+
+            if (!password) {
+                showMessage('ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('unlockBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> ಅನ್‌ಲಾಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('files', currentFiles.unlock);
+            formData.append('operation', 'unlock');
+            formData.append('unlock_password', password);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+                if (data.success) {
+                    showResults(data);
+                    // Clear password field
+                    document.getElementById('unlockPassword').value = '';
+                } else {
+                    showMessage(data.error || 'ಅನ್‌ಲಾಕ್ ವಿಫಲವಾಗಿದೆ', 'error');
+                }
+            })
+            .catch(error => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showMessage('ಅನ್‌ಲಾಕ್‌ನಲ್ಲಿ ದೋಷ: ' + error.message, 'error');
+            });
+        }
+
+        // Show results
+        function showResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultMessage = document.getElementById('resultMessage');
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadLink = document.getElementById('downloadLink');
+
+            resultMessage.innerHTML = `<div class="message success">${data.message}</div>`;
+            
+            if (data.download_url) {
+                downloadLink.href = data.download_url;
+                downloadLink.download = data.filename;
+                downloadSection.classList.remove('hidden');
+            }
+
+            resultsSection.classList.remove('hidden');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Hide results
+        function hideResults() {
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+
+        // Show message
+        function showMessage(message, type = 'info') {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = message;
+            
+            container.innerHTML = '';
+            container.appendChild(messageDiv);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Clear messages
+        function clearMessages() {
+            document.getElementById('messageContainer').innerHTML = '';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Any initialization code
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+/* Custom styles for sorting and lock toolkit */
+
+:root {
+    --biscuit-cream: #f5f1e8;
+    --biscuit-light: #e8e0d1;
+    --light-brown: #8b7355;
+    --brown-text: #5d4037;
+    --gold: #d4af37;
+    --dark-text: #3e2723;
+    --white: #ffffff;
+    --shadow: rgba(139, 115, 85, 0.2);
+    --gov-blue: #1e3a8a;
+    --gov-orange: #ff6600;
+    --success-green: #16a34a;
+    --danger-red: #dc2626;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .tab {
+        margin-bottom: 4px;
+    }
+    
+    .preview-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+    }
+    
+    .operation-card {
+        padding: 16px;
+        margin: 12px 0;
+    }
+    
+    .file-upload-area {
+        padding: 24px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .tab, .btn-primary, .btn-success, .btn-danger {
+        display: none;
+    }
+    
+    .operation-card {
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+}
+
+/* Accessibility improvements */
+.btn-primary:focus,
+.btn-success:focus,
+.btn-danger:focus,
+.tab:focus,
+input:focus,
+select:focus {
+    outline: 3px solid var(--gov-blue);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --biscuit-cream: #ffffff;
+        --biscuit-light: #f0f0f0;
+        --light-brown: #000000;
+        --brown-text: #000000;
+        --dark-text: #000000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
