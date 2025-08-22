@@ -11,7 +11,12 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import pdfplumber
-from pdf2image import convert_from_path
+try:
+    from pdf2image import convert_from_path
+    HAS_PDF2IMAGE = True
+except ImportError:
+    HAS_PDF2IMAGE = False
+    convert_from_path = None
 from PIL import Image
 import fitz  # PyMuPDF
 
@@ -48,6 +53,14 @@ except ImportError:
     signed_url = None
 
 from .docx_builder import DocxBuilder
+
+# Fallback converter for when poppler is not available
+try:
+    from .fallback_converter import FallbackPDFConverter
+    HAS_FALLBACK = True
+except ImportError:
+    HAS_FALLBACK = False
+    FallbackPDFConverter = None
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +195,27 @@ class UnifiedPDFConverter:
                 gcs_urls = self._upload_to_gcs(result[0], result[1])
 
             return result[0], result[1], gcs_urls
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Check if it's a poppler-related error and use fallback
+            if ("poppler" in error_msg or "unable to get page count" in error_msg or 
+                "pdf2image" in error_msg) and HAS_FALLBACK:
+                logger.warning(f"Poppler not available, using fallback converter: {e}")
+                fallback = FallbackPDFConverter(debug_mode=False)
+                result = fallback.convert_pdf_to_word_simple(
+                    input_pdf_path, output_docx_path, output_txt_path, title, author
+                )
+                
+                # Upload to GCS if requested
+                gcs_urls = None
+                if store_gcs:
+                    gcs_urls = self._upload_to_gcs(result[0], result[1])
+                
+                return result[0], result[1], gcs_urls
+            else:
+                # Re-raise the original error
+                raise
 
         except Exception as e:
             logger.error(f"Conversion failed: {e}")

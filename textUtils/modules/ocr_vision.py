@@ -6,7 +6,12 @@ try:
 except ImportError:
     vision = None
 from PIL import Image
-from pdf2image import convert_from_path
+try:
+    from pdf2image import convert_from_path
+    HAS_PDF2IMAGE = True
+except ImportError:
+    HAS_PDF2IMAGE = False
+    convert_from_path = None
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +24,10 @@ class LineSpan:
 
 def rasterize_pdf_to_images(local_pdf_path: str) -> List[Image.Image]:
     """Convert PDF pages to PIL Images"""
+    if not HAS_PDF2IMAGE or convert_from_path is None:
+        raise ImportError("pdf2image package not available or poppler not installed. "
+                         "Install poppler: https://github.com/oschwartz10612/poppler-windows/releases/")
+    
     try:
         dpi = int(os.getenv("OCR_RASTER_DPI", "300"))
         images = convert_from_path(local_pdf_path, dpi=dpi)
@@ -26,6 +35,11 @@ def rasterize_pdf_to_images(local_pdf_path: str) -> List[Image.Image]:
         return images
     except Exception as e:
         logger.error(f"PDF rasterization failed: {e}")
+        # Check if it's a poppler-related error
+        error_msg = str(e).lower()
+        if "poppler" in error_msg or "unable to get page count" in error_msg:
+            raise ImportError("Poppler utilities not found. Please install poppler for Windows: "
+                            "https://github.com/oschwartz10612/poppler-windows/releases/")
         raise
 
 def vision_fulltext_on_image(pil_img: Image.Image, language_hints: List[str] = None) -> List[LineSpan]:
