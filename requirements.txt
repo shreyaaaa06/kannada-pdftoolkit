@@ -1,38 +1,68 @@
+# Core Flask dependencies
 Flask==2.3.3
 Werkzeug==2.3.7
+
+# PDF processing libraries
 PyPDF2==3.0.1
 PyMuPDF==1.23.8
+pypdf==3.16.4
+pdf2image==1.16.3
 reportlab==4.0.4
+
+# Image processing
 Pillow==10.0.1
 opencv-python==4.8.1.78
-numpy==1.24.3
-python-docx==0.8.11
-pdf2docx==0.5.6
-python-docx2pdf==0.1.8
-python-magic==0.4.27
-uuid==1.30
-fonttools==4.42.1
 Wand==0.6.11
-python-dotenv==1.0.0
-secure-filename==0.1
-pypdf==3.16.4
+scikit-image==0.21.0
+
+# Document processing
+python-docx==0.8.11
+docx2pdf==0.1.8
+
+# OCR libraries
 pytesseract==0.3.10
 easyocr==1.7.0
 paddlepaddle==2.5.1
 paddleocr==2.7.0.3
+
+# Font and text processing
+fonttools==4.42.1
+freetype-py>=2.3.0
+
+# Language and Unicode support
 langdetect==1.0.9
-regex==2023.8.8
 indic-transliteration==2.3.37
-pyicu==2.11
-scikit-image==0.21.0
+pyicu==2.15
+unicodedata2>=15.0.0
+
+# Utility libraries
+numpy==1.24.3
 matplotlib==3.7.2
 tqdm==4.66.1
 psutil==5.9.5
+regex==2023.8.8
+python-magic==0.4.27
+python-dotenv==1.0.0
+secure-filename==0.1
+uuid==1.30
+requests>=2.28.0
+urllib3>=1.26.0
+html5lib>=1.1
+
+# Optional dependencies (remove if causing issues)
+# harfbuzz>=0.0.1
+# difflib2>=0.1.0
+
+PyPDF2==3.0.1
+pdf2docx==0.5.6
+python-docx==0.8.11
+Pillow==10.0.1
+reportlab==4.0.4
+fpdf2==2.7.6
+img2pdf==0.4.4
 pdf2image==1.16.3
-PyMuPDF==1.23.5
-
-# For better Word to PDF conversion (optional)
-python-docx2pdf==0.1.8
-
-# Required for Kannada font support
-fonttools==4.42.1
+PyMuPDF==1.23.8
+docx2pdf==0.8
+pytesseract==0.3.10
+tesseract==0.3.10
+weasyprint==56.0 

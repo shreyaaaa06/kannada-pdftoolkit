@@ -14,23 +14,58 @@ import traceback
 import time
 import os
 import config
+import sys
+import html
+from flask import redirect, url_for
+from utils.pdf_compare import PDFCompare
+import unicodedata
+from flask import Response
+import requests
+from weasyprint import HTML, CSS
+from flask import make_response
+import json
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')    
+pdf_compare = PDFCompare()
+app.config['JSON_AS_ASCII'] = False
+app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
+# Add this to your app.py after other directory creation
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+os.environ['PYTHONIOENCODING'] = 'utf-8'
 
+# Set UTF-8 encoding for the entire application
+if sys.platform.startswith('win'):
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
+@app.after_request  
+def after_request(response):
+    """Ensure UTF-8 encoding for all responses"""
+    if response.content_type:
+        if 'charset' not in response.content_type:
+            if 'text/html' in response.content_type:
+                response.content_type = 'text/html; charset=utf-8'
+            elif 'application/json' in response.content_type:
+                response.content_type = 'application/json; charset=utf-8'
+    return response
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
 app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
 
+
+
 # Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
-
+# Create temporary directory for comparison images
+app.config['TEMP_FOLDER'] = 'static/temp'
+os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 file_handler = FileHandler()
 pdf_ops = PDFOperations()
 
@@ -278,9 +313,65 @@ def upload_file():
                     return jsonify({'success': False, 'error': 'ಅಳಿಸಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
                 result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
                 
+            # Replace your compression section in app.py with this:
+
             elif operation == 'compress':
                 print("Processing compress operation")
-                result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
+                
+                # Get compression parameters
+                compression_level = request.form.get('compression', 'medium')
+                target_size_mb = request.form.get('target_size_mb')
+                
+                # Convert target size to float if provided
+                target_size = None
+                if target_size_mb and target_size_mb.strip():
+                    try:
+                        target_size = float(target_size_mb)
+                        print(f"Target size specified: {target_size}MB")
+                    except (ValueError, TypeError):
+                        target_size = None
+                        print("Invalid target size, ignoring")
+                
+                # Get advanced options if provided
+                image_quality = request.form.get('imageQuality')  # Note: matching HTML id
+                image_dpi = request.form.get('imageDPI')
+                remove_metadata = request.form.get('removeMetadata') == 'on'
+                optimize_fonts = request.form.get('optimizeFonts') == 'on'
+                
+                # Convert string parameters to integers if provided and valid
+                quality = None
+                dpi = None
+                
+                if image_quality and image_quality.strip():
+                    try:
+                        quality = int(image_quality)
+                        quality = max(10, min(100, quality))  # Clamp between 10-100
+                        print(f"Image quality: {quality}")
+                    except (ValueError, TypeError):
+                        print("Invalid image quality, using default")
+                
+                if image_dpi and image_dpi.strip():
+                    try:
+                        dpi = int(image_dpi)
+                        dpi = max(50, min(600, dpi))  # Clamp between 50-600
+                        print(f"Image DPI: {dpi}")
+                    except (ValueError, TypeError):
+                        print("Invalid image DPI, using default")
+                
+                print(f"Compression settings: level={compression_level}, target={target_size}MB")
+                print(f"Advanced options: quality={quality}, dpi={dpi}, remove_metadata={remove_metadata}, optimize_fonts={optimize_fonts}")
+                
+                # Use the enhanced compression method
+                result_path = pdf_ops.compress_pdf_enhanced(
+                    file_paths[0], 
+                    compression_level, 
+                    session_id,
+                    target_size_mb=target_size,
+                    image_quality=quality,
+                    image_dpi=dpi,
+                    remove_metadata=remove_metadata,
+                    optimize_fonts=optimize_fonts
+                )
                 
             elif operation == 'pdf_to_jpeg':
                 print("Processing PDF to JPEG operation")
@@ -342,6 +433,56 @@ def upload_file():
                 
                 print("=== WORD TO PDF OPERATION COMPLETE ===")
             
+            elif operation == 'compare':
+                print("Processing compare operation")
+                if len(file_paths) != 2:
+                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು'})
+                
+                session.pop('comparison_data', None)
+                session.pop('comparison_report_url', None)
+                compare_type ='both'
+                
+                # CRITICAL FIX: Maintain upload order - don't sort by size
+                # file_paths[0] should always be the first uploaded file (left side)
+                # file_paths[1] should always be the second uploaded file (right side)
+                pdf1_path = file_paths[0]  # First uploaded file - LEFT side
+                pdf2_path = file_paths[1]  # Second uploaded file - RIGHT side
+                
+                print(f"Comparing: {pdf1_path} (LEFT) vs {pdf2_path} (RIGHT)")
+                
+                # Use the dedicated comparison class with maintained order
+                comparison_results = pdf_compare.compare_pdfs_web(pdf1_path, pdf2_path, session_id, compare_type)
+                
+                if not comparison_results:
+                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'})
+                
+                # Store comparison data in session for the results page
+                session['comparison_summary'] = {
+                    'file1_name': comparison_results['file1_name'],
+                    'file2_name': comparison_results['file2_name'],
+                    'file1_pages': comparison_results['file1_pages'],
+                    'file2_pages': comparison_results['file2_pages'],
+                    'total_text_changes': comparison_results['summary']['total_text_changes'],
+                    'visual_diff_pages': comparison_results['summary']['visual_diff_pages'],
+                    'session_id': session_id
+                }
+
+                # SAVE FULL DATA TO FILE INSTEAD OF SESSION
+                import json
+                comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
+                with open(comparison_file, 'w', encoding='utf-8') as f:
+                    json.dump(comparison_results, f, ensure_ascii=False, indent=2)
+
+                session['comparison_report_url'] = comparison_results.get('report_path', '')
+                session.modified = True
+
+                # Return success with redirect to results page
+                return jsonify({
+                    'success': True,
+                    'message': 'ಹೋಲಿಕೆ ಪೂರ್ಣಗೊಂಡಿದೆ!',
+                    'redirect_url': '/compare-result',
+                    'comparison_data': comparison_results
+                })
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
                 
@@ -406,17 +547,20 @@ def download_file(session_id, filename):
         print(f"Download request - Session: {session_id}, File: {filename}")
         print(f"Looking for file at: {file_path}")
         print(f"File exists: {os.path.exists(file_path)}")
-        
-        if os.path.exists(file_path) and filename.startswith(session_id):
-            print(f"Sending file: {file_path}, Size: {os.path.getsize(file_path)} bytes")
-            return send_file(file_path, as_attachment=True, download_name=filename)
-        
-        print(f"File not found or invalid session")
-        return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
-        
+
+        if os.path.exists(file_path):
+            # Serve HTML in-browser
+            if filename.endswith('.html'):
+                return send_file(file_path)
+            else:
+                return send_file(file_path, as_attachment=True, download_name=filename)
+
+        print("File not found")
+        return "ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ", 404
+
     except Exception as e:
         print(f"Download error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return f"ದೋಷ: {str(e)}", 500
 
 @app.route('/reset', methods=['POST'])
 def reset_session():
@@ -482,6 +626,144 @@ def cleanup_session():
     
     return jsonify({'success': True})
 
+@app.route('/compare', methods=['POST'])
+def compare_pdfs():
+    try:
+        if 'file1' not in request.files or 'file2' not in request.files:
+            return jsonify({'error': 'ಎರಡು ಫೈಲ್‌ಗಳು ಅಗತ್ಯ'}), 400
+        
+        file1 = request.files['file1']
+        file2 = request.files['file2']
+        
+        if file1.filename == '' or file2.filename == '':
+            return jsonify({'error': 'ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ'}), 400
+        
+        # Generate session ID
+        session_id = str(uuid.uuid4())
+        
+        # Save uploaded files
+        # Save uploaded files with identifiable names
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file1_{file1.filename}")
+        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file2_{file2.filename}")
+        
+        file1.save(file1_path)
+        file2.save(file2_path)
+        # Generate preview images for both PDFs
+        preview_folder = app.config['PREVIEW_FOLDER']
+        pdf_ops.generate_page_previews(file1_path, session_id, preview_folder)
+        pdf_ops.generate_page_previews(file2_path, session_id, preview_folder)
+        
+        # Compare PDFs
+        from utils.pdf_compare import PDFCompare
+        pdf_compare = PDFCompare()
+        
+        comparison_data = pdf_compare.compare_pdfs_web(
+            file1_path, file2_path, session_id, 'both'
+        )
+        
+        if not comparison_data:
+            return jsonify({'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'}), 500
+        
+        # Store session data
+        session['comparison_data'] = comparison_data
+        session['session_id'] = session_id
+        
+        # Redirect to the result page instead of rendering directly
+        return redirect(url_for('compare_result'))
+        
+    except Exception as e:
+        print(f"Compare error: {e}")
+        return jsonify({'error': f'ದೋಷ: {str(e)}'}), 500
+@app.route('/compare-result')
+def compare_result():
+    try:
+        if 'session_id' not in session:
+            return redirect(url_for('index'))
+        
+        session_id = session['session_id']
+        
+        # LOAD COMPARISON DATA FROM FILE INSTEAD OF SESSION
+        comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
+        
+        if not os.path.exists(comparison_file):
+            return redirect(url_for('index'))
+        
+        with open(comparison_file, 'r', encoding='utf-8') as f:
+            comparison_data = json.load(f)
+        
+        # Rest of your existing code...
+        def ensure_utf8(obj):
+            if isinstance(obj, dict):
+                return {k: ensure_utf8(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [ensure_utf8(item) for item in obj]
+            elif isinstance(obj, str):
+                return unicodedata.normalize('NFC', obj)
+            else:
+                return obj
+        
+        comparison_data = ensure_utf8(comparison_data)
+        
+        response = make_response(render_template('compare_result.html', 
+                                               comparison_data=comparison_data))
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
+        
+    except Exception as e:
+        print(f"Compare result error: {e}")
+        return redirect(url_for('index'))
+
+def generate_page_image(pdf_path, session_id, file_num, page_num):
+    """Generate page image from PDF"""
+    try:
+        import fitz
+        doc = fitz.open(pdf_path)
+        page = doc[page_num - 1]  # PDF pages are 0-indexed
+        
+        # Generate high-quality image
+        pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
+        
+        # Save image
+        output_dir = f"static/temp/{session_id}"
+        os.makedirs(output_dir, exist_ok=True)
+        image_path = os.path.join(output_dir, f"page_{page_num}_{file_num}.png")
+        
+        pix.save(image_path)
+        doc.close()
+        
+        return image_path
+    except Exception as e:
+        print(f"Image generation error: {e}")
+        return None 
+@app.route('/pdf-page/<session_id>/<file_num>/<int:page_num>')
+def serve_pdf_page(session_id, file_num, page_num):
+    try:
+        import glob
+        
+        # Find the uploaded PDF file
+        if file_num == 'file1':
+            file_pattern = f"{session_id}_file1_*"
+        else:  # file2
+            file_pattern = f"{session_id}_file2_*"
+        
+        matching_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], file_pattern))
+        
+        if not matching_files:
+            return "PDF file not found", 404
+            
+        pdf_path = matching_files[0]
+        
+        # Generate or get existing page image
+        image_path = generate_page_image(pdf_path, session_id, file_num, page_num)
+        
+        if image_path and os.path.exists(image_path):
+            return send_file(image_path)
+        else:
+            return "Page image not found", 404
+            
+    except Exception as e:
+        print(f"Error serving page: {e}")
+        return "Error", 500
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 100MB ಅನುಮತಿ'}), 413

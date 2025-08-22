@@ -1,3 +1,35 @@
+/* CRITICAL: Import Kannada font first */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap');
+
+/* CRITICAL: Force ALL elements to use Kannada font with proper fallbacks */
+html, body, * {
+    font-family: 'Noto Sans Kannada', 'Segoe UI', Arial, sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+/* CRITICAL: Ensure proper encoding for Kannada text */
+body {
+    unicode-bidi: embed;
+    direction: ltr;
+}
+
+/* SPECIFIC: Text comparison elements for diff views */
+.change-item, .change-added, .change-removed, .file-content {
+    font-family: 'Noto Sans Kannada', 'Courier New', monospace !important;
+    unicode-bidi: embed !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    line-height: 0.6 !important;
+}
+.file-name, .stat-label, .page-header, .kannada-text, [lang="kn"] {
+    font-family: 'Noto Sans Kannada', Arial, sans-serif !important;
+    unicode-bidi: embed !important;
+    direction: ltr !important;
+}
+
+/* CSS Variables */
 :root {
     --biscuit-cream: #f5f1e8;
     --biscuit-light: #e8e0d1;
@@ -7,22 +39,48 @@
     --dark-text: #3e2723;
     --white: #ffffff;
     --shadow: rgba(139, 115, 85, 0.2);
+    --text-color: #3e2723;
 }
 
+/* Reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+/* CRITICAL: Fix broken Kannada text display */
+.change-item, .change-added, .change-removed, .file-content, .kannada-text {
+    font-family: 'Noto Sans Kannada', 'Segoe UI', Arial, sans-serif !important;
+    unicode-bidi: embed !important;
+    white-space: pre-wrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+    line-height: 0.6 !important;
+    direction: ltr !important;
+    text-align: left !important;
+    font-size: 1.1rem !important;
+    /* CRITICAL: Prevent text cutting */
+    min-height: fit-content !important;
+    height: auto !important;
+    padding: 12px 16px !important;
+}
 
+
+/* Fix for broken character display */
+.change-item * {
+    font-family: inherit !important;
+    font-size: inherit !important;
+}
+
+/* Base Body Styles */
 body {
-    font-family: 'Noto Sans Kannada', 'Cormorant Garamond', serif;
     background: var(--biscuit-cream);
     color: var(--dark-text);
     line-height: 1.6;
     min-height: 100vh;
 }
 
+/* Header Styles */
 .header {
     background: var(--biscuit-light);
     padding: 3rem 0;
@@ -38,11 +96,12 @@ body {
 }
 
 .app-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif !important;
     font-size: 3rem;
     color: var(--brown-text);
     margin-bottom: 1rem;
     letter-spacing: 2px;
+    font-weight: 600;
 }
 
 .app-subtitle {
@@ -59,12 +118,14 @@ body {
     border-radius: 2px;
 }
 
+/* Container */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
 }
 
+/* Welcome Section */
 .welcome-section {
     text-align: center;
     margin: 2rem 0;
@@ -76,10 +137,11 @@ body {
 }
 
 .section-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif !important;
     font-size: 2rem;
     color: var(--brown-text);
     margin-bottom: 1rem;
+    font-weight: 600;
 }
 
 .section-description {
@@ -89,6 +151,7 @@ body {
     margin: 0 auto;
 }
 
+/* Operations Grid */
 .operations-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -119,10 +182,11 @@ body {
 }
 
 .operation-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif !important;
     font-size: 1.4rem;
     color: var(--brown-text);
     margin-bottom: 1rem;
+    font-weight: 600;
 }
 
 .operation-description {
@@ -131,8 +195,9 @@ body {
     font-size: 0.95rem;
 }
 
+/* Button Styles */
 .btn {
-    font-family: 'Cinzel', serif;
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif !important;
     padding: 12px 25px;
     border: 2px solid var(--gold);
     background: var(--gold);
@@ -198,10 +263,11 @@ body {
 }
 
 .modal-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Noto Sans Kannada', 'Cinzel', serif !important;
     font-size: 1.5rem;
     color: var(--brown-text);
     margin: 0;
+    font-weight: 600;
 }
 
 .close {
@@ -223,6 +289,7 @@ body {
     padding: 2rem;
 }
 
+/* Upload Area */
 .upload-area {
     border: 3px dashed var(--gold);
     border-radius: 15px;
@@ -259,6 +326,7 @@ body {
     font-size: 0.9rem;
 }
 
+/* Form Styles */
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -275,7 +343,6 @@ body {
     padding: 12px 15px;
     border: 2px solid var(--gold);
     border-radius: 8px;
-    font-family: inherit;
     background: var(--white);
     color: var(--dark-text);
     transition: all 0.3s ease;
@@ -287,6 +354,7 @@ body {
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
 }
 
+/* File List Styles */
 .file-list {
     max-height: 200px;
     overflow-y: auto;
@@ -297,27 +365,52 @@ body {
     margin-bottom: 1rem;
 }
 
+.file-list h4 {
+    margin: 0 0 1rem 0;
+    color: var(--gold);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.selected-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .file-item {
     display: flex;
     align-items: center;
-    padding: 0.8rem;
-    border-bottom: 1px solid var(--biscuit-light);
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(212, 175, 55, 0.1);
     transition: all 0.3s ease;
-    border-radius: 5px;
     margin-bottom: 0.5rem;
 }
 
 .file-item:hover {
     background: var(--biscuit-light);
+    border-color: rgba(212, 175, 55, 0.3);
 }
 
 .file-icon {
     font-size: 1.5rem;
     color: var(--gold);
     margin-right: 1rem;
+    width: 24px;
+    text-align: center;
 }
 
 .file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.file-details {
     flex: 1;
 }
 
@@ -325,26 +418,54 @@ body {
     font-weight: 500;
     color: var(--brown-text);
     margin-bottom: 0.2rem;
+    word-break: break-word;
 }
 
-.file-size {
+.file-meta {
+    display: flex;
+    gap: 0.5rem;
     font-size: 0.85rem;
     color: var(--light-brown);
 }
 
-.file-remove {
-    color: #d32f2f;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    transition: all 0.3s ease;
+.file-size {
+    font-weight: 500;
 }
 
-.file-remove:hover {
-    background: rgba(211, 47, 47, 0.1);
+.file-type {
+    opacity: 0.8;
+}
+
+.file-remove, .remove-file-btn {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff4444;
+    border: 1px solid rgba(255, 0, 0, 0.2);
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+}
+
+.file-remove:hover, .remove-file-btn:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.4);
     transform: scale(1.1);
 }
 
+.no-files {
+    text-align: center;
+    color: var(--light-brown);
+    padding: 1rem;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Loading Modal */
 .loading-modal {
     display: none;
     position: fixed;
@@ -383,6 +504,7 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* Alert Styles */
 .alert {
     padding: 1rem;
     border-radius: 8px;
@@ -439,3 +561,7 @@ body {
         padding: 1.2rem;
     }
 }
+    
+
+
+
