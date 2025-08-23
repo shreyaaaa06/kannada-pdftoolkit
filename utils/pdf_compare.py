@@ -264,25 +264,7 @@ class PDFCompare:
             print(f"OCR fallback failed: {e}")
             return ""
 
-    def is_text_corrupted(self, text):
-        """Check if extracted text is corrupted"""
-        if not text:
-            return True
-        
-        # Look for corruption signs
-        corruption_signs = ['\ufffd', '□', 'â¿']
-        for sign in corruption_signs:
-            if sign in text:
-                return True
-        
-        # Check for reasonable character distribution
-        printable_chars = sum(1 for c in text if c.isprintable())
-        total_chars = len(text)
-        
-        if total_chars > 0 and printable_chars / total_chars < 0.7:
-            return True
-        
-        return False
+    
 
     def clean_kannada_text(self, text):
         """CRITICAL: Clean and normalize Kannada text properly"""
@@ -553,45 +535,6 @@ class PDFCompare:
             
         except Exception as e:
             print(f"Blank page image creation failed: {e}")
-    def create_enhanced_diff_image(self, img1, img2):
-        """Create an enhanced difference image that highlights changes more clearly"""
-        try:
-            from PIL import ImageEnhance, ImageOps
-            
-            # Create difference
-            diff = ImageChops.difference(img1, img2)
-            
-            # Enhance contrast to make differences more visible
-            enhancer = ImageEnhance.Contrast(diff)
-            diff_enhanced = enhancer.enhance(3.0)  # Increase contrast
-            
-            # Convert to grayscale and then back to RGB for better visibility
-            diff_gray = ImageOps.grayscale(diff_enhanced)
-            
-            # Create a colored difference image
-            # Red areas show differences
-            diff_colored = Image.new('RGB', diff_gray.size)
-            
-            # Convert grayscale differences to red highlights
-            pixels = diff_gray.load()
-            colored_pixels = diff_colored.load()
-            
-            for y in range(diff_gray.height):
-                for x in range(diff_gray.width):
-                    gray_value = pixels[x, y]
-                    if gray_value > 30:  # Threshold for significant difference
-                        # Make differences red
-                        colored_pixels[x, y] = (min(255, gray_value + 100), 0, 0)
-                    else:
-                        # Keep similar areas as light gray
-                        colored_pixels[x, y] = (240, 240, 240)
-            
-            return diff_colored
-            
-        except Exception as e:
-            print(f"Enhanced diff creation error: {e}")
-            # Return simple difference as fallback
-            return ImageChops.difference(img1, img2)
     def safe_text_extract_enhanced(self, page):
         """ENHANCED: Extract text with multiple fallback methods for corrupted Kannada"""
         try:
@@ -1024,92 +967,6 @@ class PDFCompare:
         except Exception as e:
             print(f"⚠ Alternative PDF conversion failed: {e}")
             return html_path
-
-    def safe_paragraph_fixed(self, text, style):
-        """FIXED version of safe_paragraph for proper Kannada handling"""
-        try:
-            if isinstance(text, bytes):
-                text = text.decode('utf-8', errors='replace')
-            
-            if not isinstance(text, str):
-                text = str(text)
-            
-            # CRITICAL: Proper Unicode normalization
-            clean_text = unicodedata.normalize('NFC', text)
-            
-            # Remove ONLY problematic characters
-            clean_text = clean_text.replace('\x00', '')
-            clean_text = clean_text.replace('\ufeff', '')
-            clean_text = clean_text.replace('\ufffd', '[?]')
-            
-            # CRITICAL: Prevent text overflow
-            if len(clean_text) > 500:
-                clean_text = clean_text[:497] + "..."
-            
-            # CRITICAL: Don't escape - let ReportLab handle Unicode
-            return Paragraph(clean_text, style)
-            
-        except Exception as e:
-            print(f"Paragraph creation error: {e}")
-            fallback = f"[ಪಠ್ಯ ದೋಷ: {str(e)[:30]}]"
-            return Paragraph(fallback, style)
-
-    def clean_text_for_pdf(self, text):
-        """Clean text specifically for PDF generation"""
-        try:
-            if not text:
-                return ""
-            
-            # Convert to string if needed
-            if isinstance(text, bytes):
-                text = text.decode('utf-8', errors='replace')
-            
-            text = str(text)
-            
-            # Normalize Unicode
-            text = unicodedata.normalize('NFC', text)
-            
-            # Remove problematic characters
-            text = text.replace('\x00', '')
-            text = text.replace('\ufeff', '')
-            text = text.replace('\ufffd', '[?]')
-            
-            # Clean up whitespace but preserve structure
-            lines = text.split('\n')
-            cleaned_lines = []
-            for line in lines:
-                # Remove excessive spaces but keep single spaces
-                cleaned_line = ' '.join(line.split())
-                if cleaned_line:  # Only add non-empty lines
-                    cleaned_lines.append(cleaned_line)
-            
-            result = ' '.join(cleaned_lines)  # Join with single space
-            
-            # Limit length to prevent overflow
-            if len(result) > 300:
-                result = result[:297] + "..."
-            
-            return result
-            
-        except Exception as e:
-            print(f"Text cleaning error: {e}")
-            return "[ಪಠ್ಯ ಸ್ವಚ್ಛಗೊಳಿಸುವ ದೋಷ]"
-
-    def generate_simple_text_report(self, comparison_data, session_id):
-        """Simple text report as ultimate fallback"""
-        try:
-            report_path = f"output/{session_id}_comparison_report.txt"
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.write("PDF ಹೋಲಿಕೆ ವರದಿ\n")
-                f.write("=" * 50 + "\n\n")
-                f.write(f"ಮೊದಲ ಫೈಲ್: {comparison_data['file1_name']}\n")
-                f.write(f"ಎರಡನೇ ಫೈಲ್: {comparison_data['file2_name']}\n")
-                f.write(f"ಪಠ್ಯ ಬದಲಾವಣೆಗಳು: {comparison_data['summary']['total_text_changes']}\n")
-            
-            return report_path
-        except Exception as e:
-            print(f"Simple report generation error: {e}")
-            return None
     
     def generate_enhanced_text_report(self, comparison_data, session_id):
         """Generate enhanced Unicode text report as PDF fallback"""
