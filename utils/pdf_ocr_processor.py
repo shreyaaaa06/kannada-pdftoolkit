@@ -19,30 +19,19 @@ class PDFOCRProcessor:
         self.setup_fonts()
     
     def setup_ocr(self):
-        """FIXED: Setup Tesseract OCR for Kannada with proper configuration"""
+        """Setup Tesseract OCR for Kannada"""
         try:
             # Test if Tesseract is available
             pytesseract.get_tesseract_version()
             
-            # CRITICAL FIX: Improved OCR configuration for Kannada
-            # Use kan+eng for better results, with specific PSM mode
-            self.ocr_config = '--oem 3 --psm 6 -l kan+eng -c preserve_interword_spaces=1'
-            
-            # Alternative configs to try if primary fails
-            self.fallback_configs = [
-                '--oem 3 --psm 3 -l kan+eng',  # Fully automatic page segmentation
-                '--oem 3 --psm 1 -l kan+eng',  # Automatic page segmentation with OSD
-                '--oem 3 --psm 6 -l kan',      # Kannada only
-                '--oem 3 --psm 6 -l eng'       # English fallback
-            ]
-            
-            print("✓ Tesseract OCR configured for Kannada with fallback options")
+            # Configure for Kannada
+            self.ocr_config = '--oem 3 --psm 6 -l kan+eng'
+            print("✓ Tesseract OCR configured for Kannada")
             
         except Exception as e:
             print(f"⚠ OCR setup warning: {e}")
             print("Install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki")
             self.ocr_config = '--oem 3 --psm 6 -l eng'  # Fallback to English
-            self.fallback_configs = []
     
     def setup_fonts(self):
         """Setup fonts for output PDF"""
@@ -82,7 +71,7 @@ class PDFOCRProcessor:
             print(f"Font setup error: {e}")
     
     def preprocess_image_for_ocr(self, image):
-        """ENHANCED: Better image preprocessing for Kannada OCR"""
+        """Enhance image for better OCR accuracy"""
         try:
             # Convert PIL to OpenCV format
             cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
@@ -90,35 +79,17 @@ class PDFOCRProcessor:
             # Convert to grayscale
             gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
             
-            # CRITICAL FIX: Better preprocessing for Kannada text
-            # 1. Resize image for better OCR (optimal DPI around 300)
-            height, width = gray.shape
-            if width < 2000:  # Scale up small images
-                scale_factor = 2000 / width
-                new_width = int(width * scale_factor)
-                new_height = int(height * scale_factor)
-                gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
-            
-            # 2. Apply denoising
+            # Apply denoising
             denoised = cv2.fastNlMeansDenoising(gray)
             
-            # 3. Enhance contrast for better text recognition
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-            enhanced = clahe.apply(denoised)
-            
-            # 4. Apply adaptive threshold - CRITICAL for Kannada
-            # Use Gaussian method which works better for complex scripts
+            # Apply adaptive threshold for better text extraction
             thresh = cv2.adaptiveThreshold(
-                enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                cv2.THRESH_BINARY, 15, 4  # Increased block size and C value
+                denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                cv2.THRESH_BINARY, 11, 2
             )
             
-            # 5. Morphological operations to connect broken characters (common in Kannada)
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-            processed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-            
             # Convert back to PIL
-            processed_image = Image.fromarray(processed)
+            processed_image = Image.fromarray(thresh)
             return processed_image
             
         except Exception as e:
@@ -150,13 +121,13 @@ class PDFOCRProcessor:
             return []
 
     def extract_text_with_ocr(self, page):
-        """FIXED: Extract text using OCR with multiple configuration attempts"""
+        """Extract text using OCR but SKIP image regions"""
         try:
             # First detect image regions
             image_regions = self.detect_image_regions(page)
             
-            # Convert PDF page to image with higher resolution for better OCR
-            pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0))  # Increased from 2.0 to 3.0
+            # Convert PDF page to image
+            pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
             img_data = pix.pil_tobytes(format="PNG")
             image = Image.open(io.BytesIO(img_data))
             
@@ -166,120 +137,33 @@ class PDFOCRProcessor:
             else:
                 processed_image = self.preprocess_image_for_ocr(image)
             
-            # CRITICAL FIX: Try multiple OCR configurations
-            text = None
-            successful_config = None
+            # Perform OCR on text-only regions
+            text = pytesseract.image_to_string(processed_image, config=self.ocr_config)
             
-            # Try primary configuration first
-            try:
-                text = pytesseract.image_to_string(processed_image, config=self.ocr_config)
-                if text and len(text.strip()) > 0 and self.is_text_meaningful(text):
-                    successful_config = self.ocr_config
-                    print(f"✓ Primary OCR config successful")
-                else:
-                    text = None
-            except Exception as e:
-                print(f"Primary OCR config failed: {e}")
-                text = None
-            
-            # Try fallback configurations if primary failed
-            if not text and self.fallback_configs:
-                for config in self.fallback_configs:
-                    try:
-                        fallback_text = pytesseract.image_to_string(processed_image, config=config)
-                        if fallback_text and len(fallback_text.strip()) > 0 and self.is_text_meaningful(fallback_text):
-                            text = fallback_text
-                            successful_config = config
-                            print(f"✓ Fallback OCR config successful: {config}")
-                            break
-                    except Exception as e:
-                        print(f"Fallback config {config} failed: {e}")
-                        continue
-            
-            if not text:
-                print("⚠ All OCR configurations failed")
-                return ""
-            
-            print(f"✓ OCR successful with config: {successful_config}")
-            
-            # CRITICAL FIX: Improved text cleaning
-            cleaned_text = self.clean_ocr_text_fixed(text)
-            
-            # Add image placeholders AFTER cleaning
+            # Add image placeholders
             if image_regions:
                 for i, region in enumerate(image_regions):
-                    cleaned_text += f"\n[ಚಿತ್ರ {i+1}: ಈ ಸ್ಥಳದಲ್ಲಿ ಚಿತ್ರವಿದೆ]\n"
+                    text += f"\n[ಚಿತ್ರ {i+1}: ಈ ಸ್ಥಳದಲ್ಲಿ ಚಿತ್ರವಿದೆ]\n"
             
-            return cleaned_text if cleaned_text else ""
+            if text:
+                text = unicodedata.normalize('NFC', text)
+                text = text.replace('|', 'ಲ್')
+                text = text.replace('ॐ', 'ಓಂ')
+                
+                # Clean OCR artifacts but preserve image placeholders
+                lines = []
+                for line in text.split('\n'):
+                    cleaned_line = ' '.join(line.split())
+                    if cleaned_line.strip():
+                        lines.append(cleaned_line)
+                
+                return '\n'.join(lines)
+            
+            return ""
             
         except Exception as e:
             print(f"OCR extraction error: {e}")
             return ""
-    
-    def is_text_meaningful(self, text):
-        """Check if OCR output contains meaningful content"""
-        if not text or len(text.strip()) < 3:
-            return False
-        
-        # Check for too many replacement characters (indicates poor OCR)
-        replacement_chars = text.count('\ufffd') + text.count('�')
-        if replacement_chars > len(text) * 0.1:  # More than 10% replacement chars
-            return False
-        
-        # Check if we have some actual letters (not just punctuation)
-        letters = sum(1 for char in text if char.isalpha() or '\u0c80' <= char <= '\u0cff')
-        if letters < 3:
-            return False
-        
-        return True
-    
-    def clean_ocr_text_fixed(self, text):
-        """FIXED: Clean OCR text without corrupting Kannada characters"""
-        try:
-            if not text:
-                return ""
-            
-            # CRITICAL FIX: Proper Unicode normalization first
-            text = unicodedata.normalize('NFC', text)
-            
-            # STEP 1: CAREFUL character replacements - only fix obvious OCR mistakes
-            # DO NOT replace Kannada characters that look similar to other characters
-            ocr_corrections = {
-                # Only replace clear OCR artifacts, not legitimate Kannada characters
-                '।': '.',      # Devanagari danda to period
-                '॥': '..',     # Double danda to double period
-                # Remove obviously wrong characters that OCR produces
-                '\ufffd': '',  # Unicode replacement character
-                '\x00': '',    # Null bytes
-                '\ufeff': '',  # BOM
-            }
-            
-            for wrong, correct in ocr_corrections.items():
-                text = text.replace(wrong, correct)
-            
-            # STEP 2: Clean up spacing without destroying structure
-            lines = text.split('\n')
-            cleaned_lines = []
-            
-            for line in lines:
-                # Only remove excessive whitespace, preserve normal spacing
-                cleaned_line = ' '.join(line.split())  # This normalizes spaces
-                
-                # Only add non-empty lines
-                if cleaned_line.strip():
-                    cleaned_lines.append(cleaned_line)
-            
-            result = '\n'.join(cleaned_lines)
-            
-            # STEP 3: Final cleanup - remove only excessive line breaks
-            import re
-            result = re.sub(r'\n{3,}', '\n\n', result)  # Max 2 consecutive newlines
-            
-            return result.strip()
-            
-        except Exception as e:
-            print(f"FIXED text cleaning error: {e}")
-            return text  # Return original if cleaning fails
 
     def mask_image_regions(self, image, image_regions, page):
         """Mask out image regions to prevent OCR artifacts"""
@@ -354,7 +238,7 @@ class PDFOCRProcessor:
                 story.append(Paragraph(page_title, styles['Heading2']))
                 story.append(Spacer(1, 12))
                 
-                # Extract text using improved OCR
+                # Extract text using OCR
                 extracted_text = self.extract_text_with_ocr(page)
                 
                 if extracted_text:
@@ -407,18 +291,16 @@ class PDFOCRProcessor:
                     # Check for common signs of corrupted Kannada
                     corruption_indicators = [
                         '\ufffd',  # Replacement character
-                        '�',       # Another replacement character
+                        '?',       # Question marks in place of text
                         '□',       # Box characters
+                        # Check for excessive spaces (sign of font mapping issues)
+                        len(text.split()) > len(text.strip()) * 0.5
                     ]
                     
-                    corruption_count = 0
-                    for indicator in corruption_indicators:
-                        corruption_count += text.count(indicator)
-                    
-                    # If more than 5% of characters are corruption indicators
-                    if len(text) > 0 and corruption_count / len(text) > 0.05:
-                        doc.close()
-                        return True
+                    for indicator in corruption_indicators[:3]:  # Check first 3 indicators
+                        if indicator in text:
+                            doc.close()
+                            return True
                     
                     # Check for minimal actual Kannada characters
                     kannada_chars = sum(1 for char in text if '\u0c80' <= char <= '\u0cff')
@@ -435,19 +317,22 @@ class PDFOCRProcessor:
             print(f"Corruption check error: {e}")
             return True  # Assume corrupted if we can't check
 
-    def preprocess_pdf_if_needed(self, pdf_path, session_id):
-        """Preprocess PDF with OCR if text is corrupted"""
-        try:
-            if self.is_pdf_text_corrupted(pdf_path):
-                print(f"⚠ Detected corrupted Kannada text in: {os.path.basename(pdf_path)}")
-                print("🔄 Processing with OCR to fix text encoding...")
-                
-                processed_pdf = self.create_searchable_pdf(pdf_path, session_id)
-                if processed_pdf and os.path.exists(processed_pdf):
-                    return processed_pdf
+# Usage example - Add this method to your PDFCompare class
+def preprocess_pdf_if_needed(self, pdf_path, session_id):
+    """Preprocess PDF with OCR if text is corrupted"""
+    try:
+        ocr_processor = PDFOCRProcessor()
+        
+        if ocr_processor.is_pdf_text_corrupted(pdf_path):
+            print(f"⚠ Detected corrupted Kannada text in: {os.path.basename(pdf_path)}")
+            print("🔄 Processing with OCR to fix text encoding...")
             
-            return pdf_path  # Return original if no processing needed
-            
-        except Exception as e:
-            print(f"Preprocessing error: {e}")
-            return pdf_path  # Return original on error
+            processed_pdf = ocr_processor.create_searchable_pdf(pdf_path, session_id)
+            if processed_pdf and os.path.exists(processed_pdf):
+                return processed_pdf
+        
+        return pdf_path  # Return original if no processing needed
+        
+    except Exception as e:
+        print(f"Preprocessing error: {e}")
+        return pdf_path  # Return original on error

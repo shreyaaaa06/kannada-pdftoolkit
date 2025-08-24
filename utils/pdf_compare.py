@@ -264,7 +264,25 @@ class PDFCompare:
             print(f"OCR fallback failed: {e}")
             return ""
 
-    
+    def is_text_corrupted(self, text):
+        """Check if extracted text is corrupted"""
+        if not text:
+            return True
+        
+        # Look for corruption signs
+        corruption_signs = ['\ufffd', '□', 'â¿']
+        for sign in corruption_signs:
+            if sign in text:
+                return True
+        
+        # Check for reasonable character distribution
+        printable_chars = sum(1 for c in text if c.isprintable())
+        total_chars = len(text)
+        
+        if total_chars > 0 and printable_chars / total_chars < 0.7:
+            return True
+        
+        return False
 
     def clean_kannada_text(self, text):
         """CRITICAL: Clean and normalize Kannada text properly"""
@@ -439,16 +457,36 @@ class PDFCompare:
                         
                         # Compare texts using difflib - works even if one text is empty
                         if text1 or text2:
-                            meaningful_changes = self.compare_texts_intelligently(text1, text2)
+                            import difflib
+                            differ = difflib.unified_diff(
+                                text1.splitlines(),
+                                text2.splitlines(),
+                                lineterm=''
+                            )
                             
-                            page_comparison['text_changes'] = meaningful_changes
-                            total_text_changes += len(meaningful_changes)
-                            
-                            print(f"Page {page_num + 1}: Found {len(meaningful_changes)} meaningful changes")
+                            for change in differ:
+                                if change.startswith('+++') or change.startswith('---') or change.startswith('@@'):
+                                    continue
+                                    
+                                change_text = change[1:].strip() if len(change) > 1 else change.strip()
+                                if not change_text:
+                                    continue
+                                
+                                if change.startswith('+'):
+                                    page_comparison['text_changes'].append({
+                                        'type': 'added',
+                                        'text': change_text
+                                    })
+                                    total_text_changes += 1
+                                elif change.startswith('-'):
+                                    page_comparison['text_changes'].append({
+                                        'type': 'removed', 
+                                        'text': change_text
+                                    })
+                                    total_text_changes += 1
                     
                     except Exception as text_error:
                         print(f"Text comparison error on page {page_num + 1}: {text_error}")
-
             
             # Update summary
             comparison_data['summary']['total_text_changes'] = total_text_changes
@@ -535,6 +573,45 @@ class PDFCompare:
             
         except Exception as e:
             print(f"Blank page image creation failed: {e}")
+    def create_enhanced_diff_image(self, img1, img2):
+        """Create an enhanced difference image that highlights changes more clearly"""
+        try:
+            from PIL import ImageEnhance, ImageOps
+            
+            # Create difference
+            diff = ImageChops.difference(img1, img2)
+            
+            # Enhance contrast to make differences more visible
+            enhancer = ImageEnhance.Contrast(diff)
+            diff_enhanced = enhancer.enhance(3.0)  # Increase contrast
+            
+            # Convert to grayscale and then back to RGB for better visibility
+            diff_gray = ImageOps.grayscale(diff_enhanced)
+            
+            # Create a colored difference image
+            # Red areas show differences
+            diff_colored = Image.new('RGB', diff_gray.size)
+            
+            # Convert grayscale differences to red highlights
+            pixels = diff_gray.load()
+            colored_pixels = diff_colored.load()
+            
+            for y in range(diff_gray.height):
+                for x in range(diff_gray.width):
+                    gray_value = pixels[x, y]
+                    if gray_value > 30:  # Threshold for significant difference
+                        # Make differences red
+                        colored_pixels[x, y] = (min(255, gray_value + 100), 0, 0)
+                    else:
+                        # Keep similar areas as light gray
+                        colored_pixels[x, y] = (240, 240, 240)
+            
+            return diff_colored
+            
+        except Exception as e:
+            print(f"Enhanced diff creation error: {e}")
+            # Return simple difference as fallback
+            return ImageChops.difference(img1, img2)
     def safe_text_extract_enhanced(self, page):
         """ENHANCED: Extract text with multiple fallback methods for corrupted Kannada"""
         try:
@@ -614,27 +691,11 @@ class PDFCompare:
         return total_chars > 0  # At least some readable characters
     
     def generate_comparison_report_web(self, comparison_data, session_id):
-        """Generate PDF report from HTML with proper Kannada support - FIXED VERSION"""
+        """Generate PDF report from HTML with proper Kannada support"""
         try:
-            # Create output directory if it doesn't exist
-            os.makedirs("output", exist_ok=True)
-            
             # First create HTML file
             html_path = f"output/{session_id}_comparison_report.html"
             pdf_path = f"output/{session_id}_comparison_report.pdf"
-            
-            # CRITICAL: Count both added and removed changes properly
-            total_added = 0
-            total_removed = 0
-            
-            for page_comp in comparison_data['page_comparisons']:
-                for change in page_comp.get('text_changes', []):
-                    if change['type'] == 'added':
-                        total_added += 1
-                    elif change['type'] == 'removed':
-                        total_removed += 1
-            
-            print(f"DEBUG: Report will include {total_added} added changes and {total_removed} removed changes")
             
             # Create HTML content with embedded CSS for proper Kannada rendering
             html_content = f"""
@@ -646,11 +707,13 @@ class PDFCompare:
         <style>
             @font-face {{
                 font-family: 'KannadaFont';
-                src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600&display=swap');
+                src: url('file:///static/fonts/NotoSansKannada-Regular.woff2') format('woff2'),
+                    url('file:///static/fonts/NotoSansKannada-Regular.ttf') format('truetype');
             }}
             
             body {{
-                font-family: 'KannadaFont', 'Noto Sans Kannada', Arial, sans-serif !important;
+                font-family: 'KannadaFont', Arial, sans-serif !important;
+                
                 margin: 20px;
                 line-height: 1.6;
                 color: #333;
@@ -765,27 +828,21 @@ class PDFCompare:
             <tr><td class="label">ಎರಡನೇ ಫೈಲ್:</td><td>{comparison_data['file2_name']}</td></tr>
             <tr><td class="label">ಮೊದಲ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>{comparison_data['file1_pages']}</td></tr>
             <tr><td class="label">ಎರಡನೇ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>{comparison_data['file2_pages']}</td></tr>
-            <tr><td class="label">ಒಟ್ಟು ಪಠ್ಯ ಬದಲಾವಣೆಗಳು:</td><td>{comparison_data['summary']['total_text_changes']}</td></tr>
-            <tr><td class="label">ಸೇರಿಸಲಾದ ಸಾಲುಗಳು:</td><td>{total_added}</td></tr>
-            <tr><td class="label">ತೆಗೆದುಹಾಕಲಾದ ಸಾಲುಗಳು:</td><td>{total_removed}</td></tr>
+            <tr><td class="label">ಪಠ್ಯ ಬದಲಾವಣೆಗಳು:</td><td>{comparison_data['summary']['total_text_changes']}</td></tr>
         </table>
         
         <div class="section-title">ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು</div>
     """
             
-            # CRITICAL: Process ALL changes, both added and removed
+            # Add text changes
             if comparison_data['summary']['total_text_changes'] > 0:
                 change_count = 0
-                max_changes = 100  # Increase limit to capture more changes
-                
                 for page_comp in comparison_data['page_comparisons']:
-                    if page_comp.get('text_changes') and change_count < max_changes:
+                    if page_comp['text_changes'] and change_count < 50:  # Limit for PDF size
                         html_content += f'<div class="page-title">ಪುಟ {page_comp["page_number"]}:</div>'
                         
-                        # FIXED: Process ALL changes without limiting by type
-                        for change in page_comp['text_changes']:
-                            if change_count >= max_changes:
-                                html_content += '<div class="change-item"><em>... ಇನ್ನಷ್ಟು ಬದಲಾವಣೆಗಳಿವೆ</em></div>'
+                        for change in page_comp['text_changes'][:10]:  # Limit per page
+                            if change_count >= 50:
                                 break
                             
                             # Clean the text properly for HTML
@@ -798,23 +855,15 @@ class PDFCompare:
                                     <span class="change-text">{change_text}</span>
                                 </div>
                                 '''
-                                print(f"DEBUG: Added change #{change_count + 1}: {change_text[:50]}...")
-                            elif change['type'] == 'removed':
+                            else:
                                 html_content += f'''
                                 <div class="change-item removed">
                                     <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
                                     <span class="change-text">{change_text}</span>
                                 </div>
                                 '''
-                                print(f"DEBUG: Removed change #{change_count + 1}: {change_text[:50]}...")
                             
                             change_count += 1
-                        
-                        if change_count >= max_changes:
-                            break
-                
-                print(f"DEBUG: Total changes processed for report: {change_count}")
-                
             else:
                 html_content += '<div class="no-changes">ಯಾವುದೇ ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು ಕಂಡುಬಂದಿಲ್ಲ</div>'
             
@@ -829,22 +878,21 @@ class PDFCompare:
             # Write HTML file
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
-            
-            print(f"✓ HTML report created: {html_path}")
-            
-            # Try to convert to PDF using multiple methods
-            # Method 1: Try Playwright (best for Kannada)
+            # Try Playwright first (best for Kannada)
             try:
                 playwright_pdf = self.generate_pdf_with_playwright(html_path, pdf_path)
-                if playwright_pdf and os.path.exists(playwright_pdf) and os.path.getsize(playwright_pdf) > 1000:
+                if playwright_pdf and os.path.exists(playwright_pdf):
                     print(f"✓ PDF report generated with Playwright: {pdf_path}")
                     return pdf_path
+            except ImportError:
+                print("⚠ Playwright not available")
             except Exception as e:
                 print(f"⚠ Playwright failed: {e}")
-            
-            # Method 2: Try wkhtmltopdf
+            # Convert HTML to PDF using wkhtmltopdf (if available)
             try:
                 import pdfkit
+                
+                # Configure wkhtmltopdf options for Kannada support
                 options = {
                     'page-size': 'A4',
                     'margin-top': '0.75in',
@@ -854,46 +902,29 @@ class PDFCompare:
                     'encoding': "UTF-8",
                     'no-outline': None,
                     'enable-local-file-access': None,
+                    'load-error-handling': 'ignore',
+                    'load-media-error-handling': 'ignore'
                 }
                 
                 pdfkit.from_file(html_path, pdf_path, options=options)
                 
                 if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 1000:
-                    print(f"✓ PDF report generated with wkhtmltopdf: {pdf_path}")
+                    print(f"✓ PDF report generated successfully: {pdf_path}")
                     return pdf_path
+                else:
+                    print("⚠ PDF generation failed, returning HTML")
+                    return html_path
                     
             except ImportError:
-                print("⚠ pdfkit not available")
-            except Exception as e:
-                print(f"⚠ wkhtmltopdf failed: {e}")
-            
-            # Method 3: Try WeasyPrint
-            try:
-                from weasyprint import HTML, CSS
-                css = CSS(string='''
-                    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600&display=swap');
-                    body { font-family: 'Noto Sans Kannada', Arial, sans-serif !important; }
-                ''')
-                
-                HTML(filename=html_path).write_pdf(pdf_path, stylesheets=[css])
-                
-                if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 1000:
-                    print(f"✓ PDF generated using WeasyPrint: {pdf_path}")
-                    return pdf_path
-                    
-            except ImportError:
-                print("⚠ WeasyPrint not available")
-            except Exception as e:
-                print(f"⚠ WeasyPrint failed: {e}")
-            
-            # Fallback: Return HTML file
-            print("⚠ PDF generation failed, returning HTML file")
-            return html_path
+                print("⚠ pdfkit not available, trying alternative method")
+                return self.convert_html_to_pdf_alternative(html_path, pdf_path)
+            except Exception as pdf_error:
+                print(f"⚠ PDF conversion failed: {pdf_error}, returning HTML")
+                return html_path
             
         except Exception as e:
             print(f"Report generation error: {e}")
-            # Generate simple text report as ultimate fallback
-            return self.generate_enhanced_text_report(comparison_data, session_id)
+            return self.generate_simple_text_report(comparison_data, session_id)
 
     def clean_text_for_html(self, text):
         """Clean text for HTML display with proper Kannada handling"""
@@ -967,6 +998,92 @@ class PDFCompare:
         except Exception as e:
             print(f"⚠ Alternative PDF conversion failed: {e}")
             return html_path
+
+    def safe_paragraph_fixed(self, text, style):
+        """FIXED version of safe_paragraph for proper Kannada handling"""
+        try:
+            if isinstance(text, bytes):
+                text = text.decode('utf-8', errors='replace')
+            
+            if not isinstance(text, str):
+                text = str(text)
+            
+            # CRITICAL: Proper Unicode normalization
+            clean_text = unicodedata.normalize('NFC', text)
+            
+            # Remove ONLY problematic characters
+            clean_text = clean_text.replace('\x00', '')
+            clean_text = clean_text.replace('\ufeff', '')
+            clean_text = clean_text.replace('\ufffd', '[?]')
+            
+            # CRITICAL: Prevent text overflow
+            if len(clean_text) > 500:
+                clean_text = clean_text[:497] + "..."
+            
+            # CRITICAL: Don't escape - let ReportLab handle Unicode
+            return Paragraph(clean_text, style)
+            
+        except Exception as e:
+            print(f"Paragraph creation error: {e}")
+            fallback = f"[ಪಠ್ಯ ದೋಷ: {str(e)[:30]}]"
+            return Paragraph(fallback, style)
+
+    def clean_text_for_pdf(self, text):
+        """Clean text specifically for PDF generation"""
+        try:
+            if not text:
+                return ""
+            
+            # Convert to string if needed
+            if isinstance(text, bytes):
+                text = text.decode('utf-8', errors='replace')
+            
+            text = str(text)
+            
+            # Normalize Unicode
+            text = unicodedata.normalize('NFC', text)
+            
+            # Remove problematic characters
+            text = text.replace('\x00', '')
+            text = text.replace('\ufeff', '')
+            text = text.replace('\ufffd', '[?]')
+            
+            # Clean up whitespace but preserve structure
+            lines = text.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                # Remove excessive spaces but keep single spaces
+                cleaned_line = ' '.join(line.split())
+                if cleaned_line:  # Only add non-empty lines
+                    cleaned_lines.append(cleaned_line)
+            
+            result = ' '.join(cleaned_lines)  # Join with single space
+            
+            # Limit length to prevent overflow
+            if len(result) > 300:
+                result = result[:297] + "..."
+            
+            return result
+            
+        except Exception as e:
+            print(f"Text cleaning error: {e}")
+            return "[ಪಠ್ಯ ಸ್ವಚ್ಛಗೊಳಿಸುವ ದೋಷ]"
+
+    def generate_simple_text_report(self, comparison_data, session_id):
+        """Simple text report as ultimate fallback"""
+        try:
+            report_path = f"output/{session_id}_comparison_report.txt"
+            with open(report_path, 'w', encoding='utf-8') as f:
+                f.write("PDF ಹೋಲಿಕೆ ವರದಿ\n")
+                f.write("=" * 50 + "\n\n")
+                f.write(f"ಮೊದಲ ಫೈಲ್: {comparison_data['file1_name']}\n")
+                f.write(f"ಎರಡನೇ ಫೈಲ್: {comparison_data['file2_name']}\n")
+                f.write(f"ಪಠ್ಯ ಬದಲಾವಣೆಗಳು: {comparison_data['summary']['total_text_changes']}\n")
+            
+            return report_path
+        except Exception as e:
+            print(f"Simple report generation error: {e}")
+            return None
     
     def generate_enhanced_text_report(self, comparison_data, session_id):
         """Generate enhanced Unicode text report as PDF fallback"""
@@ -1320,205 +1437,3 @@ class PDFCompare:
         except Exception as e:
             print(f"Playwright PDF error: {e}")
             return None
-    
-    def normalize_text_for_comparison(self, text):
-        """CRITICAL FIX: Normalize text to handle bullet points and formatting consistently"""
-        try:
-            if not text:
-                return ""
-            
-            if isinstance(text, bytes):
-                text = text.decode('utf-8', errors='replace')
-            
-            text = str(text)
-            text = unicodedata.normalize('NFC', text)
-            
-            # STEP 1: Replace common bullet point variations with standard bullet
-            bullet_patterns = [
-                # Unicode bullet points
-                '•', '◦', '‣', '⁃', '▪', '▫', '◾', '◽', '▸', '▹',
-                # ASCII alternatives often seen in OCR
-                '*', '-', '+', '>', '→', '➤', '➢', '➣',
-                # Common OCR mistakes for bullets
-                '·', '°', '∙', '⋅', '∘',
-                # Random characters that OCR might produce
-                '❖', '❘', '⦿', '⦾', '●', '○',
-                # Dingbat characters
-                '✓', '✔', '☑', '▲', '►', '▶',
-            ]
-            
-            # Replace all bullet variations with standard bullet
-            for pattern in bullet_patterns:
-                text = text.replace(pattern, '•')
-            
-            # STEP 2: Handle numbered lists (1., 2., a., b., i., ii., etc.)
-            import re
-            
-            # Replace numbered lists with generic marker
-            # Matches patterns like "1.", "2)", "a.", "i)", "(1)", "[a]", etc.
-            numbering_patterns = [
-                r'\b\d+\.\s*',           # 1. 2. 3.
-                r'\b\d+\)\s*',           # 1) 2) 3)
-                r'\(\d+\)\s*',           # (1) (2) (3)
-                r'\[\d+\]\s*',           # [1] [2] [3]
-                r'\b[a-z]\.\s*',         # a. b. c.
-                r'\b[a-z]\)\s*',         # a) b) c)
-                r'\([a-z]\)\s*',         # (a) (b) (c)
-                r'\b[ivx]+\.\s*',        # i. ii. iii. (Roman numerals)
-                r'\b[ivx]+\)\s*',        # i) ii) iii)
-                r'\b[IVX]+\.\s*',        # I. II. III.
-                r'\b[IVX]+\)\s*',        # I) II) III)
-            ]
-            
-            for pattern in numbering_patterns:
-                text = re.sub(pattern, '• ', text, flags=re.IGNORECASE)
-            
-            # STEP 3: Clean up OCR artifacts around bullets
-            # Remove extra spaces around bullets
-            text = re.sub(r'\s*•\s+', '• ', text)
-            text = re.sub(r'\n\s*•\s*', '\n• ', text)
-            
-            # STEP 4: Handle common OCR character substitutions
-            ocr_fixes = {
-                # Common Kannada OCR mistakes
-                '|': 'ಲ್',
-                '॒': 'ೃ',
-                '॑': 'ೆ',
-                'ॐ': 'ಓಂ',
-                # Common punctuation OCR mistakes
-                '"': '"',
-                '"': '"',
-                ''': "'",
-                ''': "'",
-                '…': '...',
-                '–': '-',
-                '—': '-',
-                # Remove invisible characters
-                '\u200b': '',  # Zero-width space
-                '\u200c': '',  # Zero-width non-joiner
-                '\u200d': '',  # Zero-width joiner
-                '\ufeff': '',  # BOM
-            }
-            
-            for wrong, correct in ocr_fixes.items():
-                text = text.replace(wrong, correct)
-            
-            # STEP 5: Normalize whitespace
-            lines = text.split('\n')
-            normalized_lines = []
-            
-            for line in lines:
-                # Remove excessive spaces but preserve structure
-                cleaned_line = ' '.join(line.split())
-                
-                # Skip empty lines or lines with just bullets
-                if cleaned_line and cleaned_line not in ['•', '• ']:
-                    normalized_lines.append(cleaned_line)
-            
-            return '\n'.join(normalized_lines)
-            
-        except Exception as e:
-            print(f"Text normalization error: {e}")
-            return text if isinstance(text, str) else ""
-
-    def compare_texts_intelligently(self, text1, text2):
-        """SMART comparison that ignores formatting differences"""
-        try:
-            # Normalize both texts
-            norm_text1 = self.normalize_text_for_comparison(text1)
-            norm_text2 = self.normalize_text_for_comparison(text2)
-            
-            # Split into lines for comparison
-            lines1 = norm_text1.split('\n')
-            lines2 = norm_text2.split('\n')
-            
-            # Use difflib for intelligent comparison
-            import difflib
-            
-            # Create detailed diff
-            differ = difflib.unified_diff(
-                lines1, lines2,
-                lineterm='',
-                n=1  # Reduced context for cleaner output
-            )
-            
-            meaningful_changes = []
-            
-            for change in differ:
-                # Skip diff headers
-                if change.startswith('+++') or change.startswith('---') or change.startswith('@@'):
-                    continue
-                
-                if len(change) <= 1:
-                    continue
-                    
-                change_text = change[1:].strip()
-                
-                # CRITICAL: Filter out meaningless changes
-                if self.is_meaningful_change(change_text):
-                    if change.startswith('+'):
-                        meaningful_changes.append({
-                            'type': 'added',
-                            'text': change_text
-                        })
-                    elif change.startswith('-'):
-                        meaningful_changes.append({
-                            'type': 'removed',
-                            'text': change_text
-                        })
-            
-            return meaningful_changes
-            
-        except Exception as e:
-            print(f"Intelligent comparison error: {e}")
-            return []
-
-    def is_meaningful_change(self, text):
-        """Determine if a text change is meaningful or just formatting noise"""
-        try:
-            if not text or len(text.strip()) < 2:
-                return False
-            
-            # Filter out meaningless changes
-            meaningless_patterns = [
-                # Just bullets or list markers
-                r'^[•\-\+\*]+\s*$',
-                # Just numbers or letters (list numbering)
-                r'^\d+[\.\)]*\s*$',
-                r'^[a-zA-Z][\.\)]*\s*$',
-                r'^[ivxIVX]+[\.\)]*\s*$',
-                # Just punctuation
-                r'^[\.\,\;\:\!\?\-\–\—\"\'\`\~]+$',
-                # Just spaces or whitespace
-                r'^\s+$',
-                # Single characters that are likely OCR noise
-                r'^[^\w\u0C80-\u0CFF]{1,2}$',  # Non-word chars except Kannada
-                # Common OCR artifacts
-                r'^[\|\]\[\(\)\{\}]+$',
-            ]
-            
-            import re
-            for pattern in meaningless_patterns:
-                if re.match(pattern, text.strip()):
-                    return False
-            
-            # Check if change is substantial enough
-            # Must have at least 3 characters or contain Kannada/meaningful words
-            if len(text.strip()) >= 3:
-                return True
-            
-            # Check if it contains meaningful Kannada characters
-            kannada_chars = sum(1 for char in text if '\u0c80' <= char <= '\u0cff')
-            if kannada_chars > 0:
-                return True
-            
-            # Check if it contains meaningful English words
-            meaningful_words = ['the', 'and', 'or', 'is', 'are', 'was', 'were', 'have', 'has', 'had']
-            if any(word in text.lower() for word in meaningful_words):
-                return True
-            
-            return False
-            
-        except Exception as e:
-            print(f"Meaningful change check error: {e}")
-            return True  # Default to including if we can't determine
