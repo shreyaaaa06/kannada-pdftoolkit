@@ -12,8 +12,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import traceback
 import time
-import os
-import config
 import sys
 import html
 from flask import redirect, url_for
@@ -25,14 +23,22 @@ from weasyprint import HTML, CSS
 from flask import make_response
 import json
 
+# Initialize Flask app
 app = Flask(__name__)
+
+# Base directory setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')    
+OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')
+
+# Initialize PDF compare instance
 pdf_compare = PDFCompare()
+
+# Configure Flask app
 app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
-# Add this to your app.py after other directory creation
+
+# UTF-8 encoding configuration
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 os.environ['PYTHONIOENCODING'] = 'utf-8'
@@ -51,27 +57,30 @@ def after_request(response):
             elif 'application/json' in response.content_type:
                 response.content_type = 'application/json; charset=utf-8'
     return response
+
+# App configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
-app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
-
-
+app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024  # 1000MB from file 2
 
 # Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
+
 # Create temporary directory for comparison images
 app.config['TEMP_FOLDER'] = 'static/temp'
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+
+# Initialize handlers
 file_handler = FileHandler()
 pdf_ops = PDFOperations()
 
 @app.route('/')
 def index():
-    # CRITICAL FIX: Clear session on main page load to ensure fresh start
+    # Clear session on main page load to ensure fresh start (from file 2)
     session.clear()
     return render_template('index.html')
 
@@ -125,7 +134,7 @@ def generate_preview():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        # CRITICAL FIX: Always generate new session for each upload operation
+        # Always generate new session for each upload operation (from file 2)
         session_id = str(uuid.uuid4())
         session['session_id'] = session_id
         session['processed_files'] = []  # Clear any previous files
@@ -140,66 +149,103 @@ def upload_file():
         print(f"Use previous: {use_previous}")
         print(f"Form data: {dict(request.form)}")
         
-        # CRITICAL FIX: Never use previous files, always use fresh uploads
+        # Get files from upload (enhanced file handling from file 2)
         files = request.files.getlist('files')
         if not files or all(not f.filename for f in files):
             return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
         
         file_paths = []
         
-        for file in files:
+        for i, file in enumerate(files):  # Add enumerate to ensure unique processing
             if file and file.filename:
-                # ADD DEBUG PRINTS:
-                print(f"=== FILENAME DEBUG ===")
+                # Enhanced filename processing with guaranteed uniqueness
+                print(f"=== PROCESSING FILE {i+1} ===")
                 print(f"Original filename: '{file.filename}'")
                 print(f"Original filename bytes: {file.filename.encode('utf-8')}")
                 
-                original_filename = secure_filename(file.filename)
-                print(f"After secure_filename: '{original_filename}'")
-                print(f"Has dot: {'.' in original_filename}")
+                original_filename = file.filename
+                secure_name = secure_filename(original_filename)
+                print(f"After secure_filename: '{secure_name}'")
                 
-                if not original_filename or '.' not in original_filename:
-                    # If secure_filename stripped the extension, rebuild it
-                    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'docx'
-                    original_filename = f"document.{file_ext}"
-                    print(f"FIXED filename: '{original_filename}'")
-
-                timestamp = str(int(time.time()))
-                unique_filename = f"{session_id}_{timestamp}_{original_filename}"
+                # CRITICAL FIX: Handle Kannada/Unicode filenames better
+                if not secure_name or len(secure_name) < 3:
+                    # If secure_filename stripped everything, preserve extension
+                    if '.' in original_filename:
+                        file_ext = original_filename.rsplit('.', 1)[1].lower()
+                    else:
+                        file_ext = 'pdf'  # Default extension
+                    secure_name = f"file.{file_ext}"
+                    print(f"Generated fallback filename: '{secure_name}'")
+                elif '.' not in secure_name:
+                    # Add extension if missing after secure_filename
+                    if '.' in original_filename:
+                        file_ext = original_filename.rsplit('.', 1)[1].lower()
+                        secure_name = f"{secure_name}.{file_ext}"
+                        print(f"Added missing extension: '{secure_name}'")
+                
+                # GUARANTEED UNIQUENESS: Always add file index + timestamp + UUID
+                timestamp = str(int(time.time() * 1000))  # Millisecond precision
+                unique_id = str(uuid.uuid4().hex[:8])
+                file_index = f"f{i+1}"  # f1, f2, f3, etc.
+                
+                # Final unique filename with multiple uniqueness guarantees
+                unique_filename = f"{session_id}_{file_index}_{timestamp}_{unique_id}_{secure_name}"
                 print(f"Final unique filename: '{unique_filename}'")
-                print("=== END DEBUG ===")
                 
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                print(f"Full file path: '{file_path}'")
                 
                 try:
+                    # Save the file
                     file.save(file_path)
-                    print(f"Saved file: {file_path} (Size: {os.path.getsize(file_path)} bytes)")
+                    print(f"File saved successfully")
                     
-                    # Verify file was saved properly
-                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                        file_paths.append(file_path)
+                    # CRITICAL: Verify file was saved with correct content
+                    if os.path.exists(file_path):
+                        file_size = os.path.getsize(file_path)
+                        print(f"Saved file size: {file_size} bytes")
+                        
+                        if file_size > 0:
+                            file_paths.append(file_path)
+                            print(f"✓ File {i+1} processed successfully: {file_path}")
+                        else:
+                            print(f"✗ File {i+1} is empty after save")
                     else:
-                        print(f"Warning: File save verification failed for {file_path}")
+                        print(f"✗ File {i+1} was not saved properly")
                         
                 except Exception as save_error:
-                    print(f"Error saving file {file.filename}: {save_error}")
+                    print(f"✗ Error saving file {i+1} ({file.filename}): {save_error}")
                     continue
                 finally:
-                    # CRITICAL FIX: Properly close file stream
-                    if hasattr(file, 'close'):
-                        try:
+                    # Ensure file stream is properly closed
+                    try:
+                        if hasattr(file, 'close'):
                             file.close()
-                        except:
-                            pass
+                        elif hasattr(file, 'stream') and hasattr(file.stream, 'close'):
+                            file.stream.close()
+                    except:
+                        pass
+                
+                print(f"=== FILE {i+1} PROCESSING COMPLETE ===")
+        
+        print(f"=== FINAL SUMMARY ===")
+        print(f"Total files processed: {len(file_paths)}")
+        for idx, path in enumerate(file_paths):
+            print(f"File {idx+1}: {path} (exists: {os.path.exists(path)}, size: {os.path.getsize(path) if os.path.exists(path) else 'N/A'})")
+        print("=== END SUMMARY ===")
         
         if not file_paths:
             return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಸರಿಯಾದ ಫೈಲ್‌ಗಳು ಅಪ್‌ಲೋಡ್ ಆಗಿಲ್ಲ'})
+        
+        # For merge operation, ensure we have at least 2 different files
+        if operation == 'merge' and len(file_paths) < 2:
+            return jsonify({'success': False, 'error': 'ವಿಲೀನಕ್ಕೆ ಕನಿಷ್ಠ 2 ವಿಭಿನ್ನ PDF ಫೈಲ್‌ಗಳು ಅಗತ್ಯ'})
         
         # Get operation parameters
         pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
         
-        # Get split-specific parameters
+        # Get split-specific parameters (from file 2)
         split_method = request.form.get('split_method', 'pages')
         target_size_mb = request.form.get('target_size_mb', '10')
         pages_per_chunk = request.form.get('pages_per_chunk', '20')
@@ -239,7 +285,7 @@ def upload_file():
                     print(f"PDF validation error: {pdf_error}")
                     return jsonify({'success': False, 'error': f'PDF ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(pdf_error)}'})
                 
-                # Call split_pdf with proper parameters based on split method
+                # Enhanced split operation from file 2
                 try:
                     target_size_mb_int = int(target_size_mb) if target_size_mb.isdigit() else 10
                     pages_per_chunk_int = int(pages_per_chunk) if pages_per_chunk.isdigit() else 20
@@ -266,6 +312,7 @@ def upload_file():
                 result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
 
             elif operation == 'rotate':
+                # Rotation operation from file 2
                 print("=== ROTATION OPERATION DEBUG ===")
                 print(f"Raw form data: {dict(request.form)}")
                 
@@ -313,8 +360,6 @@ def upload_file():
                     return jsonify({'success': False, 'error': 'ಅಳಿಸಲು ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಮೂದಿಸಿ'})
                 result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
                 
-            # Replace your compression section in app.py with this:
-
             elif operation == 'compress':
                 print("Processing compress operation")
                 
@@ -333,7 +378,7 @@ def upload_file():
                         print("Invalid target size, ignoring")
                 
                 # Get advanced options if provided
-                image_quality = request.form.get('imageQuality')  # Note: matching HTML id
+                image_quality = request.form.get('imageQuality')
                 image_dpi = request.form.get('imageDPI')
                 remove_metadata = request.form.get('removeMetadata') == 'on'
                 optimize_fonts = request.form.get('optimizeFonts') == 'on'
@@ -386,6 +431,7 @@ def upload_file():
                 result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
 
             elif operation == 'word_to_pdf':
+                # Enhanced Word to PDF operation from file 2
                 print("=== PROCESSING WORD TO PDF OPERATION (FIXED) ===")
                 print(f"File paths: {file_paths}")
                 
@@ -395,7 +441,7 @@ def upload_file():
                 word_file_path = file_paths[0]
                 print(f"Processing Word file: {word_file_path}")
                 
-                # CRITICAL FIX: Validate file exists and has content
+                # Validate file exists and has content
                 if not os.path.exists(word_file_path):
                     return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'})
                 
@@ -410,7 +456,7 @@ def upload_file():
                 
                 print(f"File validation passed - Extension: {file_ext}, Size: {file_size} bytes")
                 
-                # CRITICAL FIX: Call the conversion function with proper error handling
+                # Call the conversion function with proper error handling
                 try:
                     result_path = pdf_ops.word_to_pdf(word_file_path, session_id)
                     print(f"word_to_pdf returned: {result_path}")
@@ -440,11 +486,9 @@ def upload_file():
                 
                 session.pop('comparison_data', None)
                 session.pop('comparison_report_url', None)
-                compare_type ='both'
+                compare_type = 'both'
                 
-                # CRITICAL FIX: Maintain upload order - don't sort by size
-                # file_paths[0] should always be the first uploaded file (left side)
-                # file_paths[1] should always be the second uploaded file (right side)
+                # Maintain upload order
                 pdf1_path = file_paths[0]  # First uploaded file - LEFT side
                 pdf2_path = file_paths[1]  # Second uploaded file - RIGHT side
                 
@@ -467,8 +511,7 @@ def upload_file():
                     'session_id': session_id
                 }
 
-                # SAVE FULL DATA TO FILE INSTEAD OF SESSION
-                import json
+                # Save full data to file instead of session
                 comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
                 with open(comparison_file, 'w', encoding='utf-8') as f:
                     json.dump(comparison_results, f, ensure_ascii=False, indent=2)
@@ -491,7 +534,7 @@ def upload_file():
             traceback.print_exc()
             return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(op_error)}'})
         
-        # CRITICAL FIX: Clean up input files after successful processing
+        # Clean up input files after successful processing (from file 2)
         try:
             for file_path in file_paths:
                 if os.path.exists(file_path):
@@ -519,7 +562,7 @@ def upload_file():
         filename = os.path.basename(result_path)
         print(f"Success! Result file: {filename}, Size: {result_size} bytes")
         
-        # Store result in session for potential chaining (but don't reuse)
+        # Store result in session for potential chaining
         session['processed_files'] = [{
             'path': result_path,
             'filename': filename,
@@ -532,13 +575,18 @@ def upload_file():
             'message': 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!',
             'download_url': f'/download/{session_id}/{filename}',
             'filename': filename,
-            'can_chain': False  # CRITICAL FIX: Disable chaining to prevent reuse issues
+            'can_chain': True  # Enable chaining capability
         })
 
     except Exception as e:
         print(f"Upload error: {str(e)}")
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
+
+@app.route('/process', methods=['POST'])
+def process_files():
+    """Alternative endpoint for processing files (matches main.js expectations)"""
+    return upload_file()
 
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
@@ -564,8 +612,8 @@ def download_file(session_id, filename):
 
 @app.route('/reset', methods=['POST'])
 def reset_session():
-    """Reset session and clear processed files"""
-    # CRITICAL FIX: Completely clear session and cleanup files
+    """Reset session and clear processed files - Enhanced version from file 2"""
+    # Completely clear session and cleanup files
     old_session_id = session.get('session_id')
     
     # Clear all session data
@@ -583,7 +631,7 @@ def reset_session():
     return jsonify({'success': True, 'message': 'ಅಧಿವೇಶನ ಮರುಹೊಂದಿಸಲಾಗಿದೆ'})
 
 def cleanup_session_files(session_id):
-    """Clean up all files associated with a session"""
+    """Clean up all files associated with a session - From file 2"""
     try:
         # Clean up preview files
         preview_dir = os.path.join(app.config['PREVIEW_FOLDER'], session_id)
@@ -641,22 +689,19 @@ def compare_pdfs():
         # Generate session ID
         session_id = str(uuid.uuid4())
         
-        # Save uploaded files
         # Save uploaded files with identifiable names
         file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file1_{file1.filename}")
         file2_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file2_{file2.filename}")
         
         file1.save(file1_path)
         file2.save(file2_path)
+        
         # Generate preview images for both PDFs
         preview_folder = app.config['PREVIEW_FOLDER']
         pdf_ops.generate_page_previews(file1_path, session_id, preview_folder)
         pdf_ops.generate_page_previews(file2_path, session_id, preview_folder)
         
         # Compare PDFs
-        from utils.pdf_compare import PDFCompare
-        pdf_compare = PDFCompare()
-        
         comparison_data = pdf_compare.compare_pdfs_web(
             file1_path, file2_path, session_id, 'both'
         )
@@ -674,6 +719,7 @@ def compare_pdfs():
     except Exception as e:
         print(f"Compare error: {e}")
         return jsonify({'error': f'ದೋಷ: {str(e)}'}), 500
+
 @app.route('/compare-result')
 def compare_result():
     try:
@@ -682,7 +728,7 @@ def compare_result():
         
         session_id = session['session_id']
         
-        # LOAD COMPARISON DATA FROM FILE INSTEAD OF SESSION
+        # Load comparison data from file instead of session
         comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
         
         if not os.path.exists(comparison_file):
@@ -691,7 +737,7 @@ def compare_result():
         with open(comparison_file, 'r', encoding='utf-8') as f:
             comparison_data = json.load(f)
         
-        # Rest of your existing code...
+        # Ensure UTF-8 encoding
         def ensure_utf8(obj):
             if isinstance(obj, dict):
                 return {k: ensure_utf8(v) for k, v in obj.items()}
@@ -735,6 +781,7 @@ def generate_page_image(pdf_path, session_id, file_num, page_num):
     except Exception as e:
         print(f"Image generation error: {e}")
         return None 
+
 @app.route('/pdf-page/<session_id>/<file_num>/<int:page_num>')
 def serve_pdf_page(session_id, file_num, page_num):
     try:
@@ -764,9 +811,10 @@ def serve_pdf_page(session_id, file_num, page_num):
     except Exception as e:
         print(f"Error serving page: {e}")
         return "Error", 500
+
 @app.errorhandler(413)
 def too_large(e):
-    return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 100MB ಅನುಮತಿ'}), 413
+    return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 1000MB ಅನುಮತಿ'}), 413
 
 @app.errorhandler(404)
 def not_found(e):
@@ -776,13 +824,13 @@ def not_found(e):
 def server_error(e):
     return jsonify({'success': False, 'error': 'ಸರ್ವರ್ ದೋಷ ಸಂಭವಿಸಿದೆ'}), 500
 
-# CRITICAL FIX: Enhanced cleanup function
+# Enhanced cleanup function from file 2
 def cleanup_old_files():
     """Clean up old files on server startup"""
     import time
     current_time = time.time()
     
-    # Clean up files older than 1 hour (reduced from 24 hours)
+    # Clean up files older than 1 hour (from file 2)
     for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], app.config['PREVIEW_FOLDER']]:
         if not os.path.exists(folder):
             continue
