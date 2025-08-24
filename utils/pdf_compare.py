@@ -102,10 +102,12 @@ class PDFCompare:
                         for span in line.get("spans", []):
                             span_text = span.get("text", "").strip()
                             if span_text:
+                                # CHANGE: Preserve bullet points by converting them to *
+                                span_text = self.normalize_bullet_points(span_text)
                                 line_text += span_text + " "
                         if line_text.strip():
                             text_parts.append(line_text.strip())
-            
+                
             # Add actual text
             if text_parts:
                 full_text = "\n".join(text_parts)
@@ -691,11 +693,20 @@ class PDFCompare:
         return total_chars > 0  # At least some readable characters
     
     def generate_comparison_report_web(self, comparison_data, session_id):
-        """Generate PDF report from HTML with proper Kannada support"""
+        """Generate PDF report from HTML with proper Kannada support - NO ARBITRARY LIMITS"""
         try:
             # First create HTML file
             html_path = f"output/{session_id}_comparison_report.html"
             pdf_path = f"output/{session_id}_comparison_report.pdf"
+            
+            # Calculate total changes to determine if we need to limit
+            total_changes = comparison_data['summary']['total_text_changes']
+            
+            # Set reasonable limits based on actual content size
+            max_changes = total_changes  # Include ALL changes
+            show_warning = False
+
+            print(f"Report will include ALL {total_changes} changes (no limits)")
             
             # Create HTML content with embedded CSS for proper Kannada rendering
             html_content = f"""
@@ -713,7 +724,6 @@ class PDFCompare:
             
             body {{
                 font-family: 'KannadaFont', Arial, sans-serif !important;
-                
                 margin: 20px;
                 line-height: 1.6;
                 color: #333;
@@ -813,6 +823,15 @@ class PDFCompare:
                 padding-top: 10px;
             }}
             
+            .warning {{
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-left: 4px solid #ffc107;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 4px;
+            }}
+            
             /* Print-specific styles */
             @media print {{
                 body {{ margin: 0; }}
@@ -828,42 +847,97 @@ class PDFCompare:
             <tr><td class="label">ಎರಡನೇ ಫೈಲ್:</td><td>{comparison_data['file2_name']}</td></tr>
             <tr><td class="label">ಮೊದಲ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>{comparison_data['file1_pages']}</td></tr>
             <tr><td class="label">ಎರಡನೇ ಫೈಲ್‌ನ ಪುಟಗಳು:</td><td>{comparison_data['file2_pages']}</td></tr>
-            <tr><td class="label">ಪಠ್ಯ ಬದಲಾವಣೆಗಳು:</td><td>{comparison_data['summary']['total_text_changes']}</td></tr>
+            <tr><td class="label">ಒಟ್ಟು ಪಠ್ಯ ಬದಲಾವಣೆಗಳು:</td><td>{total_changes}</td></tr>
+            <tr><td class="label">ವರದಿಯಲ್ಲಿ ಸೇರಿಸಲಾದ ಬದಲಾವಣೆಗಳು:</td><td>{max_changes}</td></tr>
         </table>
-        
-        <div class="section-title">ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು</div>
     """
             
-            # Add text changes
-            if comparison_data['summary']['total_text_changes'] > 0:
+            # Add warning if we're limiting changes
+            if show_warning:
+                html_content += f'''
+        <div class="warning">
+            <strong>ಗಮನಿಸಿ:</strong> ಈ ವರದಿಯು {max_changes} ಬದಲಾವಣೆಗಳನ್ನು ಒಳಗೊಂಡಿದೆ (ಒಟ್ಟು {total_changes} ರಲ್ಲಿ). 
+            ಸಂಪೂರ್ಣ ವಿವರಗಳಿಗಾಗಿ ವೆಬ್ ಇಂಟರ್ಫೇಸ್ ಬಳಸಿ ಅಥವಾ ಚಿಕ್ಕ ವಿಭಾಗಗಳಲ್ಲಿ ಹೋಲಿಸಿ.
+        </div>
+    '''
+            
+            html_content += '<div class="section-title">ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು</div>'
+            
+            # Add text changes with balanced approach
+            if total_changes > 0:
                 change_count = 0
+                
+                # Calculate balanced distribution
+                added_limit = max_changes // 2
+                removed_limit = max_changes - added_limit
+                
+                # Count actual changes by type
+                total_added = 0
+                total_removed = 0
                 for page_comp in comparison_data['page_comparisons']:
-                    if page_comp['text_changes'] and change_count < 50:  # Limit for PDF size
-                        html_content += f'<div class="page-title">ಪುಟ {page_comp["page_number"]}:</div>'
+                    for change in page_comp['text_changes']:
+                        if change['type'] == 'added':
+                            total_added += 1
+                        elif change['type'] == 'removed':
+                            total_removed += 1
+                
+                # Adjust limits based on actual distribution
+                if total_added < added_limit:
+                    removed_limit += (added_limit - total_added)
+                elif total_removed < removed_limit:
+                    added_limit += (removed_limit - total_removed)
+                
+                print(f"Limits: {added_limit} added, {removed_limit} removed (actual: {total_added} added, {total_removed} removed)")
+                
+                added_count = 0
+                removed_count = 0
+                
+                for page_comp in comparison_data['page_comparisons']:
+                    if change_count >= max_changes:
+                        break
                         
-                        for change in page_comp['text_changes'][:10]:  # Limit per page
-                            if change_count >= 50:
-                                break
-                            
-                            # Clean the text properly for HTML
-                            change_text = self.clean_text_for_html(change['text'])
-                            
-                            if change['type'] == 'added':
-                                html_content += f'''
-                                <div class="change-item added">
-                                    <span class="change-label">+ ಸೇರಿಸಲಾಗಿದೆ:</span>
-                                    <span class="change-text">{change_text}</span>
-                                </div>
-                                '''
-                            else:
-                                html_content += f'''
+                    if page_comp['text_changes']:
+                        page_has_changes = False
+                        page_changes_html = ""
+                        
+                        # Process removed changes first
+                        for change in page_comp['text_changes']:
+                            if change['type'] == 'removed' and removed_count < removed_limit and change_count < max_changes:
+                                if not page_has_changes:
+                                    page_changes_html += f'<div class="page-title">ಪುಟ {page_comp["page_number"]}:</div>'
+                                    page_has_changes = True
+                                
+                                change_text = self.clean_text_for_html(change['text'])
+                                page_changes_html += f'''
                                 <div class="change-item removed">
                                     <span class="change-label">- ತೆಗೆದುಹಾಕಲಾಗಿದೆ:</span>
                                     <span class="change-text">{change_text}</span>
                                 </div>
                                 '''
-                            
-                            change_count += 1
+                                removed_count += 1
+                                change_count += 1
+                        
+                        # Process added changes
+                        for change in page_comp['text_changes']:
+                            if change['type'] == 'added' and added_count < added_limit and change_count < max_changes:
+                                if not page_has_changes:
+                                    page_changes_html += f'<div class="page-title">ಪುಟ {page_comp["page_number"]}:</div>'
+                                    page_has_changes = True
+                                
+                                change_text = self.clean_text_for_html(change['text'])
+                                page_changes_html += f'''
+                                <div class="change-item added">
+                                    <span class="change-label">+ ಸೇರಿಸಲಾಗಿದೆ:</span>
+                                    <span class="change-text">{change_text}</span>
+                                </div>
+                                '''
+                                added_count += 1
+                                change_count += 1
+                        
+                        html_content += page_changes_html
+                
+                print(f"Final report includes: {added_count} added, {removed_count} removed (total: {change_count})")
+                
             else:
                 html_content += '<div class="no-changes">ಯಾವುದೇ ಪಠ್ಯ ವ್ಯತ್ಯಾಸಗಳು ಕಂಡುಬಂದಿಲ್ಲ</div>'
             
@@ -878,6 +952,7 @@ class PDFCompare:
             # Write HTML file
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
+            
             # Try Playwright first (best for Kannada)
             try:
                 playwright_pdf = self.generate_pdf_with_playwright(html_path, pdf_path)
@@ -888,6 +963,7 @@ class PDFCompare:
                 print("⚠ Playwright not available")
             except Exception as e:
                 print(f"⚠ Playwright failed: {e}")
+            
             # Convert HTML to PDF using wkhtmltopdf (if available)
             try:
                 import pdfkit
@@ -1437,3 +1513,44 @@ class PDFCompare:
         except Exception as e:
             print(f"Playwright PDF error: {e}")
             return None
+    
+    def normalize_bullet_points(self, text):
+        """Convert various bullet point characters to asterisk (*)"""
+        try:
+            # Common bullet point characters that might appear in PDFs
+            bullet_chars = {
+                '•': '* ',      # Bullet
+                '◦': '* ',      # White bullet
+                '▪': '* ',      # Black small square
+                '▫': '* ',      # White small square
+                '‣': '* ',      # Triangular bullet
+                '⁃': '* ',      # Hyphen bullet
+                '◾': '* ',      # Black medium small square
+                '◽': '* ',      # White medium small square
+                '▶': '* ',      # Black right-pointing triangle
+                '▷': '* ',      # White right-pointing triangle
+                '●': '* ',      # Black circle
+                '○': '* ',      # White circle
+                '■': '* ',      # Black square
+                '□': '* ',      # White square
+            }
+            
+            # Replace bullet characters
+            for bullet, replacement in bullet_chars.items():
+                if bullet in text:
+                    # Only replace if it's at the start of a line or after whitespace
+                    import re
+                    pattern = r'(^|\s)' + re.escape(bullet) + r'(\s|$)'
+                    text = re.sub(pattern, r'\1' + replacement + r'\2', text)
+            
+            # Also handle numbered lists (1., 2., a), b), etc.)
+            # Convert them to * for consistency
+            import re
+            # Match patterns like "1. " or "a) " or "i. " at start of text or after newline
+            numbered_pattern = r'(^|\n)(\s*)([0-9]+\.|\w+[\.\)])\s+'
+            text = re.sub(numbered_pattern, r'\1\2* ', text)
+            
+            return text
+        except Exception as e:
+            print(f"Bullet normalization error: {e}")
+            return text

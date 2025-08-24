@@ -149,6 +149,7 @@ class PDFOCRProcessor:
                 text = unicodedata.normalize('NFC', text)
                 text = text.replace('|', 'ಲ್')
                 text = text.replace('ॐ', 'ಓಂ')
+                text = self.normalize_bullet_points_ocr(text)
                 
                 # Clean OCR artifacts but preserve image placeholders
                 lines = []
@@ -318,21 +319,58 @@ class PDFOCRProcessor:
             return True  # Assume corrupted if we can't check
 
 # Usage example - Add this method to your PDFCompare class
-def preprocess_pdf_if_needed(self, pdf_path, session_id):
-    """Preprocess PDF with OCR if text is corrupted"""
-    try:
-        ocr_processor = PDFOCRProcessor()
-        
-        if ocr_processor.is_pdf_text_corrupted(pdf_path):
-            print(f"⚠ Detected corrupted Kannada text in: {os.path.basename(pdf_path)}")
-            print("🔄 Processing with OCR to fix text encoding...")
+    def preprocess_pdf_if_needed(self, pdf_path, session_id):
+        """Preprocess PDF with OCR if text is corrupted"""
+        try:
+            ocr_processor = PDFOCRProcessor()
             
-            processed_pdf = ocr_processor.create_searchable_pdf(pdf_path, session_id)
-            if processed_pdf and os.path.exists(processed_pdf):
-                return processed_pdf
-        
-        return pdf_path  # Return original if no processing needed
-        
-    except Exception as e:
-        print(f"Preprocessing error: {e}")
-        return pdf_path  # Return original on error
+            if ocr_processor.is_pdf_text_corrupted(pdf_path):
+                print(f"⚠ Detected corrupted Kannada text in: {os.path.basename(pdf_path)}")
+                print("🔄 Processing with OCR to fix text encoding...")
+                
+                processed_pdf = ocr_processor.create_searchable_pdf(pdf_path, session_id)
+                if processed_pdf and os.path.exists(processed_pdf):
+                    return processed_pdf
+            
+            return pdf_path  # Return original if no processing needed
+            
+        except Exception as e:
+            print(f"Preprocessing error: {e}")
+            return pdf_path  # Return original on error
+    def normalize_bullet_points_ocr(self, text):
+        """Normalize bullet points in OCR extracted text"""
+        try:
+            # OCR sometimes misreads bullet points as other characters
+            ocr_bullet_replacements = {
+                '•': '* ',
+                'o': '* ',      # OCR often reads bullets as 'o'
+                'O': '* ',      # Or capital 'O'
+                '0': '* ',      # Or zero
+                '§': '* ',      # Section symbol
+                '¢': '* ',      # Cent symbol
+                '©': '* ',      # Copyright might be misread
+            }
+            
+            lines = text.split('\n')
+            cleaned_lines = []
+            
+            for line in lines:
+                line = line.strip()
+                if line:
+                    # Check if line starts with potential bullet character
+                    for char, replacement in ocr_bullet_replacements.items():
+                        if line.startswith(char + ' ') or line.startswith(char):
+                            line = replacement + line[1:].strip()
+                            break
+                    
+                    # Also handle cases where OCR puts bullet at start without space
+                    import re
+                    if re.match(r'^[•◦▪▫‣⁃◾◽▶▷●○■□]', line):
+                        line = '* ' + line[1:].strip()
+                    
+                    cleaned_lines.append(line)
+            
+            return '\n'.join(cleaned_lines)
+        except Exception as e:
+            print(f"OCR bullet normalization error: {e}")
+            return text

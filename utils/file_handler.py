@@ -7,17 +7,37 @@ import zipfile
 import shutil
 from werkzeug.utils import secure_filename
 from flask import current_app
-import config
 
 class FileHandler:
     def __init__(self):
-        self.config = config.Config()
+        # Support both config methods for maximum compatibility
+        try:
+            import config
+            self.config = config.Config()
+            self.use_config_object = True
+        except ImportError:
+            self.use_config_object = False
+        
         self.allowed_extensions = {
             'pdf': ['.pdf'],
             'word': ['.doc', '.docx'],
             'image': ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         }
         self.max_file_size = 100 * 1024 * 1024  # 100MB
+    
+    def _get_upload_folder(self):
+        """Get upload folder path with fallback support"""
+        if self.use_config_object:
+            return self.config.UPLOAD_FOLDER
+        else:
+            return current_app.config['UPLOAD_FOLDER']
+    
+    def _get_output_folder(self):
+        """Get output folder path with fallback support"""
+        if self.use_config_object:
+            return self.config.OUTPUT_FOLDER
+        else:
+            return current_app.config['OUTPUT_FOLDER']
     
     def allowed_file(self, filename, file_type='all'):
         """Check if file has allowed extension"""
@@ -70,7 +90,7 @@ class FileHandler:
             filename = f"{session_id}_{unique_id}_{secure_name}"
             
             # Create upload directory if it doesn't exist
-            upload_folder = self.config.UPLOAD_FOLDER
+            upload_folder = self._get_upload_folder()
             os.makedirs(upload_folder, exist_ok=True)
             
             # Save file
@@ -133,7 +153,7 @@ class FileHandler:
     def cleanup_session_files(self, session_id):
         """Remove all files associated with a session"""
         try:
-            folders_to_clean = [self.config.UPLOAD_FOLDER, self.config.OUTPUT_FOLDER]
+            folders_to_clean = [self._get_upload_folder(), self._get_output_folder()]
             
             for folder in folders_to_clean:
                 if os.path.exists(folder):
@@ -151,7 +171,7 @@ class FileHandler:
     def create_zip_archive(self, file_paths, archive_name, session_id):
         """Create ZIP archive from multiple files"""
         try:
-            archive_path = os.path.join(self.config.OUTPUT_FOLDER, 
+            archive_path = os.path.join(self._get_output_folder(), 
                                       f"{session_id}_{archive_name}.zip")
             
             with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -171,7 +191,7 @@ class FileHandler:
             max_age_seconds = max_age_hours * 3600
             
             # Clean upload folder
-            upload_folder = self.config.UPLOAD_FOLDER
+            upload_folder = self._get_upload_folder()
             if os.path.exists(upload_folder):
                 for filename in os.listdir(upload_folder):
                     file_path = os.path.join(upload_folder, filename)
@@ -181,7 +201,7 @@ class FileHandler:
                             os.remove(file_path)
             
             # Clean output folder
-            output_folder = self.config.OUTPUT_FOLDER
+            output_folder = self._get_output_folder()
             if os.path.exists(output_folder):
                 for filename in os.listdir(output_folder):
                     file_path = os.path.join(output_folder, filename)
@@ -191,6 +211,7 @@ class FileHandler:
                             os.remove(file_path)
                     elif os.path.isdir(file_path):
                         # Remove old directories too
+                        
                         dir_age = current_time - os.path.getctime(file_path)
                         if dir_age > max_age_seconds:
                             shutil.rmtree(file_path)
