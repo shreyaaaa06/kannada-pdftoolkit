@@ -2656,6 +2656,7 @@
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
+<<<<<<< HEAD
 
                                 <!--sorting -->
                 <div class="operation-card" data-operation="sort">
@@ -2683,6 +2684,13 @@
                     <h3 class="operation-title">PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ</h3>
                     <p class="operation-description">ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತ PDF ಅನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಿ ಮತ್ತು ಮುಕ್ತಗೊಳಿಸಿ</p>
                     <button class="btn btn-primary" onclick="selectOperation('unlock')">
+=======
+                <div class="operation-card">
+                    <div class="operation-icon"><i class="fas fa-redo-alt"></i></div>
+                    <h3 class="operation-title">PDF ತಿರುಗಿಸಿ</h3>
+                    <p class="operation-description">PDF ಪುಟಗಳನ್ನು 90°, 180°, 270° ತಿರುಗಿಸಿ</p>
+                    <button class="btn btn-primary" onclick="selectOperation('rotate')">
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
@@ -2690,6 +2698,7 @@
         </section>
     </div>
 
+<<<<<<< HEAD
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-container">
@@ -2779,6 +2788,9 @@
             </div>
         </div>
     </footer>
+=======
+
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
 
     <!-- Operation Modal -->
     <div id="operationModal" class="modal">
@@ -2828,6 +2840,23 @@
                         </div>
                     </div>
 
+                     <div class="form-group" id="rotationAngleGroup" style="display: none;">
+                            <label class="form-label" for="rotationAngleSelect">ತಿರುಗುವ ಕೋನ</label>
+                            <select name="rotation_angle" id="rotationAngleSelect" class="form-select">
+                                <option value="90">90° (ಬಲಕ್ಕೆ)</option>
+                                <option value="180">180° (ವಿಪರೀತ)</option>
+                                <option value="270">270° (ಎಡಕ್ಕೆ)</option>
+                                <option value="-90">-90° (ಎಡಕ್ಕೆ)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="applyToAllGroup" style="display: none;">
+                            <label class="form-label">
+                                <input type="checkbox" name="apply_to_all" id="applyToAllCheckbox" checked>
+                                ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸಿ
+                            </label>
+                            <small>ಇದನ್ನು ಆಫ್ ಮಾಡಿದರೆ ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು</small>
+                        </div>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="processBtn" disabled>
                             <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
@@ -2968,7 +2997,7 @@
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
                 multiple: false,
-                options: ['pages'],
+                options: ['split_method', 'pages'],
                 minFiles: 1,
                 hasPreview: true
             },
@@ -3035,6 +3064,7 @@
                 minFiles: 1,
                 hasPreview: false
             },
+<<<<<<< HEAD
              'sort': {
         title: 'PDF ಪುಟಗಳನ್ನು ಸಂಖ್ಯೆ ಆಧಾರಿತವಾಗಿ ಸಾರಿ ಹಾಕಿ',
         accept: '.pdf',
@@ -3062,6 +3092,16 @@
                 options: ['unlock'],
                 minFiles: 1,
                 hasPreview: false
+=======
+            'rotate': {
+                title: 'PDF ತಿರುಗಿಸಿ',
+                accept: '.pdf',
+                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
+                multiple: false,
+                options: ['rotation_angle', 'pages', 'apply_to_all'],
+                minFiles: 1,
+                hasPreview: true
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
             }
         };
 
@@ -3069,6 +3109,7 @@
             console.log('selectOperation called with:', operation);
             currentOperation = operation;
             const config = operationConfigs[operation];
+<<<<<<< HEAD
             
             if (!config) {
                 console.error('No config found for operation:', operation);
@@ -3078,6 +3119,9 @@
             console.log('Operation config:', config);
             
             // First, set the modal title and show the modal
+=======
+            restoreOriginalModalContent();
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
             document.getElementById('modalTitle').textContent = config.title;
             document.getElementById('operationModal').style.display = 'block';
             
@@ -3092,13 +3136,18 @@
             
             // Reset form and show options
             resetForm();
+<<<<<<< HEAD
             showOperationOptions(config.options, config.hasPreview);
             
             console.log('Operation selected successfully:', operation);
+=======
+            document.getElementById('operationModal').style.display = 'block';
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
         }
 
         function restoreOriginalModalContent() {
             const modalBody = document.querySelector('#operationModal .modal-body');
+            if (!modalBody) return;
             const config = operationConfigs[currentOperation];
             
             if (!config) {
@@ -3249,6 +3298,55 @@
                             </p>
                         </div>
                     </div>
+                     
+                    
+                        <div class="form-group" id="rotationAngleGroup" style="display: ${config.options.includes('rotation_angle') ? 'block' : 'none'};">
+                        <label class="form-label" for="rotationAngleSelect">ತಿರುಗುವ ಕೋನ</label>
+                        <select name="rotation_angle" id="rotationAngleSelect" class="form-select">
+                            <option value="90">90° (ಬಲಕ್ಕೆ)</option>
+                            <option value="180">180° (ವಿಪರೀತ)</option>
+                            <option value="270">270° (ಎಡಕ್ಕೆ)</option>
+                            <option value="-90">-90° (ಎಡಕ್ಕೆ)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="applyToAllGroup" style="display: ${config.options.includes('apply_to_all') ? 'block' : 'none'};">
+                        <label class="form-label">
+                            <input type="checkbox" name="apply_to_all" id="applyToAllCheckbox" checked>
+                            ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸಿ
+                        </label>
+                        <small>ಇದನ್ನು ಆಫ್ ಮಾಡಿದರೆ ನಿರ್ದಿಷ್ಟ ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು</small>
+                    </div>
+                 
+
+                    <div class="form-group" id="splitMethodGroup" style="display: ${config.options.includes('split_method') ? 'block' : 'none'};">
+                        <label class="form-label" for="splitMethodSelect">ವಿಭಾಗ ವಿಧಾನ</label>
+                        <select name="split_method" id="splitMethodSelect" class="form-select" onchange="handleSplitMethodChange()">
+                            <option value="pages">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು/ವ್ಯಾಪ್ತಿಗಳು</option>
+                            <option value="size">ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ</option>
+                            <option value="auto">ಸ್ವಯಂಚಾಲಿತ ಚಂಕ್‌ಗಳು</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                        <label class="form-label" for="maxSizeInput">ಪ್ರತಿ ಫೈಲ್ ಗರಿಷ್ಠ ಗಾತ್ರ (MB)</label>
+                        <input type="number" name="target_size_mb" id="maxSizeInput" class="form-input" 
+                            placeholder="10" min="1" max="50" value="10">
+                        <small>ಪ್ರತಿ ಭಾಗದ ಅಂದಾಜು ಗಾತ್ರ</small>
+                    </div>
+
+                    <div class="form-group" id="autoChunkGroup" style="display: none;">
+                        <label class="form-label" for="chunkSizeInput">ಪ್ರತಿ ಚಂಕ್‌ನಲ್ಲಿ ಪುಟಗಳು</label>
+                        <input type="number" name="pages_per_chunk" id="chunkSizeInput" class="form-input" 
+                            placeholder="20" min="5" max="100" value="20">
+                        <small>ಪ್ರತಿ ಫೈಲ್‌ನಲ್ಲಿ ಎಷ್ಟು ಪುಟಗಳು</small>
+                    </div>
+
+                    <div class="form-group" id="fileSizeGroup" style="display: none;">
+                    <label class="form-label" for="maxSizeInput">ಗರಿಷ್ಠ ಫೈಲ್ ಗಾತ್ರ (MB)</label>
+                    <input type="number" name="max_file_size" id="maxSizeInput" class="form-input" 
+                    placeholder="10" min="1" max="100">
+                    </div>
 
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="processBtn" disabled>
@@ -3259,6 +3357,9 @@
             `;
             
             bindEventListeners();
+            setTimeout(() => {
+        bindEventListeners();
+    }, 100);
         }
 
         function bindEventListeners() {
@@ -3315,6 +3416,7 @@
         }
 
         function showOperationOptions(options, hasPreview) {
+<<<<<<< HEAD
             console.log('showOperationOptions called with:', options);
             const optionGroups = ['pagesGroup', 'compressionGroup', 'protectGroup', 'unlockGroup'];
             optionGroups.forEach(group => {
@@ -3322,6 +3424,17 @@
                 if (element) {
                     element.style.display = 'none';
                     console.log('Hidden group:', group);
+=======
+            const optionGroups = ['pagesGroup', 'compressionGroup', 'splitMethodGroup', 'fileSizeGroup'];
+                options.forEach(option => {
+                const element = document.getElementById(option + 'Group');
+                if (element) {
+                    element.style.display = 'block';
+                    // Auto-show split method options for split operation
+                    if (currentOperation === 'split' && option === 'split_method') {
+                        setTimeout(() => handleSplitMethodChange(), 100);
+                    }
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
                 }
             });
             
@@ -3385,6 +3498,31 @@
                 previewSection.style.display = 'none';
             }
         }
+        function resetFormState() {
+    // Clear all form state
+    selectedFiles = [];
+    selectedPages.clear();
+    currentPreviewData = null;
+    
+    // Reset file input
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Clear any form values
+    const pagesInput = document.getElementById('pagesInput');
+    if (pagesInput) {
+        pagesInput.value = '';
+    }
+    
+    const selectedPagesInput = document.getElementById('selectedPagesInput');
+    if (selectedPagesInput) {
+        selectedPagesInput.value = '';
+    }
+    
+    console.log('Form state reset completed');
+}
 
         function handleFileSelection(files) {
             const config = operationConfigs[currentOperation];
@@ -3983,6 +4121,7 @@
             }
         }
 
+        
         function updateProcessButton() {
             console.log('updateProcessButton called');
             console.log('currentOperation:', currentOperation);
@@ -4018,6 +4157,7 @@
             }
         }
 
+<<<<<<< HEAD
         async function handleFormSubmission(e) {
             e.preventDefault();
             console.log('Form submission started');
@@ -4137,52 +4277,195 @@
                 console.log('Result:', result);
                 
                 closeModal();
+=======
+        function handleSplitMethodChange() {
+                const method = document.getElementById('splitMethodSelect')?.value || 'pages';
+                const pagesGroup = document.getElementById('pagesGroup');
+                const fileSizeGroup = document.getElementById('fileSizeGroup');
+                const autoChunkGroup = document.getElementById('autoChunkGroup');
+                const pagesInput = document.getElementById('pagesInput');
+                const previewSection = document.getElementById('previewSection');
                 
-                if (result.success) {
-                    showSuccessModal(result);
-                } else {
-                    showErrorModal(result.error);
+                // Hide all method-specific groups first
+                if (pagesGroup) pagesGroup.style.display = 'none';
+                if (fileSizeGroup) fileSizeGroup.style.display = 'none';
+                if (autoChunkGroup) autoChunkGroup.style.display = 'none';
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
+                
+                if (method === 'size') {
+                    if (fileSizeGroup) fileSizeGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಗಾತ್ರದ ಆಧಾರದ ಮೇಲೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ವಿಭಾಗಿಸಲಾಗುವುದು';
+                    if (previewSection) previewSection.style.display = 'none';
+                } else if (method === 'auto') {
+                    if (autoChunkGroup) autoChunkGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಸ್ವಯಂಚಾಲಿತ ಚಂಕಿಂಗ್';
+                    if (previewSection) previewSection.style.display = 'none';
+                } else { // method === 'pages'
+                    if (pagesGroup) pagesGroup.style.display = 'block';
+                    if (pagesInput) pagesInput.placeholder = 'ಉದಾ: 1,3,5-10 ಅಥವಾ 1-10,15-25';
+                    // Keep preview section available for page-based splitting
                 }
+<<<<<<< HEAD
             } catch (error) {
                 console.error('Form submission error:', error);
                 closeModal();
                 showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
+=======
+>>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
             }
-        }
 
+        async function handleFormSubmission(e) {
+    e.preventDefault();
+    
+    const config = operationConfigs[currentOperation];
+    if (selectedFiles.length < (config.minFiles || 1)) {
+        if (currentOperation === 'merge') {
+            showAlert('error', 'ವಿಲೀನಗೊಳಿಸಲು ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು');
+        } else {
+            showAlert('error', 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+        }
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('operation', currentOperation);
+    
+    selectedFiles.forEach(file => {
+        formData.append('files', file);
+    });
+    
+    // Add all form parameters
+    const selectedPagesInput = document.getElementById('selectedPagesInput');
+    const pagesInput = document.getElementById('pagesInput');
+    
+    if (selectedPagesInput && selectedPagesInput.value) {
+        formData.append('selected_pages', selectedPagesInput.value);
+    } else if (pagesInput && pagesInput.value) {
+        formData.append('pages', pagesInput.value);
+    }
+    
+    const compressionSelect = document.getElementById('compressionSelect');
+    if (compressionSelect && compressionSelect.value) {
+        formData.append('compression', compressionSelect.value);
+    }
+    
+    const splitMethodSelect = document.getElementById('splitMethodSelect');
+    if (splitMethodSelect && splitMethodSelect.value) {
+        formData.append('split_method', splitMethodSelect.value);
+    }
+
+    const maxSizeInput = document.getElementById('maxSizeInput');
+    if (maxSizeInput && maxSizeInput.value) {
+        formData.append('target_size_mb', maxSizeInput.value);
+    }
+
+    const chunkSizeInput = document.getElementById('chunkSizeInput');
+    if (chunkSizeInput && chunkSizeInput.value) {
+        formData.append('pages_per_chunk', chunkSizeInput.value);
+    }
+    
+    const rotationAngleSelect = document.getElementById('rotationAngleSelect');
+    if (rotationAngleSelect && rotationAngleSelect.value) {
+        formData.append('rotation_angle', rotationAngleSelect.value);
+    }
+    
+    const applyToAllCheckbox = document.getElementById('applyToAllCheckbox');
+    if (applyToAllCheckbox) {
+        formData.append('apply_to_all', applyToAllCheckbox.checked);
+    }
+    
+    document.getElementById('operationModal').style.display = 'none';
+    showLoadingModal();
+    
+       try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessModal(result);
+            // CRITICAL: Complete reset after successful operation
+            resetFormState();
+            selectedFiles = []; // Clear the file array
+            
+            // Clear the file input properly
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.value = '';
+                fileInput.files = new DataTransfer().files; // Clear the FileList
+            }
+        } else {
+            showErrorModal(result.error);
+        }
+    } catch (error) {
+        showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
+    } finally {
+        document.getElementById('loadingModal').style.display = 'none';
+    }
+}
+
+function clearFileInputState() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        // Clear the input value
+        fileInput.value = '';
+        
+        // Create new DataTransfer object to clear FileList
+        const dt = new DataTransfer();
+        fileInput.files = dt.files;
+        
+        // Remove any event listeners and re-add them
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+    }
+    
+    selectedFiles = [];
+    console.log('File input state completely cleared');
+}
         function showLoadingModal() {
             document.getElementById('loadingModal').style.display = 'block';
         }
 
         function showSuccessModal(result) {
-            const modal = document.getElementById('operationModal');
-            const modalBody = modal.querySelector('.modal-body');
-            
-            modalBody.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 4rem; color: #4caf50; margin-bottom: 1rem;">✅</div>
-                    <h3>ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!</h3>
-                    <p style="margin: 1rem 0;">${result.message}</p>
-                    <div style="margin-top: 2rem;">
-                        <a href="${result.download_url}" class="btn btn-primary" 
-                           download="${result.filename}" style="margin-right: 1rem;">
-                            <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
-                        </a>
-                        <button class="btn" onclick="selectOperation('${currentOperation}')" 
-                                style="background: #6c757d; color: white; margin-right: 1rem;">
-                            <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
-                        </button>
-                        <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
-                            ಮುಚ್ಚಿ
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('loadingModal').style.display = 'none';
-            modal.style.display = 'block';
-        }
+    const modal = document.getElementById('operationModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    modalBody.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div style="font-size: 4rem; color: #4caf50; margin-bottom: 1rem;">✅</div>
+            <h3>ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!</h3>
+            <p style="margin: 1rem 0;">${result.message}</p>
+            <div style="margin-top: 2rem;">
+                <a href="${result.download_url}" class="btn btn-primary" 
+                   download="${result.filename}" style="margin-right: 1rem;">
+                    <i class="fas fa-download"></i> ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+                </a>
+                <button class="btn" onclick="startNewOperation('${currentOperation}')" 
+                        style="background: #6c757d; color: white; margin-right: 1rem;">
+                    <i class="fas fa-redo"></i> ಮತ್ತೆ ${operationConfigs[currentOperation].title}
+                </button>
+                <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white;">
+                    ಮುಚ್ಚಿ
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('loadingModal').style.display = 'none';
+    modal.style.display = 'block';
+}
 
+function startNewOperation(operation) {
+    closeModal();
+    resetFormState();
+    clearFileInputState(); // Add this line
+    setTimeout(() => {
+        selectOperation(operation);
+    }, 100);
+}
         function showErrorModal(errorMessage) {
             const modal = document.getElementById('operationModal');
             const modalBody = modal.querySelector('.modal-body');
