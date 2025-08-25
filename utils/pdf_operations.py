@@ -830,8 +830,17 @@ class PDFOperations:
             if password != confirm_password:
                 raise Exception('ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ')
             
-            output_filename = f"{session_id}_protected.pdf"
+            # Create output filename
+            original_name = os.path.splitext(os.path.basename(file_path))[0]
+            output_filename = f"{original_name}_protected.pdf"
             output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+            
+            # Handle file name conflicts by adding a number if file already exists
+            counter = 1
+            while os.path.exists(output_path):
+                output_filename = f"{original_name}_protected_{counter}.pdf"
+                output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+                counter += 1
             
             # Try PyPDF2 method first (more reliable for password protection)
             try:
@@ -899,3 +908,75 @@ class PDFOperations:
         except Exception as e:
             print(f"Protection error: {str(e)}")
             return {'success': False, 'error': f'PDF ರಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+
+    def unlock_pdf(self, file_path, password, session_id):
+        """Remove password protection from PDF file"""
+        try:
+            if not os.path.exists(file_path):
+                raise Exception('PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ')
+            
+            if not password or password.strip() == '':
+                raise Exception('ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯ')
+            
+            # Check if file is actually encrypted
+            try:
+                from PyPDF2 import PdfReader, PdfWriter
+                reader = PdfReader(file_path)
+                if not reader.is_encrypted:
+                    raise Exception('ಈ PDF ಫೈಲ್ ರಕ್ಷಿತವಾಗಿಲ್ಲ')
+            except Exception as e:
+                if "not encrypted" in str(e):
+                    raise e
+                # If we can't read it, assume it's encrypted and continue
+                pass
+            
+            # Try to decrypt the PDF
+            reader = PdfReader(file_path)
+            
+            if not reader.decrypt(password):
+                raise Exception('ತಪ್ಪು ಪಾಸ್‌ವರ್ಡ್ - ದಯವಿಟ್ಟು ಸರಿಯಾದ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ')
+            
+            # Create output filename
+            original_name = os.path.splitext(os.path.basename(file_path))[0]
+            output_filename = f"{original_name}_unlocked.pdf"
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+            
+            # Handle file name conflicts by adding a number if file already exists
+            counter = 1
+            while os.path.exists(output_path):
+                output_filename = f"{original_name}_unlocked_{counter}.pdf"
+                output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+                counter += 1
+            
+            # Create new unlocked PDF
+            writer = PdfWriter()
+            
+            # Add all pages to the writer
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                writer.add_page(page)
+            
+            # Write the unlocked PDF
+            with open(output_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            # Verify the output file was created properly
+            if not os.path.exists(output_path):
+                raise Exception('ಔಟ್‌ಪುಟ್ ಫೈಲ್ ರಚಿಸಲಾಗಿಲ್ಲ')
+            
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                raise Exception('ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ')
+            
+            print(f"Unlocked PDF created successfully: {file_size} bytes")
+            
+            return {
+                'success': True,
+                'output_path': output_path,
+                'filename': output_filename,
+                'message': f'PDF ಯಶಸ್ವಿಯಾಗಿ ಅನ್‌ಲಾಕ್ ಮಾಡಲಾಗಿದೆ'
+            }
+            
+        except Exception as e:
+            print(f"Unlock error: {str(e)}")
+            return {'success': False, 'error': f'PDF ಅನ್‌ಲಾಕ್ ವಿಫಲ: {str(e)}'}

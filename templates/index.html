@@ -14,12 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     
-    <!-- Premium External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
-
+   
     <style>
         :root {
             /* Original theme colors */
@@ -55,75 +50,7 @@
             --current-accent: var(--gold);
         }
 
-        /* Premium cursor styles - DISABLED */
-        * {
-            cursor: auto !important;
-        }
-
-        #customCursor {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            background: radial-gradient(circle, var(--current-primary) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 10002;
-            mix-blend-mode: difference;
-            transition: transform 0.1s ease;
-            display: block;
-        }
-
-        #cursorTrail {
-            position: fixed;
-            width: 6px;
-            height: 6px;
-            background: var(--current-accent);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 10001;
-            opacity: 0.7;
-            display: block;
-        }
-
-        .cursor-hover #customCursor {
-            transform: scale(2);
-            background: radial-gradient(circle, var(--current-accent) 0%, transparent 70%);
-        }
-
-        /* Matrix rain effect */
-        #matrixCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -10;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        /* Particles background */
-        #particles-js {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: -9;
-            opacity: 0.3;
-        }
-
-        /* Dynamic wallpaper container */
-        #dynamicWallpaper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -8;
-            opacity: 0.8;
-            transition: opacity 0.5s ease;
-        }
+       
 
         * {
             margin: 0;
@@ -143,118 +70,9 @@
             z-index: 1;
         }
 
-        /* Glassmorphism effects */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-        }
+       
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Theme customizer */
-        .theme-customizer {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 1rem;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            max-width: 300px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .theme-customizer.open {
-            transform: translateX(0);
-        }
-
-        .theme-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            background: var(--current-primary);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.1) rotate(180deg);
-        }
-
-        /* Magnetic button effects */
-        .magnetic {
-            transition: transform 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .magnetic::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .magnetic:hover::before {
-            left: 100%;
-        }
-
-        /* Parallax sections */
-        .parallax-section {
-            position: relative;
-            overflow: hidden;
-            z-index: 700;
-        }
-
-        .parallax-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 120%;
-            height: 120%;
-            background-size: cover;
-            background-position: center;
-            transform: translate3d(0, 0, 0);
-            z-index: 701;
-        }
-
-        /* 3D Tilt cards */
-        .tilt-card {
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease;
-        }
-
-        .tilt-card:hover {
-            transform: perspective(1000px) rotateX(10deg) rotateY(10deg);
-        }
-
+      
         /* Animated text effects */
         .typewriter {
             overflow: hidden;
@@ -344,33 +162,13 @@
             50% { opacity: 0.8; }
         }
 
-        /* Theme-specific styles */
-        body.hacker-theme {
-            background: var(--cyber-dark);
-            color: var(--matrix-green);
-            font-family: 'Orbitron', monospace;
-        }
-
-        body.hacker-theme .header {
-            background: linear-gradient(135deg, #001a00 0%, #003300 50%, #001a00 100%);
-            border-bottom-color: var(--matrix-green);
-        }
-
-        body.hacker-theme .operation-card {
-            background: rgba(0, 255, 65, 0.1);
-            border-color: var(--matrix-green);
-            color: var(--matrix-green);
-        }
+       
 
         body.premium-dark {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
             color: #e8e8e8;
         }
 
-        body.aurora-theme {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
 
         /* Scroll animations */
         .fade-in {
@@ -2280,98 +2078,6 @@
             font-size: 0.9rem;
         }
 
-        .watermark-settings-section {
-            background: var(--biscuit-light);
-            border-radius: 8px;
-            border: 1px solid var(--gold);
-        }
-
-        .watermark-settings-section::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .watermark-settings-section::-webkit-scrollbar-track {
-            background: var(--biscuit-cream);
-            border-radius: 4px;
-        }
-
-        .watermark-settings-section::-webkit-scrollbar-thumb {
-            background: var(--gold);
-            border-radius: 4px;
-        }
-
-        .watermark-settings-section::-webkit-scrollbar-thumb:hover {
-            background: var(--brown-text);
-        }
-
-        #watermarkSample {
-            transition: all 0.3s ease;
-            border: 1px dashed var(--light-brown);
-        }
-
-        /* Watermark-specific styles */
-        #watermarkGroup h4 {
-            font-family: 'Cinzel', serif;
-            border-bottom: 2px solid var(--gold);
-            padding-bottom: 0.5rem;
-        }
-
-        #watermarkGroup details summary {
-            padding: 0.5rem;
-            background: var(--biscuit-light);
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
-        }
-
-        #watermarkGroup details[open] summary {
-            border-radius: 5px 5px 0 0;
-        }
-
-        #watermarkGroup input[type="color"] {
-            cursor: pointer;
-            border: 2px solid var(--gold);
-        }
-
-        #watermarkGroup input[type="range"] {
-            width: 100%;
-            height: 8px;
-            border-radius: 5px;
-            background: var(--biscuit-light);
-            outline: none;
-        }
-
-        #watermarkGroup input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--gold);
-            cursor: pointer;
-        }
-
-        #watermarkGroup input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--gold);
-            cursor: pointer;
-            border: none;
-        }
-
-        #watermarkGroup input[type="checkbox"], 
-        #watermarkGroup input[type="radio"] {
-            margin-right: 0.5rem;
-            transform: scale(1.2);
-            accent-color: var(--gold);
-        }
-
-        .watermark-option-group {
-            background: var(--biscuit-light);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-        }
 
         /* Protection Group Styles */
         #protectGroup input[type="password"] {
@@ -2688,82 +2394,7 @@
         }
     </style>
 </head>
-<body>
-    <!-- Premium Cursor Effects -->
-    <div id="cursorTrail"></div>
-    
-    <!-- Matrix Rain Canvas -->
-    <canvas id="matrixCanvas"></canvas>
-    
-    <!-- Particles Background -->
-    <div id="particles-js"></div>
-    
-    <!-- Dynamic Wallpaper Container -->
-    <div id="dynamicWallpaper"></div>
-    
-    <!-- Live Theme Customizer -->
-    <button class="theme-toggle" id="themeToggle" onclick="toggleThemeCustomizer()">
-        <i class="fas fa-palette"></i>
-    </button>
-    
-    <div class="theme-customizer glass" id="themeCustomizer">
-        <h4 style="margin-bottom: 1rem; color:black;  font-weight: bold;">🌌 Live Themes</h4>
-        
-        <div style="margin-bottom: 1rem;">
-            <button class="theme-btn" onclick="setTheme('default')" style="background: var(--gov-blue); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; margin: 0.2rem; cursor: pointer;">
-                🏛️ Government
-            </button>
-            <button class="theme-btn" onclick="setTheme('hacker')" style="background: var(--matrix-green); color: black; border: none; padding: 0.5rem 1rem; border-radius: 8px; margin: 0.2rem; cursor: pointer;">
-                🕶️ Hacker Mode
-            </button>
-            <button class="theme-btn" onclick="setTheme('premium-dark')" style="background: #1a1a2e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; margin: 0.2rem; cursor: pointer;">
-                🌙 Dark Mode
-            </button>
-            <button class="theme-btn" onclick="setTheme('aurora')" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; margin: 0.2rem; cursor: pointer;">
-                🌈 Aurora
-            </button>
-        </div>
-        
-        <div style="margin-bottom: 1rem;">
-            <h5 style="color: black; margin-bottom: 0.5rem; font-weight: bold;">🖼️ Dynamic Wallpapers</h5>
-            <select id="wallpaperSelect" onchange="setWallpaper(this.value)" style="width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--glass-border); background: #F3E5F5; color:purple">
-                <option value="default">select wallpaper</option>
-                <option value="starry">🌌 Starry Night</option>
-                <option value="rain">🌧️ Rain</option>
-                <option value="aurora">🌈 Aurora</option>
-                <option value="matrix">🕶️ Matrix Rain</option>
-                <option value="particles">✨ Particles</option>
-            </select>
-        </div>
-        
-        <div style="margin-bottom: 1rem;">
-            <h5 style="color:#141414; margin-bottom: 0.5rem; font-weight: bold;">🎨 Effects</h5>
-            <label style="display: block; margin: 0.3rem 0; color:#667eea;">
-                <input type="checkbox" id="cursorEffects" checked onchange="toggleCursorEffects()"> Cursor Effects
-            </label>
-            <label style="display: block; margin: 0.3rem 0; color: #667eea;">
-                <input type="checkbox" id="parallaxEffects" checked onchange="toggleParallax()"> Parallax
-            </label>
-            <label style="display: block; margin: 0.3rem 0; color: #667eea;">
-                <input type="checkbox" id="magneticEffects" checked onchange="toggleMagnetic()"> Magnetic UI
-            </label>
-            <label style="display: block; margin: 0.3rem 0; color: #667eea;">
-                <input type="checkbox" id="soundEffects" onchange="toggleSounds()"> Sound Effects
-            </label>
-        </div>
-        
-        <button onclick="toggleThemeCustomizer()" style="width: 100%; padding: 0.5rem; background: var(--current-primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Close
-        </button>
-    </div>
-    
-    <!-- Sound Effects -->
-    <audio id="clickSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEUBxWH2+LIfSMF" type="audio/wav">
-    </audio>
-    <audio id="hoverSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEUBxWH2+LIfSMF" type="audio/wav">
-    </audio>
+<body>    
     <header class="header">
         <div class="language-selector">
             <div class="language-dropdown" id="languageDropdown">
@@ -2838,9 +2469,6 @@
                             </a>
                             <a href="#convert" class="dropdown-item">
                                 <i class="fas fa-exchange-alt"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ
-                            </a>
-                            <a href="#watermark" class="dropdown-item">
-                                <i class="fas fa-stamp"></i> ವಾಟರ್‌ಮಾರ್ಕ್
                             </a>
                         </div>
                     </li>
@@ -3039,22 +2667,22 @@
                     </button>
                 </div>
 
-                <!-- Watermark -->
-                <div id="watermark" class="operation-card" data-operation="watermark">
-                    <div class="operation-icon"><i class="fas fa-stamp"></i></div>
-                    <h3 class="operation-title">PDF ವಾಟರ್‌ಮಾರ್ಕ್</h3>
-                    <p class="operation-description">PDF ಗೆ ಪಠ್ಯ ಅಥವಾ ಚಿತ್ರ ವಾಟರ್‌ಮಾರ್ಕ್ ಸೇರಿಸಿ</p>
-                    <button class="btn btn-primary" onclick="selectOperation('watermark')">
-                        <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
-                    </button>
-                </div>
-
                 <!-- Protect PDF -->
                 <div id="protect" class="operation-card" data-operation="protect">
                     <div class="operation-icon"><i class="fas fa-lock"></i></div>
                     <h3 class="operation-title">PDF ರಕ್ಷಿಸಿ</h3>
                     <p class="operation-description">ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ PDF ಅನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿ ಮತ್ತು ರಕ್ಷಿಸಿ</p>
                     <button class="btn btn-primary" onclick="selectOperation('protect')">
+                        <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
+                    </button>
+                </div>
+
+                <!-- Unlock PDF -->
+                <div id="unlock" class="operation-card" data-operation="unlock">
+                    <div class="operation-icon"><i class="fas fa-unlock"></i></div>
+                    <h3 class="operation-title">PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ</h3>
+                    <p class="operation-description">ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತ PDF ಅನ್ನು ಅನ್‌ಲಾಕ್ ಮಾಡಿ ಮತ್ತು ಮುಕ್ತಗೊಳಿಸಿ</p>
+                    <button class="btn btn-primary" onclick="selectOperation('unlock')">
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
@@ -3073,8 +2701,8 @@
                         <li><a href="#split">PDF ವಿಭಾಗಿಸಿ</a></li>
                         <li><a href="#compress">PDF ಸಂಕುಚಿಸಿ</a></li>
                         <li><a href="#convert">ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ</a></li>
-                        <li><a href="#watermark">ವಾಟರ್‌ಮಾರ್ಕ್ ಸೇರಿಸಿ</a></li>
                         <li><a href="#protect">PDF ರಕ್ಷಿಸಿ</a></li>
+                        <li><a href="#unlock">PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ</a></li>
                     </ul>
                 </div>
                 
@@ -3416,21 +3044,22 @@
         minFiles: 1,
         hasPreview: true
             },
-            'watermark': {
-                title: 'PDF ವಾಟರ್‌ಮಾರ್ಕ್',
-                accept: '.pdf',
-                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
-                multiple: false,
-                options: ['watermark'],
-                minFiles: 1,
-                hasPreview: true
-            },
+            
             'protect': {
                 title: 'PDF ರಕ್ಷಿಸಿ',
                 accept: '.pdf',
                 supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ - ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿ',
                 multiple: false,
                 options: ['protect'],
+                minFiles: 1,
+                hasPreview: false
+            },
+            'unlock': {
+                title: 'PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
+                accept: '.pdf',
+                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ - ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತ PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
+                multiple: false,
+                options: ['unlock'],
                 minFiles: 1,
                 hasPreview: false
             }
@@ -3515,149 +3144,7 @@
                                 <option value="high">ಹೆಚ್ಚು</option>
                             </select>
                         </div>
-
-                        <div class="form-group" id="watermarkGroup" style="display: ${config.options && config.options.includes('watermark') ? 'block' : 'none'};">
-                            <h4 style="color: var(--brown-text); margin-bottom: 1rem;">ವಾಟರ್‌ಮಾರ್ಕ್ ಸೆಟ್ಟಿಂಗ್ಸ್</h4>
-                            
-                            <!-- Watermark Type -->
-                            <div class="form-group">
-                                <label class="form-label">ವಾಟರ್‌ಮಾರ್ಕ್ ಪ್ರಕಾರ</label>
-                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="radio" name="watermark_type" value="text" checked onchange="toggleWatermarkType()">
-                                        <i class="fas fa-font"></i> ಪಠ್ಯ
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="radio" name="watermark_type" value="image" onchange="toggleWatermarkType()">
-                                        <i class="fas fa-image"></i> ಚಿತ್ರ
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Text Watermark Options -->
-                            <div id="textWatermarkOptions">
-                                <div class="form-group">
-                                    <label class="form-label" for="watermarkText">ವಾಟರ್‌ಮಾರ್ಕ್ ಪಠ್ಯ</label>
-                                    <input type="text" name="watermark_text" id="watermarkText" class="form-input" 
-                                           placeholder="ಉದಾ: ಗೌಪ್ಯ, ಮಸೂದೆ, CONFIDENTIAL" value="ಗೌಪ್ಯ">
-                                </div>
-                                
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                    <div class="form-group">
-                                        <label class="form-label" for="fontSize">ಅಕ್ಷರ ಗಾತ್ರ</label>
-                                        <input type="number" name="font_size" id="fontSize" class="form-input" 
-                                               value="50" min="10" max="200">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label" for="fontFamily">ಅಕ್ಷರ ಶೈಲಿ</label>
-                                        <select name="font_family" id="fontFamily" class="form-select">
-                                            <option value="Helvetica">Helvetica (ಇಂಗ್ಲಿಷ್)</option>
-                                            <option value="Times-Roman">Times New Roman (ಇಂಗ್ಲಿಷ್)</option>
-                                            <option value="Courier">Courier (ಇಂಗ್ಲಿಷ್)</option>
-                                            <option value="noto-sans-kannada">🔤 Noto Sans Kannada (ಕನ್ನಡಕ್ಕಾಗಿ)</option>
-                                        </select>
-                                        <small class="text-muted mt-1">
-                                            💡 ಕನ್ನಡ ಪಠ್ಯ ಟೈಪ್ ಮಾಡಿದಾಗ ಸ್ವಯಂಚಾಲಿತವಾಗಿ Kannada ಫಾಂಟ್ ಆಯ್ಕೆಯಾಗುತ್ತದೆ
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Image Watermark Options -->
-                            <div id="imageWatermarkOptions" style="display: none;">
-                                <div class="form-group">
-                                    <label class="form-label" for="watermarkImage">ವಾಟರ್‌ಮಾರ್ಕ್ ಚಿತ್ರ</label>
-                                    <input type="file" name="watermark_image" id="watermarkImage" class="form-input" 
-                                           accept=".jpg,.jpeg,.png,.bmp">
-                                    <small>JPEG, PNG, BMP ಫೈಲ್‌ಗಳನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ</small>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label" for="imageScale">ಚಿತ್ರ ಗಾತ್ರ (%)</label>
-                                    <input type="range" name="image_scale" id="imageScale" class="form-input" 
-                                           min="5" max="100" value="20" oninput="updateScaleValue(this.value)">
-                                    <span id="scaleValue">20%</span>
-                                </div>
-                            </div>
-
-                            <!-- Common Options -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                <div class="form-group">
-                                    <label class="form-label" for="watermarkColor">ಬಣ್ಣ (ಪಠ್ಯಕ್ಕೆ ಮಾತ್ರ)</label>
-                                    <input type="color" name="watermark_color" id="watermarkColor" class="form-input" 
-                                           value="#000000" style="height: 50px;">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="opacity">ಪಾರದರ್ಶಕತೆ (%)</label>
-                                    <input type="range" name="opacity" id="opacity" class="form-input" 
-                                           min="10" max="100" value="50" oninput="updateOpacityValue(this.value)">
-                                    <span id="opacityValue">50%</span>
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                <div class="form-group">
-                                    <label class="form-label" for="rotation">ತಿರುಗುವ ಕೋನ (ಡಿಗ್ರಿ)</label>
-                                    <input type="number" name="rotation" id="rotation" class="form-input" 
-                                           value="0" min="-360" max="360" step="15">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="position">ಸ್ಥಾನ</label>
-                                    <div class="position-selector">
-                                        <div class="position-grid">
-                                            <div class="position-cell" data-position="top-left" title="ಮೇಲೆ ಎಡ"></div>
-                                            <div class="position-cell" data-position="top-center" title="ಮೇಲೆ ಮಧ್ಯ"></div>
-                                            <div class="position-cell" data-position="top-right" title="ಮೇಲೆ ಬಲ"></div>
-                                            <div class="position-cell" data-position="middle-left" title="ಮಧ್ಯ ಎಡ"></div>
-                                            <div class="position-cell active" data-position="center" title="ಮಧ್ಯ"></div>
-                                            <div class="position-cell" data-position="middle-right" title="ಮಧ್ಯ ಬಲ"></div>
-                                            <div class="position-cell" data-position="bottom-left" title="ಕೆಳಗೆ ಎಡ"></div>
-                                            <div class="position-cell" data-position="bottom-center" title="ಕೆಳಗೆ ಮಧ್ಯ"></div>
-                                            <div class="position-cell" data-position="bottom-right" title="ಕೆಳಗೆ ಬಲ"></div>
-                                        </div>
-                                        <input type="hidden" name="position" id="position" value="center">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="layerPosition">ವಾಟರ್‌ಮಾರ್ಕ್ ಪದರ</label>
-                                    <select name="layer_position" id="layerPosition" class="form-select">
-                                        <option value="below" selected>ವಿಷಯದ ಹಿಂದೆ (ಕೆಳಗೆ)</option>
-                                        <option value="above">ವಿಷಯದ ಮೇಲೆ (ಮೇಲೆ)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Advanced Options -->
-                            <details style="margin-top: 1rem;">
-                                <summary style="color: var(--brown-text); cursor: pointer; font-weight: 600;">ಹೆಚ್ಚುವರಿ ಆಯ್ಕೆಗಳು</summary>
-                                <div style="margin-top: 1rem; padding: 1rem; background: var(--biscuit-light); border-radius: 8px;">
-                                    <div class="form-group">
-                                        <label class="form-label" for="watermarkPages">ಪುಟಗಳು</label>
-                                        <select name="watermark_pages" id="watermarkPages" class="form-select">
-                                            <option value="all" selected>ಎಲ್ಲಾ ಪುಟಗಳು</option>
-                                            <option value="odd">ಬೆಸ ಪುಟಗಳು</option>
-                                            <option value="even">ಸಮ ಪುಟಗಳು</option>
-                                            <option value="custom">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="form-group" id="customPagesGroup" style="display: none;">
-                                        <label class="form-label" for="customPages">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
-                                        <input type="text" name="custom_pages" id="customPages" class="form-input" 
-                                               placeholder="ಉದಾ: 1,3,5-10">
-                                    </div>
-
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-                                        <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <input type="checkbox" name="repeat_watermark" value="true">
-                                            ಪುಟದಾದ್ಯಂತ ಪುನರಾವರ್ತಿಸಿ
-                                        </label>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
-                    </div>
-
+     
                     <div class="form-group" id="protectGroup" style="display: ${config.options && config.options.includes('protect') ? 'block' : 'none'};">
                         <h4 style="color: var(--brown-text); margin-bottom: 1rem;">
                             <i class="fas fa-lock"></i> PDF ರಕ್ಷಣೆ ಸೆಟ್ಟಿಂಗ್ಸ್
@@ -3736,6 +3223,33 @@
                         </div>
                     </div>
 
+                    <div class="form-group" id="unlockGroup" style="display: ${config.options && config.options.includes('unlock') ? 'block' : 'none'};">
+                        <h4 style="color: var(--brown-text); margin-bottom: 1rem;">
+                            <i class="fas fa-unlock"></i> PDF ಅನ್‌ಲಾಕ್ ಸೆಟ್ಟಿಂಗ್ಸ್
+                        </h4>
+                        
+                        <!-- Unlock Password Input -->
+                        <div class="form-group">
+                            <label class="form-label" for="unlockPassword">
+                                <i class="fas fa-key"></i> PDF ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ
+                            </label>
+                            <input type="password" name="unlock_password" id="unlockPassword" 
+                                   class="form-input" placeholder="ರಕ್ಷಿತ PDF ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ" required>
+                            <small style="color: var(--light-brown);">
+                                <i class="fas fa-info-circle"></i> 
+                                ಈ PDF ಫೈಲ್ ಅನ್ನು ರಕ್ಷಿಸಲು ಬಳಸಿದ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ
+                            </small>
+                        </div>
+
+                        <!-- Unlock Notice -->
+                        <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success-green); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <p style="margin: 0; color: var(--success-green); font-size: 0.9rem;">
+                                <i class="fas fa-shield-alt"></i>
+                                <strong>ಸೂಚನೆ:</strong> ಯಶಸ್ವಿಯಾದ ನಂತರ, ನೀವು ಪಾಸ್‌ವರ್ಡ್ ರಹಿತ PDF ಫೈಲ್ ಪಡೆಯುತ್ತೀರಿ ಅದನ್ನು ಯಾರಾದರೂ ತೆರೆಯಬಹುದು.
+                            </p>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary" id="processBtn" disabled>
                             <i class="fas fa-cog"></i> ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ
@@ -3801,11 +3315,13 @@
         }
 
         function showOperationOptions(options, hasPreview) {
-            const optionGroups = ['pagesGroup', 'compressionGroup', 'watermarkGroup', 'protectGroup'];
+            console.log('showOperationOptions called with:', options);
+            const optionGroups = ['pagesGroup', 'compressionGroup', 'protectGroup', 'unlockGroup'];
             optionGroups.forEach(group => {
                 const element = document.getElementById(group);
                 if (element) {
                     element.style.display = 'none';
+                    console.log('Hidden group:', group);
                 }
             });
             
@@ -3815,17 +3331,12 @@
                     operationOptions.style.display = 'block';
                     options.forEach(option => {
                         const element = document.getElementById(option + 'Group');
+                        console.log('Looking for element:', option + 'Group', 'Found:', !!element);
                         if (element) {
                             element.style.display = 'block';
+                            console.log('Shown group:', option + 'Group');
                         }
                     });
-                    
-                    // Initialize position selector for watermark option
-                    if (options.includes('watermark')) {
-                        setTimeout(() => {
-                            initializePositionSelector();
-                        }, 100);
-                    }
                     
                     // Initialize password validation for protect option
                     if (options.includes('protect')) {
@@ -3931,11 +3442,6 @@
                 return;
             }
 
-            // Check if this is a watermark operation
-            if (currentOperation === 'watermark') {
-                await showWatermarkPreview();
-                return;
-            }
 
             const loadingPreview = document.getElementById('loadingPreview');
             const pagesGrid = document.getElementById('pagesGrid');
@@ -4154,87 +3660,9 @@
             });
         }
 
-        async function showWatermarkPreview() {
-            if (selectedFiles.length === 0) {
-                showAlert('error', 'ದಯವಿಟ್ಟು ಮೊದಲು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
-                return;
-            }
-
-            const loadingPreview = document.getElementById('loadingPreview');
-            const pagesGrid = document.getElementById('pagesGrid');
-            
-            document.getElementById('previewModal').style.display = 'block';
-            loadingPreview.style.display = 'block';
-            pagesGrid.innerHTML = '';
-            selectedPages.clear();
-            updateSelectedPagesDisplay();
-
-            try {
-                const formData = new FormData();
-                formData.append('file', selectedFiles[0]);
-
-                const response = await fetch('/generate-preview', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    currentPreviewData = result;
-                    displayPagePreviews(result); // Use existing preview display
-                } else {
-                    throw new Error(result.error || 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ');
-                }
-            } catch (error) {
-                showAlert('error', 'ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ವಿಫಲವಾಗಿದೆ: ' + error.message);
-                document.getElementById('previewModal').style.display = 'none';
-            } finally {
-                loadingPreview.style.display = 'none';
-            }
-        }
-
-        function updatePreviewOpacityDisplay(value) {
-            document.getElementById('previewOpacityValue').textContent = value + '%';
-            updateWatermarkSample();
-        }
-
         function updatePreviewScaleValue(value) {
             document.getElementById('previewScaleValue').textContent = value + '%';
         }
-
-        function togglePreviewWatermarkType() {
-            const textOptions = document.getElementById('previewTextWatermarkOptions');
-            const imageOptions = document.getElementById('previewImageWatermarkOptions');
-            const isText = document.querySelector('input[name="preview_watermark_type"]:checked').value === 'text';
-            
-            if (isText) {
-                textOptions.style.display = 'block';
-                imageOptions.style.display = 'none';
-            } else {
-                textOptions.style.display = 'none';
-                imageOptions.style.display = 'block';
-            }
-            updateWatermarkSample();
-        }
-
-        function updateWatermarkSample() {
-            const sample = document.getElementById('watermarkSample');
-            const text = document.getElementById('previewWatermarkText').value || 'ಗೌಪ್ಯ';
-            const opacity = document.getElementById('previewOpacity').value;
-            const color = document.getElementById('previewFontColor').value;
-            const fontSize = document.getElementById('previewFontSize').value;
-            const rotation = document.getElementById('previewRotation').value;
-            const fontFamily = document.getElementById('previewFontFamily').value;
-            
-            sample.textContent = text;
-            sample.style.opacity = opacity / 100;
-            sample.style.color = color;
-            sample.style.fontSize = Math.max(12, fontSize / 4) + 'px'; // Scale down for preview
-            sample.style.transform = `rotate(${rotation}deg)`;
-            sample.style.fontFamily = fontFamily === 'noto-sans-kannada' ? 'Noto Sans Kannada, sans-serif' : fontFamily;
-        }
-
 
         function togglePageSelection(pageNum) {
             // Update checkbox in sorted preview (left column)
@@ -4646,57 +4074,6 @@
                     formData.append('compression', compressionSelect.value);
                 }
                 
-                // Handle watermark-specific form data
-                if (currentOperation === 'watermark') {
-                    console.log('Adding watermark-specific data...');
-                    const watermarkType = document.querySelector('input[name="watermark_type"]:checked')?.value || 'text';
-                    formData.append('watermark_type', watermarkType);
-                    
-                    if (watermarkType === 'text') {
-                        const watermarkText = document.getElementById('watermarkText')?.value || 'ವಾಟರ್‌ಮಾರ್ಕ್';
-                        const fontSize = document.getElementById('fontSize')?.value || '50';
-                        const fontFamily = document.getElementById('fontFamily')?.value || 'Helvetica';
-                        const watermarkColor = document.getElementById('watermarkColor')?.value || '#000000';
-                        
-                        formData.append('watermark_text', watermarkText);
-                        formData.append('font_size', fontSize);
-                        formData.append('font_family', fontFamily);
-                        formData.append('watermark_color', watermarkColor);
-                    } else if (watermarkType === 'image') {
-                        const watermarkImage = document.getElementById('watermarkImage');
-                        if (watermarkImage && watermarkImage.files[0]) {
-                            formData.append('watermark_image', watermarkImage.files[0]);
-                        }
-                        const imageScale = document.getElementById('imageScale')?.value || '20';
-                        formData.append('image_scale', imageScale);
-                    }
-                    
-                    // Common watermark options
-                    const opacity = document.getElementById('opacity')?.value || '50';
-                    const rotation = document.getElementById('rotation')?.value || '0';
-                    const position = document.getElementById('position')?.value || 'center';
-                    const layerPosition = document.getElementById('layerPosition')?.value || 'below';
-                    const watermarkPages = document.getElementById('watermarkPages')?.value || 'all';
-                    
-                    formData.append('opacity', opacity);
-                    formData.append('rotation', rotation);
-                    formData.append('position', position);
-                    formData.append('layer_position', layerPosition);
-                    formData.append('watermark_pages', watermarkPages);
-                    
-                    // Custom pages if selected
-                    if (watermarkPages === 'custom') {
-                        const customPages = document.getElementById('customPages')?.value || '';
-                        formData.append('custom_pages', customPages);
-                    }
-                    
-                    // Repeat watermark option
-                    const repeatWatermark = document.querySelector('input[name="repeat_watermark"]:checked');
-                    if (repeatWatermark) {
-                        formData.append('repeat_watermark', 'true');
-                    }
-                }
-                
                 // Handle protect-specific form data
                 if (currentOperation === 'protect') {
                     const protectionPassword = document.getElementById('protectionPassword');
@@ -4738,6 +4115,14 @@
                     const allowFormFilling = document.querySelector('input[name="allow_form_filling"]:checked');
                     if (allowFormFilling) {
                         formData.append('allow_form_filling', 'true');
+                    }
+                }
+                
+                // Handle unlock-specific form data
+                if (currentOperation === 'unlock') {
+                    const unlockPassword = document.getElementById('unlockPassword');
+                    if (unlockPassword && unlockPassword.value) {
+                        formData.append('unlock_password', unlockPassword.value);
                     }
                 }
                 
@@ -4860,157 +4245,6 @@
             }
         }
 
-        // Watermark page selection functions
-        function toggleWatermarkPageSelection(pageNum) {
-            if (selectedPages.has(pageNum)) {
-                selectedPages.delete(pageNum);
-            } else {
-                selectedPages.add(pageNum);
-            }
-            updateWatermarkPageVisuals(pageNum);
-            updateWatermarkSelectedPagesDisplay();
-        }
-
-        function updateWatermarkPageVisuals(pageNum) {
-            const pageDiv = document.querySelector(`.watermark-page[data-page-num="${pageNum}"]`);
-            if (!pageDiv) return;
-
-            const checkbox = pageDiv.querySelector('.watermark-page-checkbox');
-            const indicator = pageDiv.querySelector('.selection-indicator');
-            const border = pageDiv.querySelector('div');
-
-            if (selectedPages.has(pageNum)) {
-                checkbox.checked = true;
-                indicator.style.display = 'flex';
-                border.style.borderColor = 'var(--gold)';
-                border.style.background = 'var(--biscuit-light)';
-                pageDiv.style.transform = 'scale(1.02)';
-            } else {
-                checkbox.checked = false;
-                indicator.style.display = 'none';
-                border.style.borderColor = 'var(--light-brown)';
-                border.style.background = 'var(--white)';
-                pageDiv.style.transform = 'scale(1)';
-            }
-        }
-
-        function updateWatermarkSelectedPagesDisplay() {
-            const countElement = document.getElementById('watermarkSelectedCount');
-            const pagesElement = document.getElementById('watermarkSelectedPages');
-            
-            if (!countElement || !pagesElement) return;
-
-            const count = selectedPages.size;
-            countElement.textContent = `${count} ಪುಟಗಳು`;
-            
-            if (count === 0) {
-                pagesElement.textContent = 'ಯಾವುದೇ ಪುಟಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಲಾಗಿಲ್ಲ';
-                pagesElement.style.color = 'var(--light-brown)';
-            } else {
-                const sortedPages = Array.from(selectedPages).sort((a, b) => a - b);
-                pagesElement.textContent = `ಪುಟಗಳು: ${sortedPages.join(', ')}`;
-                pagesElement.style.color = 'var(--brown-text)';
-            }
-        }
-
-        function selectAllPagesForWatermark() {
-            if (!currentPreviewData) return;
-            
-            currentPreviewData.previews.forEach(preview => {
-                selectedPages.add(preview.page_num);
-                updateWatermarkPageVisuals(preview.page_num);
-            });
-            updateWatermarkSelectedPagesDisplay();
-        }
-
-        function selectOddPagesForWatermark() {
-            if (!currentPreviewData) return;
-            
-            selectedPages.clear();
-            currentPreviewData.previews.forEach(preview => {
-                if (preview.page_num % 2 === 1) {
-                    selectedPages.add(preview.page_num);
-                }
-                updateWatermarkPageVisuals(preview.page_num);
-            });
-            updateWatermarkSelectedPagesDisplay();
-        }
-
-        function selectEvenPagesForWatermark() {
-            if (!currentPreviewData) return;
-            
-            selectedPages.clear();
-            currentPreviewData.previews.forEach(preview => {
-                if (preview.page_num % 2 === 0) {
-                    selectedPages.add(preview.page_num);
-                }
-                updateWatermarkPageVisuals(preview.page_num);
-            });
-            updateWatermarkSelectedPagesDisplay();
-        }
-
-        function clearWatermarkSelection() {
-            selectedPages.clear();
-            if (currentPreviewData) {
-                currentPreviewData.previews.forEach(preview => {
-                    updateWatermarkPageVisuals(preview.page_num);
-                });
-            }
-            updateWatermarkSelectedPagesDisplay();
-        }
-
-        function applyWatermarkPageRange() {
-            const input = document.getElementById('watermarkPageRange');
-            if (!input || !currentPreviewData) return;
-
-            const range = input.value.trim();
-            if (!range) return;
-
-            try {
-                selectedPages.clear();
-                const parts = range.split(',');
-                
-                for (const part of parts) {
-                    const trimmed = part.trim();
-                    if (trimmed.includes('-')) {
-                        const [start, end] = trimmed.split('-').map(x => parseInt(x.trim()));
-                        for (let i = start; i <= end; i++) {
-                            if (i >= 1 && i <= currentPreviewData.total_pages) {
-                                selectedPages.add(i);
-                            }
-                        }
-                    } else {
-                        const pageNum = parseInt(trimmed);
-                        if (pageNum >= 1 && pageNum <= currentPreviewData.total_pages) {
-                            selectedPages.add(pageNum);
-                        }
-                    }
-                }
-
-                currentPreviewData.previews.forEach(preview => {
-                    updateWatermarkPageVisuals(preview.page_num);
-                });
-                updateWatermarkSelectedPagesDisplay();
-            } catch (error) {
-                showAlert('error', 'ಅಮಾನ್ಯ ಪುಟ ವ್ಯಾಪ್ತಿ ಫಾರ್ಮ್ಯಾಟ್');
-            }
-        }
-
-        // Watermark-specific functions
-        function toggleWatermarkType() {
-            const textOptions = document.getElementById('textWatermarkOptions');
-            const imageOptions = document.getElementById('imageWatermarkOptions');
-            const textRadio = document.querySelector('input[name="watermark_type"][value="text"]');
-            
-            if (textRadio && textRadio.checked) {
-                textOptions.style.display = 'block';
-                imageOptions.style.display = 'none';
-            } else {
-                textOptions.style.display = 'none';
-                imageOptions.style.display = 'block';
-            }
-        }
-
         function updateScaleValue(value) {
             document.getElementById('scaleValue').textContent = value + '%';
         }
@@ -5060,75 +4294,11 @@
             }
         }
 
-        // Initialize position selector when DOM is loaded AND when watermark form is shown
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing position selector...');
-            initializePositionSelector();
-        });
-
-        // Handle custom pages visibility
-        document.addEventListener('DOMContentLoaded', function() {
-            const watermarkPagesSelect = document.getElementById('watermarkPages');
-            const customPagesGroup = document.getElementById('customPagesGroup');
-            
-            if (watermarkPagesSelect) {
-                watermarkPagesSelect.addEventListener('change', function() {
-                    if (customPagesGroup) {
-                        if (this.value === 'custom') {
-                            customPagesGroup.style.display = 'block';
-                        } else {
-                            customPagesGroup.style.display = 'none';
-                        }
-                    }
-                });
-            }
-        });
-
         // Auto-detect Kannada text and suggest font
         function initializeKannadaFontDetection() {
-            const watermarkTextInput = document.getElementById('watermarkText');
+           
             const fontFamilySelect = document.getElementById('fontFamily');
             
-            if (watermarkTextInput && fontFamilySelect) {
-                watermarkTextInput.addEventListener('input', function() {
-                    const text = this.value;
-                    const hasKannada = /[\u0C80-\u0CFF]/.test(text);
-                    
-                    if (hasKannada) {
-                        // Auto-select Kannada font
-                        fontFamilySelect.value = 'noto-sans-kannada';
-                        // Add visual feedback
-                        fontFamilySelect.style.backgroundColor = '#e8f5e8';
-                        fontFamilySelect.style.borderColor = '#28a745';
-                        
-                        // Show tooltip/hint
-                        if (!document.getElementById('kannadaHint')) {
-                            const hint = document.createElement('div');
-                            hint.id = 'kannadaHint';
-                            hint.className = 'alert alert-info mt-2';
-                            hint.innerHTML = `
-                                <strong>ಕನ್ನಡ ಪಠ್ಯ ಪತ್ತೆಯಾಗಿದೆ!</strong><br>
-                                <small>
-                                • Noto Sans Kannada ಫಾಂಟ್ ಆಯ್ಕೆಯಾಗಿದೆ<br>
-                                • ಕನ್ನಡ ಪಠ್ಯ ಸರಿಯಾಗಿ ಕಾಣಿಸದಿದ್ದರೆ, ದಯವಿಟ್ಟು ವಿಂಡೋಸ್ ನಲ್ಲಿ Kannada ಭಾಷಾ ಪ್ಯಾಕ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ<br>
-                                • If Kannada text shows as ?????, install Windows Kannada language pack
-                                </small>
-                            `;
-                            fontFamilySelect.parentNode.appendChild(hint);
-                        }
-                    } else {
-                        // Reset to normal styling
-                        fontFamilySelect.style.backgroundColor = '';
-                        fontFamilySelect.style.borderColor = '';
-                        
-                        // Remove hint
-                        const hint = document.getElementById('kannadaHint');
-                        if (hint) {
-                            hint.remove();
-                        }
-                    }
-                });
-            }
         }
 
         // Initialize Kannada detection
@@ -5279,9 +4449,6 @@
                     option.classList.add('active');
                 }
             });
-            
-            // Initialize password validation
-            initializePasswordValidation();
         });
 
         // Password validation for PDF protection
@@ -5468,9 +4635,13 @@
                                 highlightOperationCard('compress');
                                 selectOperation('compress');
                                 break;
-                            case 'watermark':
-                                highlightOperationCard('watermark');
-                                selectOperation('watermark');
+                            case 'protect':
+                                highlightOperationCard('protect');
+                                selectOperation('protect');
+                                break;
+                            case 'unlock':
+                                highlightOperationCard('unlock');
+                                selectOperation('unlock');
                                 break;
                             case 'guide':
                                 showUserGuide();
@@ -5667,7 +4838,7 @@
                             <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಲೀನಗೊಳಿಸುವಿಕೆ</li>
                             <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಭಾಗಿಸುವಿಕೆ</li>
                             <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಸಂಕುಚನ ತಂತ್ರಗಳು</li>
-                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ವಾಟರ್‌ಮಾರ್ಕ್ ಸೇರಿಸುವಿಕೆ</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ರಕ್ಷಣೆ ಮತ್ತು ಅನ್‌ಲಾಕ್</li>
                             <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ</li>
                         </ul>
                     </div>
@@ -5746,628 +4917,6 @@
                 }
             }, 500);
         }
-
-        // ==================== PREMIUM FEATURES JAVASCRIPT ====================
-        
-        // 1. Live Theme Customizer with localStorage
-        let currentTheme = localStorage.getItem('preferredTheme') || 'default';
-        let soundEnabled = localStorage.getItem('soundEnabled') === 'true';
-        
-        function setTheme(theme) {
-            currentTheme = theme;
-            localStorage.setItem('preferredTheme', theme);
-            
-            document.body.className = '';
-            document.documentElement.style.setProperty('--current-bg', 'var(--biscuit-cream)');
-            document.documentElement.style.setProperty('--current-text', 'var(--dark-text)');
-            document.documentElement.style.setProperty('--current-primary', 'var(--gov-blue)');
-            document.documentElement.style.setProperty('--current-accent', 'var(--gold)');
-            
-            switch(theme) {
-                case 'hacker':
-                    document.body.classList.add('hacker-theme');
-                    document.documentElement.style.setProperty('--current-bg', 'var(--cyber-dark)');
-                    document.documentElement.style.setProperty('--current-text', 'var(--matrix-green)');
-                    document.documentElement.style.setProperty('--current-primary', 'var(--matrix-green)');
-                    document.documentElement.style.setProperty('--current-accent', 'var(--matrix-green)');
-                    setWallpaper('matrix');
-                    break;
-                case 'premium-dark':
-                    document.body.classList.add('premium-dark');
-                    document.documentElement.style.setProperty('--current-bg', 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)');
-                    document.documentElement.style.setProperty('--current-text', '#e8e8e8');
-                    document.documentElement.style.setProperty('--current-primary', '#667eea');
-                    document.documentElement.style.setProperty('--current-accent', '#764ba2');
-                    setWallpaper('starry');
-                    break;
-                case 'aurora':
-                    document.body.classList.add('aurora-theme');
-                    document.documentElement.style.setProperty('--current-bg', 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)');
-                    document.documentElement.style.setProperty('--current-text', 'white');
-                    document.documentElement.style.setProperty('--current-primary', '#764ba2');
-                    document.documentElement.style.setProperty('--current-accent', '#667eea');
-                    setWallpaper('aurora');
-                    break;
-            }
-            
-            if (soundEnabled) playSound('click');
-        }
-        
-        function toggleThemeCustomizer() {
-            const customizer = document.getElementById('themeCustomizer');
-            customizer.classList.toggle('open');
-        }
-        
-        // 2. Interactive Cursor Effects
-        let cursorEffectsEnabled = true; // ENABLED FOR PREVIEW
-        let trail = [];
-        
-        function initCursor() {
-            if (!cursorEffectsEnabled) return; // Exit if disabled
-            
-            const cursor = document.getElementById('customCursor');
-            const cursorTrail = document.getElementById('cursorTrail');
-            
-            document.addEventListener('mousemove', (e) => {
-                if (!cursorEffectsEnabled) return;
-                
-                cursor.style.left = e.clientX + 'px';
-                cursor.style.top = e.clientY + 'px';
-                
-                // Trail effect
-                trail.push({x: e.clientX, y: e.clientY, time: Date.now()});
-                if (trail.length > 10) trail.shift();
-                
-                trail.forEach((point, index) => {
-                    const trailElement = document.createElement('div');
-                    trailElement.className = 'trail-point';
-                    trailElement.style.cssText = `
-                        position: fixed;
-                        width: ${3 + index}px;
-                        height: ${3 + index}px;
-                        background: var(--current-accent);
-                        border-radius: 50%;
-                        pointer-events: none;
-                        z-index: 9998;
-                        left: ${point.x}px;
-                        top: ${point.y}px;
-                        opacity: ${(index + 1) / 10};
-                        animation: trailFade 0.5s ease-out forwards;
-                    `;
-                    document.body.appendChild(trailElement);
-                    
-                    setTimeout(() => trailElement.remove(), 500);
-                });
-            });
-            
-            // Magnetic cursor effect
-            document.addEventListener('mouseenter', (e) => {
-                if (e.target.classList.contains('magnetic') && cursorEffectsEnabled) {
-                    document.body.classList.add('cursor-hover');
-                    if (soundEnabled) playSound('hover');
-                }
-            }, true);
-            
-            document.addEventListener('mouseleave', (e) => {
-                if (e.target.classList.contains('magnetic')) {
-                    document.body.classList.remove('cursor-hover');
-                }
-            }, true);
-            
-            // Click effect
-            document.addEventListener('click', (e) => {
-                if (!cursorEffectsEnabled) return;
-                
-                for (let i = 0; i < 5; i++) {
-                    const particle = document.createElement('div');
-                    particle.style.cssText = `
-                        position: fixed;
-                        width: 4px;
-                        height: 4px;
-                        background: var(--current-accent);
-                        border-radius: 50%;
-                        pointer-events: none;
-                        z-index: 10001;
-                        left: ${e.clientX}px;
-                        top: ${e.clientY}px;
-                    `;
-                    document.body.appendChild(particle);
-                    
-                    const angle = (Math.PI * 2 * i) / 5;
-                    const velocity = 2;
-                    
-                    let posX = 0, posY = 0;
-                    const animate = () => {
-                        posX += Math.cos(angle) * velocity;
-                        posY += Math.sin(angle) * velocity;
-                        
-                        particle.style.transform = `translate(${posX}px, ${posY}px)`;
-                        particle.style.opacity = 1 - (Math.abs(posX) + Math.abs(posY)) / 100;
-                        
-                        if (particle.style.opacity > 0) {
-                            requestAnimationFrame(animate);
-                        } else {
-                            particle.remove();
-                        }
-                    };
-                    animate();
-                }
-                
-                if (soundEnabled) playSound('click');
-            });
-        }
-        
-        function toggleCursorEffects() {
-            cursorEffectsEnabled = !cursorEffectsEnabled;
-            const cursor = document.getElementById('customCursor');
-            const cursorTrail = document.getElementById('cursorTrail');
-            
-            if (cursorEffectsEnabled) {
-                cursor.style.display = 'block';
-                cursorTrail.style.display = 'block';
-                document.body.style.cursor = 'none';
-                document.querySelectorAll('*').forEach(el => {
-                    el.style.cursor = 'none';
-                });
-                initCursor(); // Reinitialize cursor events
-            } else {
-                cursor.style.display = 'none';
-                cursorTrail.style.display = 'none';
-                document.body.style.cursor = 'auto';
-                document.querySelectorAll('*').forEach(el => {
-                    el.style.cursor = 'auto';
-                });
-            }
-        }
-        
-        // 3. Matrix Rain Effect
-        function initMatrix() {
-            const canvas = document.getElementById('matrixCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            const matrix = "ಅಆಇಈಉಊಋಎಏಐಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣತಥದಧನಪಫಬಭಮಯರಲವಶಷಸಹಳ್ೀೇೈೊೋೌಃಂABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()";
-            const matrixArray = matrix.split("");
-            
-            const fontSize = 18;
-            const columns = canvas.width / fontSize;
-            const drops = [];
-            
-            for (let x = 0; x < columns; x++) {
-                drops[x] = 1;
-            }
-            
-            function drawMatrix() {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                ctx.fillStyle = currentTheme === 'hacker' ? '#00ff41' : 'var(--current-primary)';
-                ctx.font = fontSize + 'px "Noto Sans Kannada", monospace';
-                
-                for (let i = 0; i < drops.length; i++) {
-                    const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                    
-                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                        drops[i] = 0;
-                    }
-                    drops[i]++;
-                }
-            }
-            
-            let matrixInterval;
-            window.startMatrix = () => {
-                canvas.style.opacity = '0.3';
-                matrixInterval = setInterval(drawMatrix, 35);
-            };
-            
-            window.stopMatrix = () => {
-                canvas.style.opacity = '0';
-                clearInterval(matrixInterval);
-            };
-        }
-        
-        // 4. Parallax Effects
-        let parallaxEnabled = true;
-        
-        function initParallax() {
-            window.addEventListener('scroll', () => {
-                if (!parallaxEnabled) return;
-                
-                const scrolled = window.pageYOffset;
-                const rate = scrolled * -0.5;
-                
-                document.querySelectorAll('.parallax-bg').forEach(bg => {
-                    bg.style.transform = `translate3d(0, ${rate}px, 0)`;
-                });
-                
-                document.querySelectorAll('.floating').forEach((element, index) => {
-                    const speed = 0.5 + (index * 0.1);
-                    element.style.transform = `translateY(${scrolled * speed}px)`;
-                });
-            });
-        }
-        
-        function toggleParallax() {
-            parallaxEnabled = !parallaxEnabled;
-        }
-        
-        // 5. Magnetic UI Elements
-        let magneticEnabled = true;
-        
-        function initMagnetic() {
-            document.querySelectorAll('.btn, .operation-card, .menu-item > a').forEach(element => {
-                element.classList.add('magnetic');
-                
-                element.addEventListener('mousemove', (e) => {
-                    if (!magneticEnabled) return;
-                    
-                    const rect = element.getBoundingClientRect();
-                    const x = e.clientX - rect.left - rect.width / 2;
-                    const y = e.clientY - rect.top - rect.height / 2;
-                    
-                    element.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
-                });
-                
-                element.addEventListener('mouseleave', () => {
-                    element.style.transform = 'translate(0, 0)';
-                });
-            });
-        }
-        
-        function toggleMagnetic() {
-            magneticEnabled = !magneticEnabled;
-        }
-        
-        // 6. Animated Scroll Sections
-        function initScrollAnimations() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            }, { threshold: 0.1 });
-            
-            document.querySelectorAll('.fade-in, .slide-in-left, .slide-in-right, .scale-in').forEach(el => {
-                observer.observe(el);
-            });
-        }
-        
-        // 7. Dynamic Wallpapers
-        function setWallpaper(type) {
-            const container = document.getElementById('dynamicWallpaper');
-            container.innerHTML = '';
-            
-            switch(type) {
-                case 'starry':
-                    createStarryNight(container);
-                    break;
-                case 'rain':
-                    createRainEffect(container);
-                    break;
-                case 'aurora':
-                    createAuroraEffect(container);
-                    break;
-                case 'matrix':
-                    window.startMatrix();
-                    return;
-                case 'particles':
-                    initParticles();
-                    return;
-                case 'none':
-                    window.stopMatrix();
-                    break;
-            }
-            
-            if (type !== 'matrix') window.stopMatrix();
-        }
-        
-        function createStarryNight(container) {
-            for (let i = 0; i < 100; i++) {
-                const star = document.createElement('div');
-                star.style.cssText = `
-                    position: absolute;
-                    width: 2px;
-                    height: 2px;
-                    background: white;
-                    border-radius: 50%;
-                    left: ${Math.random() * 100}%;
-                    top: ${Math.random() * 100}%;
-                    animation: twinkle ${2 + Math.random() * 3}s infinite;
-                `;
-                container.appendChild(star);
-            }
-        }
-        
-        function createRainEffect(container) {
-            for (let i = 0; i < 50; i++) {
-                const drop = document.createElement('div');
-                drop.style.cssText = `
-                    position: absolute;
-                    width: 2px;
-                    height: 10px;
-                    background: linear-gradient(to bottom, transparent, #4fc3f7);
-                    left: ${Math.random() * 100}%;
-                    animation: rain ${1 + Math.random()}s linear infinite;
-                    animation-delay: ${Math.random() * 2}s;
-                `;
-                container.appendChild(drop);
-            }
-        }
-        
-        function createAuroraEffect(container) {
-            const aurora = document.createElement('div');
-            aurora.style.cssText = `
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(45deg, 
-                    rgba(102, 126, 234, 0.3) 0%, 
-                    rgba(118, 75, 162, 0.3) 25%,
-                    rgba(102, 126, 234, 0.3) 50%,
-                    rgba(118, 75, 162, 0.3) 75%,
-                    rgba(102, 126, 234, 0.3) 100%);
-                background-size: 400% 400%;
-                animation: aurora 8s ease-in-out infinite;
-            `;
-            container.appendChild(aurora);
-        }
-        
-        // 8. Particles.js initialization
-        function initParticles() {
-            particlesJS('particles-js', {
-                particles: {
-                    number: { value: 80 },
-                    color: { value: getComputedStyle(document.documentElement).getPropertyValue('--current-primary') },
-                    shape: { type: "circle" },
-                    opacity: { value: 0.5 },
-                    size: { value: 3 },
-                    line_linked: {
-                        enable: true,
-                        distance: 150,
-                        color: getComputedStyle(document.documentElement).getPropertyValue('--current-accent'),
-                        opacity: 0.4,
-                        width: 1
-                    },
-                    move: {
-                        enable: true,
-                        speed: 2,
-                        direction: "none",
-                        random: false,
-                        straight: false,
-                        out_mode: "out",
-                        bounce: false
-                    }
-                },
-                interactivity: {
-                    detect_on: "canvas",
-                    events: {
-                        onhover: { enable: true, mode: "repulse" },
-                        onclick: { enable: true, mode: "push" },
-                        resize: true
-                    }
-                },
-                retina_detect: true
-            });
-        }
-        
-        // 9. Sound Effects
-        function playSound(type) {
-            if (!soundEnabled) return;
-            
-            const audio = document.getElementById(type + 'Sound');
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(() => {});
-            }
-        }
-        
-        function toggleSounds() {
-            soundEnabled = !soundEnabled;
-            localStorage.setItem('soundEnabled', soundEnabled);
-        }
-        
-        // 10. 3D Tilt Effects
-        function init3DTilt() {
-            VanillaTilt.init(document.querySelectorAll('.operation-card'), {
-                max: 15,
-                speed: 400,
-                glare: true,
-                'max-glare': 0.2,
-            });
-        }
-        
-        // 11. GSAP Animations
-        function initGSAPAnimations() {
-            gsap.registerPlugin(ScrollTrigger);
-            
-            // Header animation
-            gsap.from('.header-content > *', {
-                duration: 1.5,
-                y: 50,
-                opacity: 0,
-                stagger: 0.2,
-                ease: "power2.out"
-            });
-            
-            // Cards animation on scroll
-            gsap.from('.operation-card', {
-                scrollTrigger: {
-                    trigger: '.operations-grid',
-                    start: 'top 80%',
-                    end: 'bottom 20%',
-                    toggleActions: 'play none none reverse'
-                },
-                duration: 0.8,
-                y: 100,
-                opacity: 0,
-                stagger: 0.2,
-                ease: "power2.out"
-            });
-        }
-        
-        // 12. Typewriter Effect
-        function typeWriter(element, text, speed = 50) {
-            let i = 0;
-            element.innerHTML = '';
-            
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed);
-                }
-            }
-            type();
-        }
-        
-        // Initialize language dropdown
-        function initializeLanguageDropdown() {
-            // Load saved language preference
-            const savedLang = localStorage.getItem('preferredLanguage') || 'kn';
-            const savedLangName = localStorage.getItem('preferredLanguageName') || 'ಕನ್ನಡ';
-            const savedLangFlag = localStorage.getItem('preferredLanguageFlag') || 'flag-kn';
-            
-            // Update current language display
-            const currentLang = document.getElementById('currentLanguage');
-            const currentFlag = document.querySelector('.language-button .language-flag');
-            
-            if (currentLang) currentLang.textContent = savedLangName;
-            if (currentFlag) {
-                currentFlag.className = `language-flag ${savedLangFlag}`;
-            }
-            
-            // Update active state in dropdown
-            document.querySelectorAll('.language-option').forEach(option => {
-                option.classList.remove('active');
-                const optionLang = option.onclick.toString().match(/'(\w+)'/);
-                if (optionLang && optionLang[1] === savedLang) {
-                    option.classList.add('active');
-                }
-            });
-            
-            console.log('Language dropdown initialized with:', savedLang, savedLangName);
-        }
-        
-        // Initialize all premium features
-        document.addEventListener('DOMContentLoaded', function() {
-            // Ensure all modals are hidden on page load
-            document.getElementById('operationModal').style.display = 'none';
-            document.getElementById('previewModal').style.display = 'none';
-            document.getElementById('loadingModal').style.display = 'none';
-            
-            // Ensure main content is visible
-            const container = document.querySelector('.container');
-            const operationsSection = document.querySelector('.operations-section');
-            const operationsGrid = document.querySelector('.operations-grid');
-            
-            if (container) {
-                container.style.display = 'block';
-                container.style.visibility = 'visible';
-            }
-            if (operationsSection) {
-                operationsSection.style.display = 'block';
-                operationsSection.style.visibility = 'visible';
-            }
-            if (operationsGrid) {
-                operationsGrid.style.display = 'grid';
-                operationsGrid.style.visibility = 'visible';
-            }
-            
-            // Apply saved theme
-            setTheme(currentTheme);
-            
-            // Initialize language dropdown
-            initializeLanguageDropdown();
-            
-            // Initialize all features
-            initCursor();
-            initMatrix();
-            initParallax();
-            initMagnetic();
-            initScrollAnimations();
-            init3DTilt();
-            initGSAPAnimations();
-            
-            // Add animation classes to elements
-            document.querySelectorAll('.operation-card').forEach((card, index) => {
-                if (index % 3 === 0) card.classList.add('fade-in');
-                else if (index % 3 === 1) card.classList.add('slide-in-left');
-                else card.classList.add('slide-in-right');
-            });
-            
-            // Add floating effect to certain elements
-            document.querySelectorAll('.government-logo, .ashoka-chakra').forEach(el => {
-                el.classList.add('floating');
-            });
-            
-            // Typewriter effect for title
-            const title = document.querySelector('.app-title');
-            if (title) {
-                const originalText = title.textContent;
-                setTimeout(() => typeWriter(title, originalText, 100), 2000);
-            }
-            
-            // Set initial wallpaper
-            const savedWallpaper = localStorage.getItem('wallpaper') || 'particles';
-            document.getElementById('wallpaperSelect').value = savedWallpaper;
-            setWallpaper(savedWallpaper);
-            
-            // Restore settings
-            document.getElementById('cursorEffects').checked = cursorEffectsEnabled;
-            document.getElementById('parallaxEffects').checked = parallaxEnabled;
-            document.getElementById('magneticEffects').checked = magneticEnabled;
-            document.getElementById('soundEffects').checked = soundEnabled;
-        });
-        
-        // Handle wallpaper selection
-        document.addEventListener('change', function(e) {
-            if (e.target.id === 'wallpaperSelect') {
-                localStorage.setItem('wallpaper', e.target.value);
-                setWallpaper(e.target.value);
-            }
-        });
-        
-        // Window resize handler
-        window.addEventListener('resize', function() {
-            const canvas = document.getElementById('matrixCanvas');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
-        
-        // Add CSS animations
-        const additionalCSS = `
-            @keyframes twinkle {
-                0%, 100% { opacity: 0.3; }
-                50% { opacity: 1; }
-            }
-            
-            @keyframes rain {
-                to { transform: translateY(100vh); }
-            }
-            
-            @keyframes aurora {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-            
-            @keyframes trailFade {
-                to { opacity: 0; transform: scale(0); }
-            }
-            
-            .theme-btn:hover {
-                transform: scale(1.05);
-                transition: transform 0.2s ease;
-            }
-        `;
-        
-        const style = document.createElement('style');
-        style.textContent = additionalCSS;
-        document.head.appendChild(style);
 
     </script>
 </body>
