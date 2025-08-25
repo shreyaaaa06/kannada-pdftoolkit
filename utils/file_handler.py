@@ -104,14 +104,15 @@ class FileHandler:
             raise Exception(f"ಫೈಲ್ ಉಳಿಸುವಲ್ಲಿ ದೋಷ: {str(e)}")
     
     def save_multiple_files(self, files, session_id):
-        """Save multiple uploaded files"""
-        file_paths = []
+        """Save multiple uploaded files and return info for frontend"""
+        file_infos = []
         for file in files:
             if file and file.filename:
                 file_path = self.save_uploaded_file(file, session_id)
                 if file_path:
-                    file_paths.append(file_path)
-        return file_paths
+                    file_infos.append(self.get_file_info(file_path))
+        return file_infos
+
     
     def get_file_info(self, file_path):
         """Get file information with comprehensive details"""

@@ -107,94 +107,180 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Global functions
+    // CRITICAL FIX: Complete modal reset function
+    function completeModalReset() {
+        console.log('=== COMPLETE MODAL RESET START ===');
+        
+        // Reset all state variables
+        selectedFiles = [];
+        currentOperation = '';
+        currentPreviewData = null;
+        selectedPages.clear();
+        
+        // Close any open modals
+        document.getElementById('operationModal').style.display = 'none';
+        document.getElementById('previewModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'none';
+        
+        console.log('=== COMPLETE MODAL RESET END ===');
+    }
+
+    // CRITICAL FIX: Safe element finder with error handling
+    function safeGetElement(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element with ID '${id}' not found`);
+        }
+        return element;
+    }
+
+    // CRITICAL FIX: Safe property setter
+    function safeSetProperty(elementId, property, value) {
+        const element = safeGetElement(elementId);
+        if (element && element[property] !== undefined) {
+            element[property] = value;
+            return true;
+        } else {
+            console.warn(`Cannot set ${property} on element '${elementId}'`);
+            return false;
+        }
+    }
+
+    // CRITICAL FIX: Safe text content setter
+    function safeSetTextContent(elementId, content) {
+        const element = safeGetElement(elementId);
+        if (element) {
+            element.textContent = content;
+            return true;
+        }
+        return false;
+    }
+
+    // Global functions with safety checks
     window.selectOperation = function(operation) {
-        currentOperation = operation;
-        const config = operationConfigs[operation];
+        console.log(`=== SELECTING OPERATION: ${operation} ===`);
         
-        document.getElementById('modalTitle').textContent = config.title;
-        document.getElementById('selectedOperation').value = operation;
-        document.getElementById('fileInput').accept = config.accept;
-        document.getElementById('fileInput').multiple = config.multiple;
-        document.getElementById('uploadSubtext').textContent = config.supportText;
-        
-        showOperationOptions(config.options, config.hasPreview);
-        resetModalForm();
-        restoreOriginalModalContent();
-        document.getElementById('operationModal').style.display = 'block';
+        try {
+            // Force complete reset first
+            completeModalReset();
+            
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                currentOperation = operation;
+                const config = operationConfigs[operation];
+                
+                if (!config) {
+                    console.error(`Unknown operation: ${operation}`);
+                    return;
+                }
+                
+                // Restore original modal content BEFORE setting values
+                restoreOriginalModalContent();
+                
+                // Small delay to ensure DOM elements are created
+                setTimeout(() => {
+                    // Now safely set the values
+                    safeSetTextContent('modalTitle', config.title);
+                    safeSetProperty('selectedOperation', 'value', operation);
+                    safeSetProperty('fileInput', 'accept', config.accept);
+                    safeSetProperty('fileInput', 'multiple', config.multiple);
+                    safeSetTextContent('uploadSubtext', config.supportText);
+                    
+                    // Show operation options and update UI
+                    showOperationOptions(config.options, config.hasPreview);
+                    resetModalForm();
+                    
+                    // Show the modal
+                    const modal = safeGetElement('operationModal');
+                    if (modal) {
+                        modal.style.display = 'block';
+                    }
+                }, 50);
+            }, 50);
+            
+        } catch (error) {
+            console.error('Error in selectOperation:', error);
+            // Fallback: just show the modal with default content
+            const modal = safeGetElement('operationModal');
+            if (modal) {
+                restoreOriginalModalContent();
+                modal.style.display = 'block';
+            }
+        }
     };
 
     window.closeModal = function() {
-        document.getElementById('operationModal').style.display = 'none';
-        document.getElementById('loadingModal').style.display = 'none';
-        resetModalForm();
+        console.log('Closing modal and resetting state');
+        completeModalReset();
     };
 
     window.closePreviewModal = function() {
-        document.getElementById('previewModal').style.display = 'none';
+        const previewModal = safeGetElement('previewModal');
+        if (previewModal) {
+            previewModal.style.display = 'none';
+        }
         currentPreviewData = null;
         selectedPages.clear();
     };
 
     window.removeFile = function(index) {
-        selectedFiles.splice(index, 1);
-        displaySelectedFiles();
-        updateProcessButton();
-        updatePreviewSection();
-        
-        const dt = new DataTransfer();
-        selectedFiles.forEach(file => dt.items.add(file));
-        document.getElementById('fileInput').files = dt.files;
+        if (index >= 0 && index < selectedFiles.length) {
+            selectedFiles.splice(index, 1);
+            displaySelectedFiles();
+            updateProcessButton();
+            updatePreviewSection();
+            
+            // Update file input
+            try {
+                const fileInput = safeGetElement('fileInput');
+                if (fileInput) {
+                    const dt = new DataTransfer();
+                    selectedFiles.forEach(file => dt.items.add(file));
+                    fileInput.files = dt.files;
+                }
+            } catch (error) {
+                console.warn('Could not update file input:', error);
+            }
+        }
     };
 
     // Compression functions
     window.updateCompressionUI = function() {
-        const compressionSelect = document.getElementById('compressionSelect');
-        const targetSizeGroup = document.getElementById('targetSizeGroup');
-        const advancedToggle = document.getElementById('advancedToggle');
+        const compressionSelect = safeGetElement('compressionSelect');
+        const targetSizeGroup = safeGetElement('targetSizeGroup');
+        const advancedToggle = safeGetElement('advancedToggle');
         
-        if (!compressionSelect || !targetSizeGroup || !advancedToggle) {
-            return;
-        }
+        if (!compressionSelect) return;
         
         const selectedValue = compressionSelect.value;
         
-        // Show/hide target size input for custom level
         if (selectedValue === 'custom') {
-            targetSizeGroup.style.display = 'block';
-            advancedToggle.style.display = 'none';
+            if (targetSizeGroup) targetSizeGroup.style.display = 'block';
+            if (advancedToggle) advancedToggle.style.display = 'none';
             
-            // Hide advanced options when custom is selected
-            const advancedOptions = document.getElementById('advancedCompressionOptions');
-            if (advancedOptions) {
-                advancedOptions.style.display = 'none';
-            }
-            const showAdvancedComp = document.getElementById('showAdvancedComp');
-            if (showAdvancedComp) {
-                showAdvancedComp.checked = false;
-            }
+            const advancedOptions = safeGetElement('advancedCompressionOptions');
+            if (advancedOptions) advancedOptions.style.display = 'none';
+            
+            const showAdvancedComp = safeGetElement('showAdvancedComp');
+            if (showAdvancedComp) showAdvancedComp.checked = false;
         } else {
-            targetSizeGroup.style.display = 'none';
-            advancedToggle.style.display = 'block';
+            if (targetSizeGroup) targetSizeGroup.style.display = 'none';
+            if (advancedToggle) advancedToggle.style.display = 'block';
         }
     };
 
     window.toggleAdvancedCompression = function() {
-        const showAdvancedComp = document.getElementById('showAdvancedComp');
-        const advancedOptions = document.getElementById('advancedCompressionOptions');
+        const showAdvancedComp = safeGetElement('showAdvancedComp');
+        const advancedOptions = safeGetElement('advancedCompressionOptions');
         
         if (showAdvancedComp && advancedOptions) {
-            if (showAdvancedComp.checked) {
-                advancedOptions.style.display = 'block';
-            } else {
-                advancedOptions.style.display = 'none';
-            }
+            advancedOptions.style.display = showAdvancedComp.checked ? 'block' : 'none';
         }
     };
 
     window.updateQualityDisplay = function() {
-        const imageQuality = document.getElementById('imageQuality');
-        const qualityValue = document.getElementById('qualityValue');
+        const imageQuality = safeGetElement('imageQuality');
+        const qualityValue = safeGetElement('qualityValue');
         
         if (imageQuality && qualityValue) {
             qualityValue.textContent = imageQuality.value + '%';
@@ -203,12 +289,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Split method handling
     window.handleSplitMethodChange = function() {
-        const method = document.getElementById('splitMethodSelect')?.value || 'pages';
-        const pagesGroup = document.getElementById('pagesGroup');
-        const fileSizeGroup = document.getElementById('fileSizeGroup');
-        const autoChunkGroup = document.getElementById('autoChunkGroup');
-        const pagesInput = document.getElementById('pagesInput');
-        const previewSection = document.getElementById('previewSection');
+        const splitMethodSelect = safeGetElement('splitMethodSelect');
+        const method = splitMethodSelect ? splitMethodSelect.value : 'pages';
+        
+        const pagesGroup = safeGetElement('pagesGroup');
+        const fileSizeGroup = safeGetElement('fileSizeGroup');
+        const autoChunkGroup = safeGetElement('autoChunkGroup');
+        const pagesInput = safeGetElement('pagesInput');
+        const previewSection = safeGetElement('previewSection');
         
         // Hide all method-specific groups first
         if (pagesGroup) pagesGroup.style.display = 'none';
@@ -226,7 +314,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else { // method === 'pages'
             if (pagesGroup) pagesGroup.style.display = 'block';
             if (pagesInput) pagesInput.placeholder = 'ಉದಾ: 1,3,5-10 ಅಥವಾ 1-10,15-25';
-            // Keep preview section available for page-based splitting
         }
     };
 
@@ -237,12 +324,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const loadingPreview = document.getElementById('loadingPreview');
-        const pagesGrid = document.getElementById('pagesGrid');
+        const loadingPreview = safeGetElement('loadingPreview');
+        const pagesGrid = safeGetElement('pagesGrid');
+        const previewModal = safeGetElement('previewModal');
         
-        document.getElementById('previewModal').style.display = 'block';
-        loadingPreview.style.display = 'block';
-        pagesGrid.innerHTML = '';
+        if (previewModal) previewModal.style.display = 'block';
+        if (loadingPreview) loadingPreview.style.display = 'block';
+        if (pagesGrid) pagesGrid.innerHTML = '';
+        
         selectedPages.clear();
         updateSelectedPagesDisplay();
 
@@ -272,22 +361,24 @@ document.addEventListener('DOMContentLoaded', function() {
             showAlert('error', 'ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ: ' + error.message);
             closePreviewModal();
         } finally {
-            loadingPreview.style.display = 'none';
+            if (loadingPreview) loadingPreview.style.display = 'none';
         }
     };
 
     window.togglePageSelection = function(pageNum) {
         const pageDiv = document.querySelector(`[data-page-num="${pageNum}"]`);
+        if (!pageDiv) return;
+        
         const checkbox = pageDiv.querySelector('.page-checkbox');
 
         if (selectedPages.has(pageNum)) {
             selectedPages.delete(pageNum);
             pageDiv.classList.remove('selected');
-            checkbox.checked = false;
+            if (checkbox) checkbox.checked = false;
         } else {
             selectedPages.add(pageNum);
             pageDiv.classList.add('selected');
-            checkbox.checked = true;
+            if (checkbox) checkbox.checked = true;
         }
 
         updateSelectedPagesDisplay();
@@ -299,9 +390,11 @@ document.addEventListener('DOMContentLoaded', function() {
         currentPreviewData.previews.forEach(preview => {
             selectedPages.add(preview.page_num);
             const pageDiv = document.querySelector(`[data-page-num="${preview.page_num}"]`);
-            const checkbox = pageDiv.querySelector('.page-checkbox');
-            pageDiv.classList.add('selected');
-            checkbox.checked = true;
+            if (pageDiv) {
+                const checkbox = pageDiv.querySelector('.page-checkbox');
+                pageDiv.classList.add('selected');
+                if (checkbox) checkbox.checked = true;
+            }
         });
 
         updateSelectedPagesDisplay();
@@ -312,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.page-thumbnail').forEach(pageDiv => {
             pageDiv.classList.remove('selected');
             const checkbox = pageDiv.querySelector('.page-checkbox');
-            checkbox.checked = false;
+            if (checkbox) checkbox.checked = false;
         });
         updateSelectedPagesDisplay();
     };
@@ -325,19 +418,22 @@ document.addEventListener('DOMContentLoaded', function() {
         contents.forEach(content => content.classList.remove('active'));
 
         if (method === 'visual') {
-            tabs[0].classList.add('active');
-            document.getElementById('visualMethod').classList.add('active');
+            if (tabs[0]) tabs[0].classList.add('active');
+            const visualMethod = safeGetElement('visualMethod');
+            if (visualMethod) visualMethod.classList.add('active');
         } else {
-            tabs[1].classList.add('active');
-            document.getElementById('manualMethod').classList.add('active');
+            if (tabs[1]) tabs[1].classList.add('active');
+            const manualMethod = safeGetElement('manualMethod');
+            if (manualMethod) manualMethod.classList.add('active');
         }
     };
 
     window.applyManualSelection = function() {
-        const input = document.getElementById('manualPagesInput');
+        const input = safeGetElement('manualPagesInput');
+        if (!input || !currentPreviewData) return;
+        
         const pagesStr = input.value.trim();
-
-        if (!pagesStr || !currentPreviewData) return;
+        if (!pagesStr) return;
 
         clearSelection();
 
@@ -350,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (pageDiv) {
                         const checkbox = pageDiv.querySelector('.page-checkbox');
                         pageDiv.classList.add('selected');
-                        checkbox.checked = true;
+                        if (checkbox) checkbox.checked = true;
                     }
                 }
             });
@@ -371,13 +467,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const pagesStr = formatPageRanges(sortedPages);
 
         // Update the pages input in the main modal
-        const pagesInput = document.getElementById('pagesInput');
+        const pagesInput = safeGetElement('pagesInput');
         if (pagesInput) {
             pagesInput.value = pagesStr;
         }
 
         // Store selected pages in hidden input
-        const selectedPagesInput = document.getElementById('selectedPagesInput');
+        const selectedPagesInput = safeGetElement('selectedPagesInput');
         if (selectedPagesInput) {
             selectedPagesInput.value = pagesStr;
         }
@@ -386,18 +482,36 @@ document.addEventListener('DOMContentLoaded', function() {
         showAlert('success', `${selectedPages.size} ಪುಟಗಳು ಆಯ್ಕೆಯಾಗಿವೆ: ${pagesStr}`);
     };
 
-    // New operation restart function
+    // CRITICAL FIX: New operation restart function
     window.startNewOperation = function(operation) {
-        closeModal();
-        resetFormState();
-        clearFileInputState();
+        console.log(`=== STARTING NEW OPERATION: ${operation} ===`);
+        
+        // Complete reset
+        completeModalReset();
+        
+        // Clear any existing alert messages
+        clearAlerts();
+        
+        // Small delay before starting new operation
         setTimeout(() => {
             selectOperation(operation);
         }, 100);
     };
 
+    // Helper function to clear alert messages
+    function clearAlerts() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            if (alert.parentElement) {
+                alert.remove();
+            }
+        });
+    }
+
     function displayPagePreviews(previewData) {
-        const pagesGrid = document.getElementById('pagesGrid');
+        const pagesGrid = safeGetElement('pagesGrid');
+        if (!pagesGrid) return;
+        
         pagesGrid.innerHTML = '';
 
         previewData.previews.forEach((preview, index) => {
@@ -423,9 +537,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateSelectedPagesDisplay() {
-        const selectedCount = document.getElementById('selectedCount');
-        const selectedPagesList = document.getElementById('selectedPagesList');
-        const confirmBtn = document.getElementById('confirmSelectionBtn');
+        const selectedCount = safeGetElement('selectedCount');
+        const selectedPagesList = safeGetElement('selectedPagesList');
+        const confirmBtn = safeGetElement('confirmSelectionBtn');
 
         if (selectedCount) {
             selectedCount.textContent = selectedPages.size;
@@ -459,6 +573,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // File handling functions
     function handleFileSelection(files) {
         const config = operationConfigs[currentOperation];
+        if (!config) {
+            showAlert('error', 'ಕಾರ್ಯಾಚರಣೆ ಆಯ್ಕೆ ಮಾಡಿ');
+            return;
+        }
         
         // Special handling for compare operation
         if (currentOperation === 'compare') {
@@ -467,7 +585,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Validate that both files are PDFs
             const nonPdfFiles = files.filter(file => !file.name.toLowerCase().endsWith('.pdf'));
             if (nonPdfFiles.length > 0) {
                 showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ಎರಡೂ ಫೈಲ್‌ಗಳು PDF ಆಗಿರಬೇಕು');
@@ -509,23 +626,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displaySelectedFiles() {
-        const fileList = document.getElementById('selectedFilesList');
+        const fileList = safeGetElement('filesList');
         if (!fileList) return;
 
         if (selectedFiles.length === 0) {
             fileList.innerHTML = '<p class="no-files">ಯಾವುದೇ ಫೈಲ್‌ಗಳು ಆಯ್ಕೆಯಾಗಿಲ್ಲ</p>';
+            fileList.style.display = 'none';
             return;
         }
 
+        fileList.style.display = 'block';
         fileList.innerHTML = selectedFiles.map((file, index) => `
             <div class="file-item">
-                <div class="file-info">
-                    <span class="file-name">${file.name}</span>
-                    <span class="file-size">${formatFileSize(file.size)}</span>
+                <div class="file-icon">
+                    <i class="fas fa-file-${getFileIcon(file.name)}"></i>
                 </div>
-                <button type="button" class="remove-file-btn" onclick="removeFile(${index})" title="ಫೈಲ್ ತೆಗೆದುಹಾಕಿ">
-                    ✕
-                </button>
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                </div>
+                <div class="file-remove" onclick="removeFile(${index})" title="ಫೈಲ್ ತೆಗೆದುಹಾಕಿ">
+                    <i class="fas fa-times"></i>
+                </div>
             </div>
         `).join('');
     }
@@ -549,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateProcessButton() {
-        const processBtn = document.getElementById('processBtn');
+        const processBtn = safeGetElement('processBtn');
         const config = operationConfigs[currentOperation];
         
         if (processBtn && config) {
@@ -570,11 +692,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updatePreviewSection() {
-        const previewSection = document.getElementById('previewSection');
+        const previewSection = safeGetElement('previewSection');
         const config = operationConfigs[currentOperation];
         
-        if (previewSection) {
-            previewSection.style.display = (config?.hasPreview && selectedFiles.length > 0) ? 'block' : 'none';
+        if (previewSection && config) {
+            previewSection.style.display = (config.hasPreview && selectedFiles.length > 0) ? 'block' : 'none';
         }
     }
 
@@ -583,21 +705,20 @@ document.addEventListener('DOMContentLoaded', function() {
                              'fileSizeGroup', 'autoChunkGroup', 'rotationAngleGroup', 'applyToAllGroup'];
         
         optionGroups.forEach(group => {
-            const element = document.getElementById(group);
+            const element = safeGetElement(group);
             if (element) {
                 element.style.display = 'none';
             }
         });
         
-        const operationOptions = document.getElementById('operationOptions');
+        const operationOptions = safeGetElement('operationOptions');
         if (operationOptions) {
             if (options.length > 0) {
                 operationOptions.style.display = 'block';
                 options.forEach(option => {
-                    const element = document.getElementById(option + 'Group');
+                    const element = safeGetElement(option + 'Group');
                     if (element) {
                         element.style.display = 'block';
-                        // Auto-show split method options for split operation
                         if (currentOperation === 'split' && option === 'split_method') {
                             setTimeout(() => handleSplitMethodChange(), 100);
                         }
@@ -613,10 +734,11 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedFiles = [];
         selectedPages.clear();
         currentPreviewData = null;
-        const filesList = document.getElementById('filesList');
-        const processBtn = document.getElementById('processBtn');
-        const fileInput = document.getElementById('fileInput');
-        const previewSection = document.getElementById('previewSection');
+        
+        const filesList = safeGetElement('filesList');
+        const processBtn = safeGetElement('processBtn');
+        const fileInput = safeGetElement('fileInput');
+        const previewSection = safeGetElement('previewSection');
         
         if (filesList) {
             filesList.style.display = 'none';
@@ -633,54 +755,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function resetFormState() {
-        // Clear all form state
-        selectedFiles = [];
-        selectedPages.clear();
-        currentPreviewData = null;
-        
-        // Reset file input
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-        
-        // Clear any form values
-        const pagesInput = document.getElementById('pagesInput');
-        if (pagesInput) {
-            pagesInput.value = '';
-        }
-        
-        const selectedPagesInput = document.getElementById('selectedPagesInput');
-        if (selectedPagesInput) {
-            selectedPagesInput.value = '';
-        }
-        
-        console.log('Form state reset completed');
-    }
-
-    function clearFileInputState() {
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) {
-            // Clear the input value
-            fileInput.value = '';
-            
-            // Create new DataTransfer object to clear FileList
-            const dt = new DataTransfer();
-            fileInput.files = dt.files;
-            
-            // Remove any event listeners and re-add them
-            const newFileInput = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(newFileInput, fileInput);
-        }
-        
-        selectedFiles = [];
-        console.log('File input state completely cleared');
-    }
-
+    // CRITICAL FIX: Enhanced modal content restoration
     function restoreOriginalModalContent() {
+        console.log('=== RESTORING ORIGINAL MODAL CONTENT ===');
+        
         const modalBody = document.querySelector('#operationModal .modal-body');
+        if (!modalBody) {
+            console.error('Modal body not found');
+            return;
+        }
+        
         const config = operationConfigs[currentOperation];
+        if (!config) {
+            console.error('Config not found for operation:', currentOperation);
+            return;
+        }
         
         modalBody.innerHTML = `
             <form id="operationForm" method="post" action="/upload" enctype="multipart/form-data">
@@ -698,21 +787,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div id="filesList" class="file-list" style="display: none;"></div>
 
-                <div id="previewSection" style="display: ${config.hasPreview ? 'none' : 'none'}; margin-bottom: 1rem;">
+                <div id="previewSection" style="display: none; margin-bottom: 1rem;">
                     <button type="button" class="btn btn-primary" id="showPreviewBtn" onclick="showPagePreview()">
                         <i class="fas fa-eye"></i> ಪುಟಗಳನ್ನು ಪೂರ್ವವೀಕ್ಷಿಸಿ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ
                     </button>
                 </div>
 
-                <div id="operationOptions" style="display: ${config.options.length > 0 ? 'block' : 'none'};">
-                    <div class="form-group" id="pagesGroup" style="display: ${config.options.includes('pages') ? 'block' : 'none'};">
+                <div id="operationOptions" style="display: none;">
+                    <div class="form-group" id="pagesGroup" style="display: none;">
                         <label class="form-label" for="pagesInput">ಪುಟ ಸಂಖ್ಯೆಗಳು</label>
                         <input type="text" name="pages" id="pagesInput" class="form-input" 
                             placeholder="ಉದಾ: 1,3,5-10">
                         <small>ಉದಾ: 1,3,5-10 (ಪ್ರತ್ಯೇಕ ಪುಟಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿಗಳು)</small>
                     </div>
 
-                    <div class="form-group" id="compressionGroup" style="display: ${config.options.includes('compression') ? 'block' : 'none'};">
+                    <div class="form-group" id="compressionGroup" style="display: none;">
                         <label class="form-label" for="compressionSelect">ಸಂಕುಚನ ಮಟ್ಟ</label>
                         <select name="compression" id="compressionSelect" class="form-select" onchange="updateCompressionUI()">
                             <option value="low">ಕಡಿಮೆ (ಉತ್ತಮ ಗುಣಮಟ್ಟ)</option>
@@ -723,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </select>
                     </div>
 
-                    <div class="form-group" id="compareTypeGroup" style="display: ${config.options.includes('compareType') ? 'block' : 'none'};">
+                    <div class="form-group" id="compareTypeGroup" style="display: none;">
                         <small>ಪಠ್ಯ ಹೋಲಿಕೆ ಕನ್ನಡ ಪಠ್ಯವನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ</small>
                     </div>
 
@@ -772,7 +861,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    <div class="form-group" id="splitMethodGroup" style="display: ${config.options.includes('split_method') ? 'block' : 'none'};">
+                    <div class="form-group" id="splitMethodGroup" style="display: none;">
                         <label class="form-label" for="splitMethodSelect">ವಿಭಾಗ ವಿಧಾನ</label>
                         <select name="split_method" id="splitMethodSelect" class="form-select" onchange="handleSplitMethodChange()">
                             <option value="pages">ನಿರ್ದಿಷ್ಟ ಪುಟಗಳು/ವ್ಯಾಪ್ತಿಗಳು</option>
@@ -795,7 +884,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <small>ಪ್ರತಿ ಫೈಲ್‌ನಲ್ಲಿ ಎಷ್ಟು ಪುಟಗಳು</small>
                     </div>
 
-                    <div class="form-group" id="rotationAngleGroup" style="display: ${config.options.includes('rotation_angle') ? 'block' : 'none'};">
+                    <div class="form-group" id="rotationAngleGroup" style="display: none;">
                         <label class="form-label" for="rotationAngleSelect">ತಿರುಗುವ ಕೋನ</label>
                         <select name="rotation_angle" id="rotationAngleSelect" class="form-select">
                             <option value="90">90° (ಬಲಕ್ಕೆ)</option>
@@ -805,7 +894,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </select>
                     </div>
 
-                    <div class="form-group" id="applyToAllGroup" style="display: ${config.options.includes('apply_to_all') ? 'block' : 'none'};">
+                    <div class="form-group" id="applyToAllGroup" style="display: none;">
                         <label class="form-label">
                             <input type="checkbox" name="apply_to_all" id="applyToAllCheckbox" checked>
                             ಎಲ್ಲಾ ಪುಟಗಳಿಗೆ ಅನ್ವಯಿಸಿ
@@ -822,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </form>
         `;
         
-        // Initialize compression UI after DOM is created
+        // Initialize UI components after DOM is created
         setTimeout(() => {
             if (config.options.includes('compression')) {
                 updateCompressionUI();
@@ -832,43 +921,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 handleSplitMethodChange();
             }
             bindEventListeners();
-        }, 100);
+        }, 50);
+        
+        console.log('=== MODAL CONTENT RESTORATION COMPLETE ===');
     }
 
+    // CRITICAL FIX: Enhanced event listener binding
     function bindEventListeners() {
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+        console.log('=== BINDING EVENT LISTENERS ===');
+        
+        const uploadArea = safeGetElement('uploadArea');
+        const fileInput = safeGetElement('fileInput');
         
         if (uploadArea && fileInput) {
-            uploadArea.onclick = () => fileInput.click();
+            // Remove any existing event listeners by cloning elements
+            const newUploadArea = uploadArea.cloneNode(true);
+            const newFileInput = fileInput.cloneNode(true);
             
-            uploadArea.ondragover = (e) => {
+            uploadArea.parentNode.replaceChild(newUploadArea, uploadArea);
+            fileInput.parentNode.replaceChild(newFileInput, fileInput);
+            
+            // Add fresh event listeners
+            newUploadArea.onclick = () => newFileInput.click();
+            
+            newUploadArea.ondragover = (e) => {
                 e.preventDefault();
-                uploadArea.classList.add('dragover');
+                newUploadArea.classList.add('dragover');
             };
             
-            uploadArea.ondragleave = (e) => {
+            newUploadArea.ondragleave = (e) => {
                 e.preventDefault();
-                uploadArea.classList.remove('dragover');
+                newUploadArea.classList.remove('dragover');
             };
             
-            uploadArea.ondrop = (e) => {
+            newUploadArea.ondrop = (e) => {
                 e.preventDefault();
-                uploadArea.classList.remove('dragover');
+                newUploadArea.classList.remove('dragover');
                 const files = Array.from(e.dataTransfer.files);
                 handleFileSelection(files);
             };
             
-            fileInput.onchange = (e) => {
+            newFileInput.onchange = (e) => {
                 const files = Array.from(e.target.files);
                 handleFileSelection(files);
             };
         }
 
-        const form = document.getElementById('operationForm');
+        const form = safeGetElement('operationForm');
         if (form) {
             form.onsubmit = handleFormSubmission;
         }
+        
+        console.log('=== EVENT LISTENER BINDING COMPLETE ===');
     }
 
     async function handleFormSubmission(e) {
@@ -891,9 +995,9 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('files', file);
         });
         
-        // Use selected pages from preview or manual input
-        const selectedPagesInput = document.getElementById('selectedPagesInput');
-        const pagesInput = document.getElementById('pagesInput');
+        // Collect form data
+        const selectedPagesInput = safeGetElement('selectedPagesInput');
+        const pagesInput = safeGetElement('pagesInput');
         
         if (selectedPagesInput && selectedPagesInput.value) {
             formData.append('selected_pages', selectedPagesInput.value);
@@ -901,23 +1005,23 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('pages', pagesInput.value);
         }
         
-        const compressionSelect = document.getElementById('compressionSelect');
+        // Add all other form parameters
+        const compressionSelect = safeGetElement('compressionSelect');
         if (compressionSelect && compressionSelect.value) {
             formData.append('compression', compressionSelect.value);
         }
 
-        // Add compression-specific parameters
-        const targetSizeMB = document.getElementById('targetSizeMB');
+        const targetSizeMB = safeGetElement('targetSizeMB');
         if (targetSizeMB && targetSizeMB.value) {
             formData.append('target_size_mb', targetSizeMB.value);
         }
 
-        const imageQuality = document.getElementById('imageQuality');
+        const imageQuality = safeGetElement('imageQuality');
         if (imageQuality) {
             formData.append('imageQuality', imageQuality.value);
         }
 
-        const imageDPI = document.getElementById('imageDPI');
+        const imageDPI = safeGetElement('imageDPI');
         if (imageDPI) {
             formData.append('imageDPI', imageDPI.value);
         }
@@ -932,35 +1036,37 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('optimizeFonts', optimizeFonts.checked);
         }
 
-        // Add split method parameters
-        const splitMethodSelect = document.getElementById('splitMethodSelect');
+        const splitMethodSelect = safeGetElement('splitMethodSelect');
         if (splitMethodSelect && splitMethodSelect.value) {
             formData.append('split_method', splitMethodSelect.value);
         }
 
-        const maxSizeInput = document.getElementById('maxSizeInput');
+        const maxSizeInput = safeGetElement('maxSizeInput');
         if (maxSizeInput && maxSizeInput.value) {
             formData.append('target_size_mb', maxSizeInput.value);
         }
 
-        const chunkSizeInput = document.getElementById('chunkSizeInput');
+        const chunkSizeInput = safeGetElement('chunkSizeInput');
         if (chunkSizeInput && chunkSizeInput.value) {
             formData.append('pages_per_chunk', chunkSizeInput.value);
         }
         
-        // Add rotation parameters
-        const rotationAngleSelect = document.getElementById('rotationAngleSelect');
+        const rotationAngleSelect = safeGetElement('rotationAngleSelect');
         if (rotationAngleSelect && rotationAngleSelect.value) {
             formData.append('rotation_angle', rotationAngleSelect.value);
         }
         
-        const applyToAllCheckbox = document.getElementById('applyToAllCheckbox');
+        const applyToAllCheckbox = safeGetElement('applyToAllCheckbox');
         if (applyToAllCheckbox) {
             formData.append('apply_to_all', applyToAllCheckbox.checked);
         }
         
-        document.getElementById('operationModal').style.display = 'none';
-        showLoadingModal();
+        // Close operation modal and show loading
+        const operationModal = safeGetElement('operationModal');
+        const loadingModal = safeGetElement('loadingModal');
+        
+        if (operationModal) operationModal.style.display = 'none';
+        if (loadingModal) loadingModal.style.display = 'block';
         
         try {
             const response = await fetch('/upload', {
@@ -975,7 +1081,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.redirect_url) {
                     showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
                     
-                    // Redirect to comparison results page after a short delay
                     setTimeout(() => {
                         window.location.href = result.redirect_url;
                     }, 1500);
@@ -985,51 +1090,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Regular operation success handling
                 showSuccessModal(result);
-                // CRITICAL: Complete reset after successful operation
-                resetFormState();
-                selectedFiles = []; // Clear the file array
                 
-                // Clear the file input properly
-                const fileInput = document.getElementById('fileInput');
-                if (fileInput) {
-                    fileInput.value = '';
-                    fileInput.files = new DataTransfer().files; // Clear the FileList
-                }
+                // CRITICAL FIX: Complete state reset after successful operation
+                selectedFiles = [];
+                selectedPages.clear();
+                currentPreviewData = null;
             } else {
                 showErrorModal(result.error);
             }
         } catch (error) {
             showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
         } finally {
-            document.getElementById('loadingModal').style.display = 'none';
+            if (loadingModal) loadingModal.style.display = 'none';
         }
-    }
-
-    function validateCompareOperation() {
-        const fileInputs = document.querySelectorAll('input[type="file"]');
-        let totalFiles = 0;
-        
-        fileInputs.forEach(input => {
-            if (input.files && input.files.length > 0) {
-                totalFiles += input.files.length;
-            }
-        });
-        
-        if (totalFiles !== 2) {
-            showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ');
-            return false;
-        }
-        
-        return true;
-    }
-
-    function showLoadingModal() {
-        document.getElementById('loadingModal').style.display = 'block';
     }
 
     function showSuccessModal(result) {
-        const modal = document.getElementById('operationModal');
+        const modal = safeGetElement('operationModal');
+        if (!modal) return;
+        
         const modalBody = modal.querySelector('.modal-body');
+        if (!modalBody) return;
         
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 2rem;">
@@ -1052,13 +1133,15 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        document.getElementById('loadingModal').style.display = 'none';
         modal.style.display = 'block';
     }
 
     function showErrorModal(errorMessage) {
-        const modal = document.getElementById('operationModal');
+        const modal = safeGetElement('operationModal');
+        if (!modal) return;
+        
         const modalBody = modal.querySelector('.modal-body');
+        if (!modalBody) return;
         
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 2rem;">
@@ -1066,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h3>ದೋಷ ಸಂಭವಿಸಿದೆ</h3>
                 <p style="margin: 1rem 0;">${errorMessage}</p>
                 <div style="margin-top: 2rem;">
-                    <button class="btn btn-primary" onclick="selectOperation('${currentOperation}')">
+                    <button class="btn btn-primary" onclick="startNewOperation('${currentOperation}')">
                         <i class="fas fa-redo"></i> ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ
                     </button>
                     <button class="btn" onclick="closeModal()" style="background: #6c757d; color: white; margin-left: 1rem;">
@@ -1076,7 +1159,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        document.getElementById('loadingModal').style.display = 'none';
         modal.style.display = 'block';
     }
 
