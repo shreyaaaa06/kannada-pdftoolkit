@@ -700,35 +700,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showOperationOptions(options, hasPreview) {
-        const optionGroups = ['pagesGroup', 'compressionGroup', 'compareTypeGroup', 'splitMethodGroup', 
-                             'fileSizeGroup', 'autoChunkGroup', 'rotationAngleGroup', 'applyToAllGroup'];
-        
-        optionGroups.forEach(group => {
-            const element = safeGetElement(group);
-            if (element) {
-                element.style.display = 'none';
-            }
-        });
-        
-        const operationOptions = safeGetElement('operationOptions');
-        if (operationOptions) {
-            if (options.length > 0) {
-                operationOptions.style.display = 'block';
-                options.forEach(option => {
-                    const element = safeGetElement(option + 'Group');
-                    if (element) {
-                        element.style.display = 'block';
-                        if (currentOperation === 'split' && option === 'split_method') {
-                            setTimeout(() => handleSplitMethodChange(), 100);
-                        }
+    // Replace your showOperationOptions function with this fixed version:
+
+function showOperationOptions(options, hasPreview) {
+    const optionGroups = ['pagesGroup', 'compressionGroup', 'compareTypeGroup', 'splitMethodGroup', 
+                         'fileSizeGroup', 'autoChunkGroup', 'rotationAngleGroup', 'applyToAllGroup'];
+    
+    // Hide all option groups first
+    optionGroups.forEach(group => {
+        const element = safeGetElement(group);
+        if (element) {
+            element.style.display = 'none';
+        }
+    });
+    
+    const operationOptions = safeGetElement('operationOptions');
+    if (operationOptions) {
+        if (options.length > 0) {
+            operationOptions.style.display = 'block';
+            options.forEach(option => {
+                // Map the option names to their corresponding group IDs
+                let groupId;
+                switch(option) {
+                    case 'split_method':
+                        groupId = 'splitMethodGroup';
+                        break;
+                    case 'pages':
+                        groupId = 'pagesGroup';
+                        break;
+                    case 'compression':
+                        groupId = 'compressionGroup';
+                        break;
+                    case 'compareType':
+                        groupId = 'compareTypeGroup';
+                        break;
+                    case 'rotation_angle':
+                        groupId = 'rotationAngleGroup';
+                        break;
+                    case 'apply_to_all':
+                        groupId = 'applyToAllGroup';
+                        break;
+                    default:
+                        groupId = option + 'Group';
+                }
+                
+                const element = safeGetElement(groupId);
+                if (element) {
+                    element.style.display = 'block';
+                    
+                    // Special handling for split method to trigger the change handler
+                    if (option === 'split_method') {
+                        setTimeout(() => handleSplitMethodChange(), 100);
                     }
-                });
-            } else {
-                operationOptions.style.display = 'none';
-            }
+                }
+            });
+        } else {
+            operationOptions.style.display = 'none';
         }
     }
+}
 
     function resetModalForm() {
         selectedFiles = [];

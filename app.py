@@ -141,6 +141,12 @@ def upload_file():
         session.modified = True
         
         operation = request.form.get('operation')
+        # Store original filenames for later use
+        original_filenames = []
+        for file in request.files.getlist('files'):
+            if file and file.filename:
+                original_filenames.append(file.filename)
+
         use_previous = request.form.get('use_previous') == 'true'
         
         print(f"=== DEBUG UPLOAD (NEW SESSION) ===")
@@ -548,6 +554,43 @@ def upload_file():
         except Exception as cleanup_error:
             print(f"Cleanup error: {cleanup_error}")
         
+        # Generate user-friendly filename if possible
+        if result_path and original_filenames:
+            original_name = original_filenames[0]  # first uploaded file name
+            base_name = os.path.splitext(original_name)[0]
+
+            if operation == 'merge':
+                user_filename = f"{base_name}_merged.pdf"
+            elif operation == 'split':
+                if result_path.endswith('.zip'):
+                    user_filename = f"{base_name}_split.zip"
+                else:
+                    user_filename = f"{base_name}_split.pdf"
+            elif operation == 'compress':
+                user_filename = f"{base_name}_compressed.pdf"
+            elif operation == 'extract':
+                user_filename = f"{base_name}_extracted.pdf"
+            elif operation == 'rotate':
+                user_filename = f"{base_name}_rotated.pdf"
+            elif operation == 'delete':
+                user_filename = f"{base_name}_pages_deleted.pdf"
+            elif operation == 'pdf_to_jpeg':
+                user_filename = f"{base_name}_images.zip"
+            elif operation == 'jpeg_to_pdf':
+                user_filename = "images_to_pdf.pdf"
+            elif operation == 'pdf_to_word':
+                user_filename = f"{base_name}.docx"
+            elif operation == 'word_to_pdf':
+                user_filename = f"{base_name}.pdf"
+            else:
+                user_filename = original_name
+
+            # Store the mapping in session
+            session['download_mapping'] = {
+                'system_filename': os.path.basename(result_path),
+                'user_filename': user_filename
+            }
+
         # Validate result
         if not result_path:
             return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ - ಯಾವುದೇ ಫಲಿತಾಂಶ ಇಲ್ಲ'})
@@ -597,11 +640,19 @@ def download_file(session_id, filename):
         print(f"File exists: {os.path.exists(file_path)}")
 
         if os.path.exists(file_path):
+            # Get the user-friendly filename from session
+            download_mapping = session.get('download_mapping', {})
+            user_filename = download_mapping.get('user_filename', filename)
+            
+            print(f"System filename: {filename}")
+            print(f"User filename: {user_filename}")
+            
             # Serve HTML in-browser
             if filename.endswith('.html'):
                 return send_file(file_path)
             else:
-                return send_file(file_path, as_attachment=True, download_name=filename)
+                # Use the user-friendly filename for download
+                return send_file(file_path, as_attachment=True, download_name=user_filename)
 
         print("File not found")
         return "ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ", 404
@@ -609,7 +660,7 @@ def download_file(session_id, filename):
     except Exception as e:
         print(f"Download error: {str(e)}")
         return f"ದೋಷ: {str(e)}", 500
-
+    
 @app.route('/reset', methods=['POST'])
 def reset_session():
     """Reset session and clear processed files - Enhanced version from file 2"""
