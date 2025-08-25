@@ -7,7 +7,11 @@ from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
 from utils.auth import AuthenticationManager
 import config
-<<<<<<< HEAD
+try:
+    from textutils.unified_pdf_converter import UnifiedPDFConverter
+except ImportError:
+    UnifiedPDFConverter = None
+
 from functools import wraps
 
 app = Flask(__name__)
@@ -141,7 +145,7 @@ def logout():
 def profile():
     user_info = session.get('current_user')
     return render_template('profile.html', user=user_info)
-=======
+
 import fitz  # PyMuPDF
 from PIL import Image
 import io
@@ -152,67 +156,34 @@ import time
 import os
 import config
 
-# Load TextUtils environment early so env vars and secrets are available
-try:
-    from dotenv import load_dotenv  # requires python-dotenv
-    TEXTUTILS_DIR = os.path.join(os.path.dirname(__file__), 'textUtils')
-    # Load .env from textUtils
-    load_dotenv(os.path.join(TEXTUTILS_DIR, '.env'))
-    # Ensure GOOGLE_APPLICATION_CREDENTIALS is absolute and points to secrets if needed
-    gac = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    if gac and not os.path.isabs(gac):
-        candidate = os.path.join(TEXTUTILS_DIR, 'secrets', gac)
-        if not os.path.exists(candidate):
-            candidate = os.path.join(TEXTUTILS_DIR, gac)
-        if os.path.exists(candidate):
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = candidate
-    # Make sure we can import textUtils modules
-    if TEXTUTILS_DIR not in sys.path:
-        sys.path.append(TEXTUTILS_DIR)
-except Exception as _env_err:
-    # Proceed without blocking other features; pdf->word will report detailed error if needed
-    print(f"TextUtils env load warning: {_env_err}")
-
-# Try importing the UnifiedPDFConverter from TextUtils
-try:
-    # Import directly from 'modules' since we added textUtils dir to sys.path
-    from modules.unified_pdf_converter import UnifiedPDFConverter
-except Exception as _imp_err:
-    UnifiedPDFConverter = None
-    print(f"TextUtils import warning: {_imp_err}")
-
 app = Flask(__name__)
-# Allow overriding secret via env if provided
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')    
 
-
+app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
 app.config['PREVIEW_FOLDER'] = 'static/previews'
 app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
 
+# Create temporary directory for comparison images
+app.config['TEMP_FOLDER'] = 'static/temp'
+os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+
+# Initialize handlers
 file_handler = FileHandler()
 pdf_ops = PDFOperations()
 
 @app.route('/')
 def index():
-<<<<<<< HEAD
-    user_info = session.get('current_user')
-    return render_template('index.html', user=user_info)
-
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204  # No content response for favicon
-=======
     # CRITICAL FIX: Clear session on main page load to ensure fresh start
     session.clear()
     return render_template('index.html')
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
 
 @app.route('/generate-preview', methods=['POST'])
 def generate_preview():
@@ -299,16 +270,22 @@ def generate_sort_preview():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        # CRITICAL FIX: Always generate new session for each upload operation
+        # Always generate new session for each upload operation (from file 2)
         session_id = str(uuid.uuid4())
         session['session_id'] = session_id
         session['processed_files'] = []  # Clear any previous files
         session.modified = True
         
         operation = request.form.get('operation')
+        # Store original filenames for later use
+        original_filenames = []
+        for file in request.files.getlist('files'):
+            if file and file.filename:
+                original_filenames.append(file.filename)
+
         use_previous = request.form.get('use_previous') == 'true'
         
-<<<<<<< HEAD
+
         # Get files - from upload or previous results
         if use_previous and session.get('processed_files'):
             file_paths = [f['path'] for f in session['processed_files']]
@@ -323,75 +300,99 @@ def upload_file():
                     file_path = file_handler.save_uploaded_file(file, session_id)
                     if file_path:
                         file_paths.append(file_path)
-=======
+
         print(f"=== DEBUG UPLOAD (NEW SESSION) ===")
         print(f"Operation: {operation}")
         print(f"New Session ID: {session_id}")
         print(f"Use previous: {use_previous}")
         print(f"Form data: {dict(request.form)}")
         
-        # CRITICAL FIX: Never use previous files, always use fresh uploads
+        # Get files from upload (enhanced file handling from file 2)
         files = request.files.getlist('files')
         if not files or all(not f.filename for f in files):
             return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
         
         file_paths = []
         
-        for file in files:
+        for i, file in enumerate(files):  # Add enumerate to ensure unique processing
             if file and file.filename:
-                # ADD DEBUG PRINTS:
-                print(f"=== FILENAME DEBUG ===")
+                # Enhanced filename processing with guaranteed uniqueness
+                print(f"=== PROCESSING FILE {i+1} ===")
                 print(f"Original filename: '{file.filename}'")
                 print(f"Original filename bytes: {file.filename.encode('utf-8')}")
                 
-                original_filename = secure_filename(file.filename)
-                print(f"After secure_filename: '{original_filename}'")
-                print(f"Has dot: {'.' in original_filename}")
+                original_filename = file.filename
+                secure_name = secure_filename(original_filename)
+                print(f"After secure_filename: '{secure_name}'")
                 
-                if not original_filename or '.' not in original_filename:
-                    # If secure_filename stripped the extension, rebuild it
-                    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'docx'
-                    original_filename = f"document.{file_ext}"
-                    print(f"FIXED filename: '{original_filename}'")
-
-                timestamp = str(int(time.time()))
-                unique_filename = f"{session_id}_{timestamp}_{original_filename}"
+                # CRITICAL FIX: Handle Kannada/Unicode filenames better
+                if not secure_name or len(secure_name) < 3:
+                    # If secure_filename stripped everything, preserve extension
+                    if '.' in original_filename:
+                        file_ext = original_filename.rsplit('.', 1)[1].lower()
+                    else:
+                        file_ext = 'pdf'  # Default extension
+                    secure_name = f"file.{file_ext}"
+                    print(f"Generated fallback filename: '{secure_name}'")
+                elif '.' not in secure_name:
+                    # Add extension if missing after secure_filename
+                    if '.' in original_filename:
+                        file_ext = original_filename.rsplit('.', 1)[1].lower()
+                        secure_name = f"{secure_name}.{file_ext}"
+                        print(f"Added missing extension: '{secure_name}'")
+                
+                # GUARANTEED UNIQUENESS: Always add file index + timestamp + UUID
+                timestamp = str(int(time.time() * 1000))  # Millisecond precision
+                unique_id = str(uuid.uuid4().hex[:8])
+                file_index = f"f{i+1}"  # f1, f2, f3, etc.
+                
+                # Final unique filename with multiple uniqueness guarantees
+                unique_filename = f"{session_id}_{file_index}_{timestamp}_{unique_id}_{secure_name}"
                 print(f"Final unique filename: '{unique_filename}'")
-                print("=== END DEBUG ===")
                 
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                print(f"Full file path: '{file_path}'")
                 
                 try:
+                    # Save the file
                     file.save(file_path)
-                    print(f"Saved file: {file_path} (Size: {os.path.getsize(file_path)} bytes)")
+                    print(f"File saved successfully")
                     
-                    # Verify file was saved properly
-                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                        file_paths.append(file_path)
+                    # CRITICAL: Verify file was saved with correct content
+                    if os.path.exists(file_path):
+                        file_size = os.path.getsize(file_path)
+                        print(f"Saved file size: {file_size} bytes")
+                        
+                        if file_size > 0:
+                            file_paths.append(file_path)
+                            print(f"✓ File {i+1} processed successfully: {file_path}")
+                        else:
+                            print(f"✗ File {i+1} is empty after save")
                     else:
-                        print(f"Warning: File save verification failed for {file_path}")
+                        print(f"✗ File {i+1} was not saved properly")
                         
                 except Exception as save_error:
-                    print(f"Error saving file {file.filename}: {save_error}")
+                    print(f"✗ Error saving file {i+1} ({file.filename}): {save_error}")
                     continue
                 finally:
-                    # CRITICAL FIX: Properly close file stream
-                    if hasattr(file, 'close'):
-                        try:
-                            file.close()
+                    # Ensure file stream is properly closed
+                    try:
+                            if hasattr(file, 'close'):
+                                file.close()
                         except:
                             pass
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
         
         if not file_paths:
             return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಸರಿಯಾದ ಫೈಲ್‌ಗಳು ಅಪ್‌ಲೋಡ್ ಆಗಿಲ್ಲ'})
+        
+        # For merge operation, ensure we have at least 2 different files
+        if operation == 'merge' and len(file_paths) < 2:
+            return jsonify({'success': False, 'error': 'ವಿಲೀನಕ್ಕೆ ಕನಿಷ್ಠ 2 ವಿಭಿನ್ನ PDF ಫೈಲ್‌ಗಳು ಅಗತ್ಯ'})
         
         # Get operation parameters
         pages = request.form.get('pages', '') or request.form.get('selected_pages', '')
         compression = request.form.get('compression', 'medium')
         
-<<<<<<< HEAD
-=======
         # Get split-specific parameters
         split_method = request.form.get('split_method', 'pages')
         target_size_mb = request.form.get('target_size_mb', '10')
@@ -400,7 +401,6 @@ def upload_file():
         
         print(f"Processing {len(file_paths)} files for operation: {operation}")
         
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
         result_path = None
         
         # Process operations
@@ -429,7 +429,7 @@ def upload_file():
                 except Exception as pdf_error:
                     return jsonify({'success': False, 'error': f'PDF ಫೈಲ್ ದೋಷಪೂರ್ಣ: {str(pdf_error)}'})
                 
-                # Call split_pdf with proper parameters based on split method
+                # Enhanced split operation from file 2
                 try:
                     target_size_mb_int = int(target_size_mb) if target_size_mb.isdigit() else 10
                     pages_per_chunk_int = int(pages_per_chunk) if pages_per_chunk.isdigit() else 20
@@ -438,6 +438,8 @@ def upload_file():
                     target_size_mb_int = 10
                     pages_per_chunk_int = 20
                     max_file_size_int = 1000
+                finally:
+                    pass  # Ensure try has except/finally clause
                 
                 result_path = pdf_ops.split_pdf(
                     pdf_path, 
@@ -455,6 +457,7 @@ def upload_file():
                 result_path = pdf_ops.extract_pages(file_paths[0], pages, session_id)
 
             elif operation == 'rotate':
+                # Rotation operation from file 2
                 print("=== ROTATION OPERATION DEBUG ===")
                 print(f"Raw form data: {dict(request.form)}")
                 
@@ -502,6 +505,7 @@ def upload_file():
                 result_path = pdf_ops.delete_pages(file_paths[0], pages, session_id)
                 
             elif operation == 'compress':
+                print("Processing compress operation")
                 result_path = pdf_ops.compress_pdf(file_paths[0], compression, session_id)
                 
             elif operation == 'pdf_to_jpeg':
@@ -511,9 +515,8 @@ def upload_file():
                 result_path = pdf_ops.images_to_pdf(file_paths, session_id)
                 
             elif operation == 'pdf_to_word':
-<<<<<<< HEAD
                 result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
-=======
+
                 print("Processing PDF to Word operation (TextUtils)")
                 if not file_paths:
                     return jsonify({'success': False, 'error': 'PDF ಫೈಲ್ ಅಗತ್ಯ'})
@@ -552,56 +555,9 @@ def upload_file():
 
                 # Prefer local docx path as result for download chaining
                 result_path = docx_path
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
                 
 
             elif operation == 'word_to_pdf':
-<<<<<<< HEAD
-                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
-                
-            elif operation == 'sort':
-                result_path = pdf_ops.sort_pdf_by_page_numbers(file_paths[0], session_id, pages)
-                
-            elif operation == 'protect':
-                protection_options = {
-                    'protection_password': request.form.get('protection_password', ''),
-                    'confirm_password': request.form.get('confirm_password', ''),
-                    'protection_level': request.form.get('protection_level', '128'),
-                    'allow_printing': request.form.get('allow_printing') == 'true',
-                    'allow_copying': request.form.get('allow_copying') == 'true',
-                    'allow_modification': request.form.get('allow_modification') == 'true',
-                    'allow_annotation': request.form.get('allow_annotation') == 'true',
-                    'allow_form_filling': request.form.get('allow_form_filling') == 'true'
-                }
-                
-                # Validate password
-                if len(protection_options['protection_password']) < 6:
-                    return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು ಇರಬೇಕು'})
-                
-                if protection_options['protection_password'] != protection_options['confirm_password']:
-                    return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ'})
-                
-                result = pdf_ops.protect_pdf(file_paths[0], session_id, protection_options)
-                if result['success']:
-                    result_path = result['output_path']
-                    flash(result['message'], 'success')
-                else:
-                    return jsonify({'success': False, 'error': result['error']})
-            
-            elif operation == 'unlock':
-                unlock_password = request.form.get('unlock_password', '').strip()
-                
-                if not unlock_password:
-                    return jsonify({'success': False, 'error': 'PDF ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯ'})
-                
-                result = pdf_ops.unlock_pdf(file_paths[0], unlock_password, session_id)
-                if result['success']:
-                    result_path = result['output_path']
-                    flash(result['message'], 'success')
-                else:
-                    return jsonify({'success': False, 'error': result['error']})
-                
-=======
                 print("=== PROCESSING WORD TO PDF OPERATION (FIXED) ===")
                 print(f"File paths: {file_paths}")
                 
@@ -611,7 +567,7 @@ def upload_file():
                 word_file_path = file_paths[0]
                 print(f"Processing Word file: {word_file_path}")
                 
-                # CRITICAL FIX: Validate file exists and has content
+                # Validate file exists and has content
                 if not os.path.exists(word_file_path):
                     return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'})
                 
@@ -626,7 +582,7 @@ def upload_file():
                 
                 print(f"File validation passed - Extension: {file_ext}, Size: {file_size} bytes")
                 
-                # CRITICAL FIX: Call the conversion function with proper error handling
+                # Call the conversion function with proper error handling
                 try:
                     result_path = pdf_ops.word_to_pdf(word_file_path, session_id)
                     print(f"word_to_pdf returned: {result_path}")
@@ -649,20 +605,18 @@ def upload_file():
                 
                 print("=== WORD TO PDF OPERATION COMPLETE ===")
             
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
                 
         except Exception as op_error:
-<<<<<<< HEAD
             return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(op_error)}'})
         
-=======
+
             print(f"Operation error: {str(op_error)}")
             traceback.print_exc()
             return jsonify({'success': False, 'error': f'ಕಾರ್ಯಾಚರಣೆ ವಿಫಲ: {str(op_error)}'})
         
-        # CRITICAL FIX: Clean up input files after successful processing
+        # Clean up input files after successful processing (from file 2)
         try:
             for file_path in file_paths:
                 if os.path.exists(file_path):
@@ -676,8 +630,44 @@ def upload_file():
         except Exception as cleanup_error:
             print(f"Cleanup error: {cleanup_error}")
         
+        # Generate user-friendly filename if possible
+        if result_path and original_filenames:
+            original_name = original_filenames[0]  # first uploaded file name
+            base_name = os.path.splitext(original_name)[0]
+
+            if operation == 'merge':
+                user_filename = f"{base_name}_merged.pdf"
+            elif operation == 'split':
+                if result_path.endswith('.zip'):
+                    user_filename = f"{base_name}_split.zip"
+                else:
+                    user_filename = f"{base_name}_split.pdf"
+            elif operation == 'compress':
+                user_filename = f"{base_name}_compressed.pdf"
+            elif operation == 'extract':
+                user_filename = f"{base_name}_extracted.pdf"
+            elif operation == 'rotate':
+                user_filename = f"{base_name}_rotated.pdf"
+            elif operation == 'delete':
+                user_filename = f"{base_name}_pages_deleted.pdf"
+            elif operation == 'pdf_to_jpeg':
+                user_filename = f"{base_name}_images.zip"
+            elif operation == 'jpeg_to_pdf':
+                user_filename = "images_to_pdf.pdf"
+            elif operation == 'pdf_to_word':
+                user_filename = f"{base_name}.docx"
+            elif operation == 'word_to_pdf':
+                user_filename = f"{base_name}.pdf"
+            else:
+                user_filename = original_name
+
+            # Store the mapping in session
+            session['download_mapping'] = {
+                'system_filename': os.path.basename(result_path),
+                'user_filename': user_filename
+            }
+
         # Validate result
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
         if not result_path:
             return jsonify({'success': False, 'error': 'ಫೈಲ್ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ - ಯಾವುದೇ ಫಲಿತಾಂಶ ಇಲ್ಲ'})
         
@@ -686,16 +676,12 @@ def upload_file():
         
         result_size = os.path.getsize(result_path)
         if result_size == 0:
-            return jsonify({'success': False, 'error': 'ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ'})
-        
+            return jsonify({'success': False, 'error': 'ಖಾಲಿ ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ'}) 
         filename = os.path.basename(result_path)
-<<<<<<< HEAD
         
-=======
         print(f"Success! Result file: {filename}, Size: {result_size} bytes")
         
         # Store result in session for potential chaining (but don't reuse)
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
         session['processed_files'] = [{
             'path': result_path,
             'filename': filename,
@@ -708,59 +694,44 @@ def upload_file():
             'message': 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!',
             'download_url': f'/download/{session_id}/{filename}',
             'filename': filename,
-            'can_chain': False  # CRITICAL FIX: Disable chaining to prevent reuse issues
+            'can_chain': True  # Enable chaining capability
         })
 
     except Exception as e:
-<<<<<<< HEAD
-=======
+
         print(f"Upload error: {str(e)}")
         traceback.print_exc()
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
+        
         return jsonify({'success': False, 'error': f'ದೋಷ: {str(e)}'})
+
+@app.route('/process', methods=['POST'])
+def process_files():
+    """Alternative endpoint for processing files (matches main.js expectations)"""
+    return upload_file()
 
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
     try:
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        print(f"Download request - Session: {session_id}, File: {filename}")
+        print(f"Looking for file at: {file_path}")
+        print(f"File exists: {os.path.exists(file_path)}")
         
-        # Check if file exists
-        if os.path.exists(file_path):
-            # For backward compatibility, allow files that start with session_id
-            # Also allow files that are in the current session's processed files
-            if (filename.startswith(session_id) or 
-                ('processed_files' in session and 
-                 any(f['filename'] == filename for f in session['processed_files']))):
-                return send_file(file_path, as_attachment=True, download_name=filename)
+        if os.path.exists(file_path) and filename.startswith(session_id):
+            print(f"Sending file: {file_path}, Size: {os.path.getsize(file_path)} bytes")
+            return send_file(file_path, as_attachment=True, download_name=filename)
         
+        print(f"File not found or invalid session")
         return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/thumbnails/<session_id>/<filename>')
-def serve_thumbnail(session_id, filename):
-    """Serve thumbnail images for PDF page previews"""
-    try:
-        thumbnails_dir = os.path.join(app.config['OUTPUT_FOLDER'], 'thumbnails', session_id)
-        file_path = os.path.join(thumbnails_dir, filename)
-        
-        if os.path.exists(file_path):
-            response = send_file(file_path, mimetype='image/png')
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-            return response
-        else:
-            return jsonify({'error': 'ಥಮ್‌ನೇಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
-            
-    except Exception as e:
+        print(f"Download error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/reset', methods=['POST'])
 def reset_session():
-    """Reset session and clear processed files"""
-    # CRITICAL FIX: Completely clear session and cleanup files
+    """Reset session and clear processed files - Enhanced version from file 2"""
+    # Completely clear session and cleanup files
     old_session_id = session.get('session_id')
     
     # Clear all session data
@@ -778,7 +749,7 @@ def reset_session():
     return jsonify({'success': True, 'message': 'ಅಧಿವೇಶನ ಮರುಹೊಂದಿಸಲಾಗಿದೆ'})
 
 def cleanup_session_files(session_id):
-    """Clean up all files associated with a session"""
+    """Clean up all files associated with a session - From file 2"""
     try:
         # Clean up preview files
         preview_dir = os.path.join(app.config['PREVIEW_FOLDER'], session_id)
@@ -819,7 +790,6 @@ def cleanup_session():
     session_id = session['session_id']
     cleanup_session_files(session_id)
     
-<<<<<<< HEAD
     try:
         # Clean up preview files
         preview_dir = os.path.join(app.config['PREVIEW_FOLDER'], session_id)
@@ -852,13 +822,149 @@ def cleanup_session():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
     
-=======
     return jsonify({'success': True})
->>>>>>> 7755f4f7d2fb75faa5f9017e5bb4f5c1c9a17f1c
+
+@app.route('/compare', methods=['POST'])
+def compare_pdfs():
+    try:
+        if 'file1' not in request.files or 'file2' not in request.files:
+            return jsonify({'error': 'ಎರಡು ಫೈಲ್‌ಗಳು ಅಗತ್ಯ'}), 400
+        
+        file1 = request.files['file1']
+        file2 = request.files['file2']
+        
+        if file1.filename == '' or file2.filename == '':
+            return jsonify({'error': 'ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ'}), 400
+        
+        # Generate session ID
+        session_id = str(uuid.uuid4())
+        
+        # Save uploaded files with identifiable names
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file1_{file1.filename}")
+        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_file2_{file2.filename}")
+        
+        file1.save(file1_path)
+        file2.save(file2_path)
+        
+        # Generate preview images for both PDFs
+        preview_folder = app.config['PREVIEW_FOLDER']
+        pdf_ops.generate_page_previews(file1_path, session_id, preview_folder)
+        pdf_ops.generate_page_previews(file2_path, session_id, preview_folder)
+        
+        # Compare PDFs
+        comparison_data = pdf_compare.compare_pdfs_web(
+            file1_path, file2_path, session_id, 'both'
+        )
+        
+        if not comparison_data:
+            return jsonify({'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'}), 500
+        
+        # Store session data
+        session['comparison_data'] = comparison_data
+        session['session_id'] = session_id
+        
+        # Redirect to the result page instead of rendering directly
+        return redirect(url_for('compare_result'))
+        
+    except Exception as e:
+        print(f"Compare error: {e}")
+        return jsonify({'error': f'ದೋಷ: {str(e)}'}), 500
+
+@app.route('/compare-result')
+def compare_result():
+    try:
+        if 'session_id' not in session:
+            return redirect(url_for('index'))
+        
+        session_id = session['session_id']
+        
+        # Load comparison data from file instead of session
+        comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
+        
+        if not os.path.exists(comparison_file):
+            return redirect(url_for('index'))
+        
+        with open(comparison_file, 'r', encoding='utf-8') as f:
+            comparison_data = json.load(f)
+        
+        # Ensure UTF-8 encoding
+        def ensure_utf8(obj):
+            if isinstance(obj, dict):
+                return {k: ensure_utf8(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [ensure_utf8(item) for item in obj]
+            elif isinstance(obj, str):
+                return unicodedata.normalize('NFC', obj)
+            else:
+                return obj
+        
+        comparison_data = ensure_utf8(comparison_data)
+        
+        response = make_response(render_template('compare_result.html', 
+                                               comparison_data=comparison_data))
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
+        
+    except Exception as e:
+        print(f"Compare result error: {e}")
+        return redirect(url_for('index'))
+
+def generate_page_image(pdf_path, session_id, file_num, page_num):
+    """Generate page image from PDF"""
+    try:
+        import fitz
+        doc = fitz.open(pdf_path)
+        page = doc[page_num - 1]  # PDF pages are 0-indexed
+        
+        # Generate high-quality image
+        pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
+        
+        # Save image
+        output_dir = f"static/temp/{session_id}"
+        os.makedirs(output_dir, exist_ok=True)
+        image_path = os.path.join(output_dir, f"page_{page_num}_{file_num}.png")
+        
+        pix.save(image_path)
+        doc.close()
+        
+        return image_path
+    except Exception as e:
+        print(f"Image generation error: {e}")
+        return None 
+
+@app.route('/pdf-page/<session_id>/<file_num>/<int:page_num>')
+def serve_pdf_page(session_id, file_num, page_num):
+    try:
+        import glob
+        
+        # Find the uploaded PDF file
+        if file_num == 'file1':
+            file_pattern = f"{session_id}_file1_*"
+        else:  # file2
+            file_pattern = f"{session_id}_file2_*"
+        
+        matching_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], file_pattern))
+        
+        if not matching_files:
+            return "PDF file not found", 404
+            
+        pdf_path = matching_files[0]
+        
+        # Generate or get existing page image
+        image_path = generate_page_image(pdf_path, session_id, file_num, page_num)
+        
+        if image_path and os.path.exists(image_path):
+            return send_file(image_path)
+        else:
+            return "Page image not found", 404
+            
+    except Exception as e:
+        print(f"Error serving page: {e}")
+        return "Error", 500
 
 @app.errorhandler(413)
 def too_large(e):
-    return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 100MB ಅನುಮತಿ'}), 413
+    return jsonify({'success': False, 'error': 'ಫೈಲ್ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದೆ. ಗರಿಷ್ಠ 1000MB ಅನುಮತಿ'}), 413
 
 @app.errorhandler(404)
 def not_found(e):
@@ -868,13 +974,13 @@ def not_found(e):
 def server_error(e):
     return jsonify({'success': False, 'error': 'ಸರ್ವರ್ ದೋಷ ಸಂಭವಿಸಿದೆ'}), 500
 
-# CRITICAL FIX: Enhanced cleanup function
+# Enhanced cleanup function from file 2
 def cleanup_old_files():
     """Clean up old files on server startup"""
     import time
     current_time = time.time()
     
-    # Clean up files older than 1 hour (reduced from 24 hours)
+    # Clean up files older than 1 hour (from file 2)
     for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], app.config['PREVIEW_FOLDER']]:
         if not os.path.exists(folder):
             continue
