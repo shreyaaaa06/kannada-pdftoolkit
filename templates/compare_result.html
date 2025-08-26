@@ -1,0 +1,1195 @@
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<head>
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF ಹೋಲಿಕೆ ಫಲಿತಾಂಶಗಳು - ಕನ್ನಡ PDF ಉಪಕರಣಗಳು</title>
+    
+    <!-- CRITICAL: Multiple font loading strategies -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Primary Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Fallback Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Local font fallback -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@300;400;500;600;700&display=swap');
+        
+        /* CRITICAL: Force Kannada font for ALL elements */
+        html, body, * {
+            font-family: 'Noto Sans Kannada', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+        }
+
+        /* CRITICAL: Fix change items */
+        .change-item, .change-added, .change-removed {
+            font-family: 'Noto Sans Kannada', monospace !important;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            line-height: 1.7 !important;
+            padding: 10px !important;
+            unicode-bidi: embed !important;
+        }
+
+
+        :root {
+            --primary-color: #8B4513;
+            --gold: #DAA520;
+            --white: #FFFFFF;
+            --light-brown: #A0522D;
+            --biscuit-cream: #F5E6D3;
+            --biscuit-light: #F9F2E8;
+            --shadow: rgba(139, 69, 19, 0.2);
+            --text-dark: #2C1810;
+            --success: #4CAF50;
+            --danger: #F44336;
+            --warning: #FF9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--biscuit-cream) 0%, var(--biscuit-light) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--shadow);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--light-brown));
+            color: var(--white);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .files-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+            background: var(--biscuit-light);
+            border-bottom: 3px solid var(--gold);
+        }
+
+        .file-info {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--shadow);
+            text-align: center;
+        }
+
+        .file-info h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            word-break: break-all;
+            margin-bottom: 5px;
+        }
+
+        .file-pages {
+            color: var(--light-brown);
+            font-size: 0.9rem;
+        }
+
+        .comparison-tabs {
+            display: flex;
+            background: var(--biscuit-cream);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--light-brown);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: var(--gold);
+            color: var(--white);
+        }
+
+        .tab-button:hover:not(.active) {
+            background: var(--biscuit-light);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .page-comparison {
+            margin-bottom: 40px;
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            overflow: hidden;
+            background: var(--white);
+        }
+
+        .page-header {
+            background: var(--gold);
+            color: var(--white);
+            padding: 15px 25px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 25px;
+            background: var(--biscuit-light);
+        }
+
+        .page-image-container {
+            text-align: center;
+        }
+
+        .page-image-container h4 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding: 10px;
+            background: var(--white);
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .page-image {
+            max-width: 100%;
+            height: auto;
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .page-image:hover {
+            transform: scale(1.02);
+        }
+
+        .text-changes {
+            padding: 25px;
+            background: var(--white);
+        }
+
+        .text-changes h4 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* CRITICAL: Fixed change item styles for proper Kannada display */
+        .change-item {
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 5px solid;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            font-size: 1rem;
+            line-height: 1.7;
+            /* CRITICAL: Prevent text from being cut off */
+            min-height: auto;
+            height: auto;
+            /* CRITICAL: Ensure proper text flow */
+            text-overflow: clip;
+            overflow: visible;
+        }
+
+        .change-added {
+            background: #e8f5e8;
+            border-color: var(--success);
+            color: #2e7d32;
+        }
+
+        .change-removed {
+            background: #ffeaea;
+            border-color: var(--danger);
+            color: #c62828;
+        }
+
+        .no-changes {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-brown);
+            font-style: italic;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: var(--biscuit-cream);
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px var(--shadow);
+            border-top: 4px solid var(--gold);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: var(--light-brown);
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 30px;
+            background: var(--biscuit-light);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: var(--gold);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--light-brown);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .files-summary {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-images {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-tabs {
+                flex-direction: column;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+        .missing-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .missing-page-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            background: #f8f8f8;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            color: #999;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .missing-page-placeholder i {
+            margin-bottom: 15px;
+        }
+
+        .missing-page-placeholder p {
+            margin: 0;
+            font-style: italic;
+        }
+
+        /* Ensure proper grid layout */
+        .page-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 25px;
+            background: var(--biscuit-light);
+        }
+
+        @media (max-width: 768px) {
+            .page-images {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Zoom controls container */
+        .zoom-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(139, 69, 19, 0.95);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000; /* Higher z-index to stay on top */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); /* Add shadow for better visibility */
+        }
+
+        .zoom-btn {
+            background: var(--gold);
+            color: var(--white);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: var(--light-brown);
+            transform: scale(1.1);
+        }
+
+        .zoom-level {
+            background: var(--white);
+            color: var(--primary-color);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Enhanced page image container - CRITICAL: Add position relative */
+        .page-image-container {
+            position: relative; /* This fixes the zoom controls positioning */
+            text-align: center;
+        }
+
+        .zoomable-wrapper {
+            overflow: auto;
+            max-height: 600px;
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+            position: relative;
+            background: #f9f9f9;
+            cursor: default;
+        }
+
+        .page-image.zoomable {
+            transition: transform 0.3s ease;
+            transform-origin: top left;
+            cursor: grab;
+            max-width: 100%; /* Reset to 100% for proper fitting */
+            height: auto;
+            display: block;
+        }
+
+        .page-image.zoomable:active {
+            cursor: grabbing;
+        }
+
+        .zoom-reset {
+            background: var(--light-brown);
+            color: var(--white);
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-reset:hover {
+            background: var(--primary-color);
+        }
+
+        /* Add this CSS to your existing styles in compare_result.html */
+
+        /* Side-by-side text changes layout */
+        .text-changes-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px; /* Reduced gap */
+            padding: 20px; /* Reduced padding */
+            background: var(--white);
+        }
+
+        .text-changes-column {
+            background: var(--biscuit-light);
+            border-radius: 10px;
+            padding: 15px; /* Reduced padding */
+            height: fit-content; /* CRITICAL: Use fit-content instead of fixed height */
+            max-height: 800px; /* Set reasonable max height */
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .text-changes-column h5 {
+            color: var(--primary-color);
+            margin-bottom: 12px; /* Reduced margin */
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Reduced gap */
+            padding-bottom: 8px; /* Reduced padding */
+            border-bottom: 2px solid var(--gold);
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            background: var(--biscuit-light);
+            z-index: 10;
+        }
+
+        .column-removed h5 {
+            color: var(--danger);
+            border-bottom-color: var(--danger);
+        }
+
+        .column-added h5 {
+            color: var(--success);
+            border-bottom-color: var(--success);
+        }
+
+        /* CRITICAL: Content area that grows with content */
+        .text-changes-column .changes-content {
+            flex: 1;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* Consistent spacing between items */
+        }
+
+        /* OPTIMIZED: More compact change item styles */
+        .text-changes-container .change-item {
+            padding: 12px 15px; /* Reduced padding */
+            margin: 0; /* Remove margin, use gap instead */
+            border-radius: 6px; /* Slightly smaller radius */
+            border-left: 3px solid; /* Thinner border */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 0.9rem; /* Slightly smaller font */
+            line-height: 1.5; /* More compact line height */
+            min-height: auto; /* Remove fixed min-height */
+            height: auto;
+            white-space: normal;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .text-changes-container .change-added {
+            background: #e8f5e8;
+            border-color: var(--success);
+            color: #2e7d32;
+        }
+
+        .text-changes-container .change-removed {
+            background: #ffeaea;
+            border-color: var(--danger);
+            color: #c62828;
+        }
+
+        /* OPTIMIZED: More compact no-changes display */
+        .no-changes-column {
+            text-align: center;
+            padding: 30px 15px; /* Reduced padding */
+            color: var(--light-brown);
+            font-style: italic;
+            background: var(--biscuit-light);
+            border-radius: 8px;
+            height: fit-content; /* CRITICAL: Use fit-content */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ddd;
+        }
+
+        .no-changes-column i {
+            font-size: 1.5rem; /* Smaller icon */
+            margin-bottom: 8px;
+        }
+
+        .no-changes-column p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* CRITICAL: Ensure both columns have equal height when one is empty */
+        .text-changes-container {
+            align-items: start; /* Align columns to start */
+        }
+
+        /* OPTIMIZED: Better responsive design */
+        @media (max-width: 768px) {
+            .text-changes-container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .text-changes-column {
+                max-height: 600px;
+            }
+            
+            .text-changes-container .change-item {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* ADDITIONAL: Synchronized scrolling enhancement (optional) */
+        .text-changes-container.sync-scroll {
+            position: relative;
+        }
+
+        .text-changes-container.sync-scroll::before {
+            content: "🔄 Scroll synchronized";
+            position: absolute;
+            top: -25px;
+            right: 0;
+            font-size: 0.8rem;
+            color: var(--light-brown);
+            background: var(--biscuit-light);
+            padding: 2px 8px;
+            border-radius: 4px;
+            z-index: 5;
+        }
+
+        /* ENHANCEMENT: Add subtle animation for better UX */
+        .change-item {
+            transition: all 0.2s ease;
+        }
+
+        .change-item:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* CRITICAL: Ensure proper text rendering for all languages */
+        .text-changes-container * {
+            font-family: 'Noto Sans Kannada', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-balance-scale"></i>
+                PDF ಹೋಲಿಕೆ ಫಲಿತಾಂಶಗಳು
+            </h1>
+        </div>
+
+        <div class="files-summary">
+            <div class="file-info">
+                <h3><i class="fas fa-file-pdf"></i> ಮೂಲ ಫೈಲ್</h3>
+                <div class="file-name">{{ comparison_data.file1_name }}</div>
+                <div class="file-pages">{{ comparison_data.file1_pages }} ಪುಟಗಳು</div>
+            </div>
+            <div class="file-info">
+                <h3><i class="fas fa-file-pdf"></i> ಹೋಲಿಕೆ ಫೈಲ್</h3>
+                <div class="file-name">{{ comparison_data.file2_name }}</div>
+                <div class="file-pages">{{ comparison_data.file2_pages }} ಪುಟಗಳು</div>
+            </div>
+        </div>
+
+        <div class="summary-stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ comparison_data.summary.total_pages_compared }}</div>
+                <div class="stat-label">ಹೋಲಿಸಿದ ಪುಟಗಳು</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ comparison_data.summary.total_text_changes }}</div>
+                <div class="stat-label">ಪಠ್ಯ ಬದಲಾವಣೆಗಳು</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ comparison_data.summary.visual_diff_pages }}</div>
+                <div class="stat-label">ದೃಶ್ಯ ವ್ಯತ್ಯಾಸಗಳು</div>
+            </div>
+        </div>
+
+        <div class="comparison-tabs">
+            <button class="tab-button active" onclick="showTab('visual')">
+                <i class="fas fa-eye"></i> ದೃಶ್ಯ ಹೋಲಿಕೆ
+            </button>
+            <button class="tab-button" onclick="showTab('text')">
+                <i class="fas fa-file-alt"></i> ಪಠ್ಯ ಬದಲಾವಣೆಗಳು
+            </button>
+        </div>
+
+        <div id="visual-tab" class="tab-content active">
+            {% for page in comparison_data.page_comparisons %}
+            <div class="page-comparison">
+                <div class="page-header">
+                    <span>ಪುಟ {{ page.page_number }}</span>
+                    {% if page.page_status == 'only_in_file1' %}
+                        <span style="color: var(--warning);"><i class="fas fa-info-circle"></i> ಕೇವಲ ಮೊದಲ ಫೈಲ್‌ನಲ್ಲಿ ಮಾತ್ರ</span>
+                    {% elif page.page_status == 'only_in_file2' %}
+                        <span style="color: var(--warning);"><i class="fas fa-info-circle"></i> ಕೇವಲ ಎರಡನೇ ಫೈಲ್‌ನಲ್ಲಿ ಮಾತ್ರ</span>
+                    {% elif page.has_visual_differences %}
+                        <span style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> ವ್ಯತ್ಯಾಸಗಳು ಕಂಡುಬಂದಿವೆ</span>
+                    {% else %}
+                        <span style="color: var(--success);"><i class="fas fa-check-circle"></i> ಒಂದೇ ಆಗಿವೆ</span>
+                    {% endif %}
+                </div>
+                
+                <!-- FIXED: Conditional page layout based on page existence -->
+                <!-- Replace the page layout section in your compare_result.html with this: -->
+
+                <!-- FIXED: Conditional page layout with zoom controls for ALL pages -->
+                {% if page.page_status == 'both_exist' %}
+                    <!-- Both pages exist - show side by side -->
+                <div class="page-images">
+                    <div class="page-image-container">
+                        <h4>{{ comparison_data.file1_name }}</h4>
+                        <div class="zoomable-wrapper" id="wrapper1-{{ loop.index0 }}">
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" onclick="zoomImage('image1-{{ loop.index0 }}', 'in')">+</button>
+                                <span class="zoom-level" id="zoomLevel1-{{ loop.index0 }}">100%</span>
+                                <button class="zoom-btn" onclick="zoomImage('image1-{{ loop.index0 }}', 'out')">-</button>
+                                <button class="zoom-reset" onclick="resetZoom('image1-{{ loop.index0 }}')">Reset</button>
+                            </div>
+                            <img src="{{ page.image1_url }}" 
+                                alt="ಪುಟ {{ page.page_number }} - ಫೈಲ್ 1" 
+                                class="page-image zoomable" 
+                                id="image1-{{ loop.index0 }}"
+                                data-zoom="100">
+                        </div>
+                    </div>
+                    
+                    <div class="page-image-container">
+                        <h4>{{ comparison_data.file2_name }}</h4>
+                        <div class="zoomable-wrapper" id="wrapper2-{{ loop.index0 }}">
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" onclick="zoomImage('image2-{{ loop.index0 }}', 'in')">+</button>
+                                <span class="zoom-level" id="zoomLevel2-{{ loop.index0 }}">100%</span>
+                                <button class="zoom-btn" onclick="zoomImage('image2-{{ loop.index0 }}', 'out')">-</button>
+                                <button class="zoom-reset" onclick="resetZoom('image2-{{ loop.index0 }}')">Reset</button>
+                            </div>
+                            <img src="{{ page.image2_url }}" 
+                                alt="ಪುಟ {{ page.page_number }} - ಫೈಲ್ 2" 
+                                class="page-image zoomable" 
+                                id="image2-{{ loop.index0 }}"
+                                data-zoom="100">
+                        </div>
+                    </div>
+                </div>
+
+                {% elif page.page_status == 'only_in_file1' %}
+                    <!-- Only in first file - WITH zoom controls -->
+                    <div class="page-images">
+                        <div class="page-image-container">
+                            <h4>{{ comparison_data.file1_name }}</h4>
+                            <div class="zoomable-wrapper" id="wrapper1-{{ loop.index0 }}">
+                                <div class="zoom-controls">
+                                    <button class="zoom-btn" onclick="zoomImage('image1-{{ loop.index0 }}', 'in')">+</button>
+                                    <span class="zoom-level" id="zoomLevel1-{{ loop.index0 }}">100%</span>
+                                    <button class="zoom-btn" onclick="zoomImage('image1-{{ loop.index0 }}', 'out')">-</button>
+                                    <button class="zoom-reset" onclick="resetZoom('image1-{{ loop.index0 }}')">Reset</button>
+                                </div>
+                                <img src="{{ page.image1_url }}" 
+                                    alt="ಪುಟ {{ page.page_number }} - ಫೈಲ್ 1" 
+                                    class="page-image zoomable" 
+                                    id="image1-{{ loop.index0 }}"
+                                    data-zoom="100">
+                            </div>
+                        </div>
+                        <div class="page-image-container missing-page">
+                            <h4>{{ comparison_data.file2_name }} - ಪುಟ ಇಲ್ಲ</h4>
+                            <div class="missing-page-placeholder">
+                                <i class="fas fa-file-o" style="font-size: 3rem; color: #ccc;"></i>
+                                <p>ಈ ಫೈಲ್‌ನಲ್ಲಿ ಪುಟ {{ page.page_number }} ಇಲ್ಲ</p>
+                            </div>
+                        </div>
+                    </div>
+
+                {% elif page.page_status == 'only_in_file2' %}
+                    <!-- Only in second file - WITH zoom controls -->
+                    <div class="page-images">
+                        <div class="page-image-container missing-page">
+                            <h4>{{ comparison_data.file1_name }} - ಪುಟ ಇಲ್ಲ</h4>
+                            <div class="missing-page-placeholder">
+                                <i class="fas fa-file-o" style="font-size: 3rem; color: #ccc;"></i>
+                                <p>ಈ ಫೈಲ್‌ನಲ್ಲಿ ಪುಟ {{ page.page_number }} ಇಲ್ಲ</p>
+                            </div>
+                        </div>
+                        <div class="page-image-container">
+                            <h4>{{ comparison_data.file2_name }}</h4>
+                            <div class="zoomable-wrapper" id="wrapper2-{{ loop.index0 }}">
+                                <div class="zoom-controls">
+                                    <button class="zoom-btn" onclick="zoomImage('image2-{{ loop.index0 }}', 'in')">+</button>
+                                    <span class="zoom-level" id="zoomLevel2-{{ loop.index0 }}">100%</span>
+                                    <button class="zoom-btn" onclick="zoomImage('image2-{{ loop.index0 }}', 'out')">-</button>
+                                    <button class="zoom-reset" onclick="resetZoom('image2-{{ loop.index0 }}')">Reset</button>
+                                </div>
+                                <img src="{{ page.image2_url }}" 
+                                    alt="ಪುಟ {{ page.page_number }} - ಫೈಲ್ 2" 
+                                    class="page-image zoomable" 
+                                    id="image2-{{ loop.index0 }}"
+                                    data-zoom="100">
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Show difference image only if there are actual visual differences -->
+
+            </div>
+            {% endfor %}
+        </div>
+   
+
+        <!-- Replace the text changes section in your compare_result.html with this: -->
+
+        <div id="text-tab" class="tab-content">
+            {% for page in comparison_data.page_comparisons %}
+            {% if page.text_changes %}
+            <div class="page-comparison">
+                <div class="page-header">
+                    <span>ಪುಟ {{ page.page_number }} - ಪಠ್ಯ ಬದಲಾವಣೆಗಳು</span>
+                    <span>{{ page.text_changes|length }} ಬದಲಾವಣೆಗಳು</span>
+                </div>
+                
+                <!-- NEW: Side-by-side text changes layout -->
+                <div class="text-changes-container">
+                    <!-- Left column: Removed text -->
+                    <div class="text-changes-column column-removed">
+                        <h5><i class="fas fa-minus-circle"></i> ತೆಗೆದುಹಾಕಲಾದ ಪಠ್ಯ</h5>
+                        {% set removed_changes = page.text_changes | selectattr('type', 'equalto', 'removed') | list %}
+                        {% if removed_changes %}
+                            {% for change in removed_changes %}
+                            <div class="change-item change-removed kannada-text">
+                                <span class="change-text">{{ change.text|safe }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-changes-column">
+                                <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 10px;"></i>
+                                <p>ಯಾವುದೇ ಪಠ್ಯ ತೆಗೆದುಹಾಕಲಾಗಿಲ್ಲ</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Right column: Added text -->
+                    <div class="text-changes-column column-added">
+                        <h5><i class="fas fa-plus-circle"></i> ಸೇರಿಸಲಾದ ಪಠ್ಯ</h5>
+                        {% set added_changes = page.text_changes | selectattr('type', 'equalto', 'added') | list %}
+                        {% if added_changes %}
+                            {% for change in added_changes %}
+                            <div class="change-item change-added kannada-text">
+                                <span class="change-text">{{ change.text|safe }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-changes-column">
+                                <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 10px;"></i>
+                                <p>ಯಾವುದೇ ಹೊಸ ಪಠ್ಯ ಸೇರಿಸಲಾಗಿಲ್ಲ</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            
+            <!-- Show this only if no pages have text changes -->
+            {% if not comparison_data.page_comparisons or not (comparison_data.page_comparisons|selectattr('text_changes')|list) %}
+            <div class="no-changes">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;"></i>
+                <p>ಯಾವುದೇ ಪಠ್ಯ ಬದಲಾವಣೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="action-buttons">
+            {% if comparison_data.report_path %}
+            <a href="{{ comparison_data.report_path }}" class="btn btn-primary" download>
+                <i class="fas fa-download"></i> ವಿಸ್ತೃತ ವರದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+            </a>
+            {% endif %}
+            
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-balance-scale"></i> ಮತ್ತೊಂದು ಹೋಲಿಕೆ
+            </a>
+            
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home"></i> ಮುಖ್ಯ ಪುಟ
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Image zoom functionality
+        document.querySelectorAll('.page-image').forEach(img => {
+            img.addEventListener('click', function() {
+                // Create modal for zoomed image
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                    cursor: pointer;
+                `;
+                
+                const zoomedImg = document.createElement('img');
+                zoomedImg.src = this.src;
+                zoomedImg.style.cssText = `
+                    max-width: 90%;
+                    max-height: 90%;
+                    border-radius: 10px;
+                `;
+                
+                modal.appendChild(zoomedImg);
+                document.body.appendChild(modal);
+                
+                // Close modal on click
+                modal.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+            });
+        });
+
+        // CRITICAL: Ensure all Kannada text is properly rendered
+        document.addEventListener('DOMContentLoaded', function() {
+            // Force re-render of change items to fix font issues
+            const changeItems = document.querySelectorAll('.change-item');
+            changeItems.forEach(item => {
+                item.style.fontFamily = '"Noto Sans Kannada", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif';
+                item.style.textRendering = 'optimizeLegibility';
+                item.style.webkitFontSmoothing = 'antialiased';
+            });
+        });
+        // Zoom functionality
+            let isDragging = false;
+            let startX, startY, scrollLeft, scrollTop;
+
+            function zoomImage(imageId, direction) {
+                const img = document.getElementById(imageId);
+                const zoomLevelElement = document.getElementById('zoomLevel' + imageId.replace('image', ''));
+                
+                if (!img || !zoomLevelElement) return;
+                
+                // Prevent event propagation to avoid page navigation
+                event.stopPropagation();
+                
+                let currentZoom = parseInt(img.dataset.zoom) || 100;
+                const zoomStep = 25;
+                const minZoom = 25;
+                const maxZoom = 500;
+                
+                if (direction === 'in' && currentZoom < maxZoom) {
+                    currentZoom += zoomStep;
+                } else if (direction === 'out' && currentZoom > minZoom) {
+                    currentZoom -= zoomStep;
+                }
+                
+                img.dataset.zoom = currentZoom;
+                img.style.transform = `scale(${currentZoom / 100})`;
+                zoomLevelElement.textContent = currentZoom + '%';
+                
+                const wrapper = img.closest('.zoomable-wrapper');
+                if (wrapper) {
+                    if (currentZoom > 100) {
+                        wrapper.style.cursor = 'move';
+                    } else {
+                        wrapper.style.cursor = 'default';
+                    }
+                }
+            }
+
+            function resetZoom(imageId) {
+                const img = document.getElementById(imageId);
+                const zoomLevelElement = document.getElementById('zoomLevel' + imageId.replace('image', ''));
+                const wrapper = img.closest('.zoomable-wrapper');
+                
+                if (!img || !zoomLevelElement) return;
+                
+                // Prevent event propagation
+                event.stopPropagation();
+                
+                // Reset zoom level
+                img.dataset.zoom = 100;
+                img.style.transform = 'scale(1)';
+                img.style.transformOrigin = 'top left';
+                zoomLevelElement.textContent = '100%';
+                
+                if (wrapper) {
+                    // Reset scroll position
+                    wrapper.scrollLeft = 0;
+                    wrapper.scrollTop = 0;
+                    wrapper.style.cursor = 'default';
+                    
+                    // Ensure image fits properly
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    img.style.width = 'auto';
+                }
+                
+                // Force a reflow to ensure proper sizing
+                img.offsetHeight;
+            }
+
+            // Initialize zoom functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                // Setup mouse wheel zoom with improved event handling
+                document.querySelectorAll('.zoomable-wrapper').forEach(wrapper => {
+                    wrapper.addEventListener('wheel', function(e) {
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const img = this.querySelector('.page-image.zoomable');
+                            if (img) {
+                                if (e.deltaY < 0) {
+                                    zoomImage(img.id, 'in');
+                                } else {
+                                    zoomImage(img.id, 'out');
+                                }
+                            }
+                        }
+                    }, { passive: false });
+                });
+
+                // Setup pan functionality with improved event handling
+                document.querySelectorAll('.zoomable-wrapper').forEach(wrapper => {
+                    wrapper.addEventListener('mousedown', function(e) {
+                        // Only start dragging if not clicking on zoom controls
+                        if (e.target.closest('.zoom-controls')) {
+                            return;
+                        }
+                        
+                        const img = this.querySelector('.page-image.zoomable');
+                        if (!img) return;
+                        
+                        const currentZoom = parseInt(img.dataset.zoom) || 100;
+                        
+                        if (currentZoom > 100) {
+                            isDragging = true;
+                            startX = e.pageX - this.offsetLeft;
+                            startY = e.pageY - this.offsetTop;
+                            scrollLeft = this.scrollLeft;
+                            scrollTop = this.scrollTop;
+                            this.style.cursor = 'grabbing';
+                            
+                            // Prevent text selection
+                            e.preventDefault();
+                        }
+                    });
+
+                    wrapper.addEventListener('mouseleave', function() {
+                        isDragging = false;
+                        const img = this.querySelector('.page-image.zoomable');
+                        if (!img) return;
+                        
+                        const currentZoom = parseInt(img.dataset.zoom) || 100;
+                        this.style.cursor = currentZoom > 100 ? 'move' : 'default';
+                    });
+
+                    wrapper.addEventListener('mouseup', function() {
+                        isDragging = false;
+                        const img = this.querySelector('.page-image.zoomable');
+                        if (!img) return;
+                        
+                        const currentZoom = parseInt(img.dataset.zoom) || 100;
+                        this.style.cursor = currentZoom > 100 ? 'move' : 'default';
+                    });
+
+                    wrapper.addEventListener('mousemove', function(e) {
+                        if (!isDragging) return;
+                        e.preventDefault();
+                        
+                        const x = e.pageX - this.offsetLeft;
+                        const y = e.pageY - this.offsetTop;
+                        const walkX = (x - startX) * 1.5;
+                        const walkY = (y - startY) * 1.5;
+                        this.scrollLeft = scrollLeft - walkX;
+                        this.scrollTop = scrollTop - walkY;
+                    });
+                });
+
+                // Prevent zoom controls from triggering page events
+                document.querySelectorAll('.zoom-controls').forEach(controls => {
+                    controls.addEventListener('mousedown', function(e) {
+                        e.stopPropagation();
+                    });
+                    
+                    controls.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    });
+                });
+
+                // Initialize all images properly
+                document.querySelectorAll('.page-image.zoomable').forEach(img => {
+                    if (!img.dataset.zoom) {
+                        img.dataset.zoom = 100;
+                    }
+                });
+            });
+            function initializeSyncScrolling() {
+                const textChangesContainers = document.querySelectorAll('.text-changes-container');
+                
+                textChangesContainers.forEach(container => {
+                    const leftColumn = container.querySelector('.column-removed');
+                    const rightColumn = container.querySelector('.column-added');
+                    
+                    if (leftColumn && rightColumn) {
+                        let isScrolling = false;
+                        
+                        leftColumn.addEventListener('scroll', () => {
+                            if (!isScrolling) {
+                                isScrolling = true;
+                                rightColumn.scrollTop = leftColumn.scrollTop;
+                                setTimeout(() => isScrolling = false, 50);
+                            }
+                        });
+                        
+                        rightColumn.addEventListener('scroll', () => {
+                            if (!isScrolling) {
+                                isScrolling = true;
+                                leftColumn.scrollTop = rightColumn.scrollTop;
+                                setTimeout(() => isScrolling = false, 50);
+                            }
+                        });
+                        
+                        // Add sync indicator
+                        container.classList.add('sync-scroll');
+                    }
+                });
+            }
+
+            // Initialize when DOM is loaded
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeSyncScrolling();
+            });
+
+
+
+    </script>
+</body>
+</html>
