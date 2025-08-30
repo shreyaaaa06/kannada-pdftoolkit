@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Function to show menu content modal
+    window.showMenuContent = function(menuKey) {
+        const modal = safeGetElement('operationModal');
+        if (!modal) return;
+        const modalBody = modal.querySelector('.modal-body');
+        if (!modalBody) return;
+        const info = menuContents[menuKey];
+        if (!info) return;
+        modalBody.innerHTML = `<h2 style="text-align:center; color:#5d4037;">${info.title}</h2><div style="margin:2rem 0; font-size:1.1rem; color:#3e2723; text-align:center;">${info.content}</div><div style="text-align:center;"><button class='btn btn-primary' onclick='closeModal()'>ಮುಚ್ಚಿ</button></div>`;
+        modal.style.display = 'block';
+    };
     let selectedFiles = [];
     let currentOperation = '';
     let currentPreviewData = null;
@@ -104,7 +116,35 @@ document.addEventListener('DOMContentLoaded', function() {
             options: ['rotation_angle', 'pages', 'apply_to_all'],
             minFiles: 1,
             hasPreview: true
-        }
+        },
+         'sort': {
+            title: 'PDF ಪುಟಗಳನ್ನು ಸಂಖ್ಯೆ ಆಧಾರಿತವಾಗಿ ಸಾರಿ ಹಾಕಿ',
+            accept: '.pdf',
+            supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ',
+            multiple: false,
+            options: ['pages'], // Enable manual selection
+            minFiles: 1,
+            hasPreview: true
+        },
+            
+            'protect': {
+                title: 'PDF ರಕ್ಷಿಸಿ',
+                accept: '.pdf',
+                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ - ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿ',
+                multiple: false,
+                options: ['protect'],
+                minFiles: 1,
+                hasPreview: false
+            },
+            'unlock': {
+                title: 'PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
+                accept: '.pdf',
+                supportText: 'ಒಂದು PDF ಫೈಲ್ ಮಾತ್ರ - ಪಾಸ್‌ವರ್ಡ್ ರಕ್ಷಿತ PDF ಅನ್‌ಲಾಕ್ ಮಾಡಿ',
+                multiple: false,
+                options: ['unlock'],
+                minFiles: 1,
+                hasPreview: false
+            }
     };
 
     // CRITICAL FIX: Complete modal reset function
@@ -363,8 +403,141 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             if (loadingPreview) loadingPreview.style.display = 'none';
         }
-    };
+    }
 
+    window.showSortPreview = async function() {
+        const loadingPreview = document.getElementById('loadingPreview');
+        const pagesGrid = document.getElementById('pagesGrid');
+        
+        document.getElementById('previewModal').style.display = 'block';
+        loadingPreview.style.display = 'block';
+        pagesGrid.innerHTML = '';
+        selectedPages.clear();
+        updateSelectedPagesDisplay();
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFiles[0]);
+            const response = await fetch('/generate-sort-preview', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.success) {
+                currentPreviewData = result;
+                displaySortPreview(result);
+            } else {
+                throw new Error(result.error || 'ಸಾರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ');
+            }
+        } catch (error) {
+            showAlert('error', 'ಸಾರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ: ' + error.message);
+            closePreviewModal();
+        } finally {
+            loadingPreview.style.display = 'none';
+        }
+    }
+
+    function displaySortPreview(previewData) {
+        const pagesGrid = document.getElementById('pagesGrid');
+        pagesGrid.innerHTML = '';
+        // Create main content area with full width sorted preview
+        const mainContent = document.createElement('div');
+        mainContent.style.cssText = `
+            display: flex;
+            height: 75vh;
+            width: 150vh;
+            min-height: 600px;
+            max-height: 800px;
+            justify-content: center;
+        `;
+        // Full width - Sorted preview with checkboxes
+        const sortedOrderDiv = document.createElement('div');
+        sortedOrderDiv.className = 'sorted-order-preview';
+        sortedOrderDiv.style.cssText = `
+            background: var(--white);
+            padding: 1rem;
+            width: 100%;
+            flex: 1;
+            border-radius: 8px;
+            border: 1px solid var(--light-brown);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        `;
+        if (previewData.sorted_order && previewData.sorted_order.length > 0) {
+            sortedOrderDiv.innerHTML = `
+                <h5 style="color: var(--brown-text); margin-bottom: 0.5rem;">
+                    <i class="fas fa-check-square"></i> ಸಾರಿಸಿದ ಪುಟಗಳ ಪೂರ್ವವೀಕ್ಷಣೆ - ಆಯ್ಕೆ ಮಾಡಿ:
+                    ${previewData.total_pages > 500 ? `<span style="font-size: 0.7rem; color: var(--light-brown);"> (ಮೊದಲ 500 ಪುಟಗಳು - ಒಟ್ಟು ${previewData.total_pages})</span>` : ''}
+                </h5>
+                <p style="color: var(--light-brown); font-size: 0.8rem; margin-bottom: 0.8rem; background: var(--biscuit-light); padding: 0.5rem; border-radius: 4px;">
+                    ✅ ಚೆಕ್‌ಬಾಕ್ಸ್ ಕ್ಲಿಕ್ ಮಾಡಿ ಅಥವಾ ಪುಟವನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ ಆಯ್ಕೆ ಮಾಡಲು
+                </p>
+                <div style="flex: 1; overflow-y: auto; padding: 0.8rem; border: 1px solid var(--biscuit-light); border-radius: 8px; background: var(--biscuit-light);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-start;">
+                        ${previewData.sorted_order.map((page, index) => `
+                            <div class="sorted-page-item" data-page-num="${page.page_num}" style="text-align: center; background: var(--biscuit-cream); border-radius: 8px; padding: 0.8rem; min-width: 140px; cursor: pointer; position: relative;">
+                                <input type="checkbox" class="sorted-page-checkbox" onchange="togglePageSelection(${page.page_num})" 
+                                       style="position: absolute; top: 8px; left: 8px; transform: scale(1.3);">
+                                <div style="color: var(--brown-text); font-weight: bold; margin-bottom: 0.5rem; font-size: 0.85rem; margin-top: 20px;">
+                                    ${index + 1}. ಪುಟ ${page.page_num}
+                                </div>
+                                ${page.thumbnail_path ? `
+                                    <img src="${page.thumbnail_path}" alt="ಪುಟ ${page.page_num}" 
+                                         style="width: 90px; height: 120px; border: 1px solid var(--light-brown); border-radius: 4px; object-fit: cover; margin-bottom: 0.5rem;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div style="display: none; width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                        📄<br><span style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</span>
+                                    </div>
+                                ` : `
+                                    <div style="width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem; flex-direction: column;">
+                                        <div>📄</div>
+                                        <div style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</div>
+                                    </div>
+                                `}
+                                <div style="color: var(--light-brown); font-size: 0.7rem;">
+                                    ಸಂಖ್ಯೆ: ${page.extracted_number}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+         mainContent.appendChild(sortedOrderDiv);
+            pagesGrid.appendChild(mainContent);
+
+            // Add click event listeners for sorted page selection
+            if (sortedOrderDiv.querySelectorAll) {
+                sortedOrderDiv.querySelectorAll('.sorted-page-item').forEach(pageDiv => {
+                    pageDiv.onclick = (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const pageNum = parseInt(pageDiv.dataset.pageNum);
+                            togglePageSelection(pageNum);
+                            const checkbox = pageDiv.querySelector('.sorted-page-checkbox');
+                            checkbox.checked = selectedPages.has(pageNum);
+                        }
+                    };
+                });
+            }
+
+            // Select all pages by default for sorting and update checkboxes
+            previewData.previews.forEach(preview => {
+                selectedPages.add(preview.page_num);
+                
+                // Update sorted preview checkboxes
+                const sortedPageDiv = sortedOrderDiv.querySelector(`[data-page-num="${preview.page_num}"]`);
+                if (sortedPageDiv) {
+                    const checkbox = sortedPageDiv.querySelector('.sorted-page-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                    sortedPageDiv.style.borderColor = 'var(--gold)';
+                    sortedPageDiv.style.background = 'var(--biscuit-light)';
+                }
+            });
+
+            updateSelectedPagesDisplay();
+        }
     window.togglePageSelection = function(pageNum) {
         const pageDiv = document.querySelector(`[data-page-num="${pageNum}"]`);
         if (!pageDiv) return;
@@ -694,15 +867,63 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePreviewSection() {
         const previewSection = safeGetElement('previewSection');
         const config = operationConfigs[currentOperation];
-        
-        if (previewSection && config) {
-            previewSection.style.display = (config.hasPreview && selectedFiles.length > 0) ? 'block' : 'none';
+         if (previewSection && config.hasPreview && selectedFiles.length > 0) {
+                previewSection.style.display = 'block';
+            } else if (previewSection) {
+                previewSection.style.display = 'none';
+            }
         }
-    }
+
+        async function showPagePreview() {
+            if (selectedFiles.length === 0) {
+                showAlert('error', 'ದಯವಿಟ್ಟು ಮೊದಲು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ');
+                return;
+            }
+
+            // Check if this is a sort operation
+            if (currentOperation === 'sort') {
+                await showSortPreview();
+                return;
+            }
+
+
+            const loadingPreview = document.getElementById('loadingPreview');
+            const pagesGrid = document.getElementById('pagesGrid');
+            
+            document.getElementById('previewModal').style.display = 'block';
+            loadingPreview.style.display = 'block';
+            pagesGrid.innerHTML = '';
+            selectedPages.clear();
+            updateSelectedPagesDisplay();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFiles[0]);
+
+                const response = await fetch('/generate-preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentPreviewData = result;
+                    displayPagePreviews(result);
+                } else {
+                    throw new Error(result.error || 'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ');
+                }
+            } catch (error) {
+                showAlert('error', 'ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ: ' + error.message);
+                closePreviewModal();
+            } finally {
+                loadingPreview.style.display = 'none';
+            }
+        }
 
     // Replace your showOperationOptions function with this fixed version:
 
-function showOperationOptions(options, hasPreview) {
+    function showOperationOptions(options, hasPreview) {
     const optionGroups = ['pagesGroup', 'compressionGroup', 'compareTypeGroup', 'splitMethodGroup', 
                          'fileSizeGroup', 'autoChunkGroup', 'rotationAngleGroup', 'applyToAllGroup'];
     
@@ -743,19 +964,48 @@ function showOperationOptions(options, hasPreview) {
                     default:
                         groupId = option + 'Group';
                 }
-                
                 const element = safeGetElement(groupId);
                 if (element) {
                     element.style.display = 'block';
-                    
                     // Special handling for split method to trigger the change handler
                     if (option === 'split_method') {
                         setTimeout(() => handleSplitMethodChange(), 100);
                     }
                 }
             });
+            // Toggle required attribute for password fields based on operation
+            // Protect PDF
+            const protectGroup = safeGetElement('protectGroup');
+            const protectionPassword = safeGetElement('protectionPassword');
+            const confirmPassword = safeGetElement('confirmPassword');
+            if (protectGroup && protectionPassword && confirmPassword) {
+                if (protectGroup.style.display === 'block') {
+                    protectionPassword.required = true;
+                    confirmPassword.required = true;
+                } else {
+                    protectionPassword.required = false;
+                    confirmPassword.required = false;
+                }
+            }
+            // Unlock PDF
+            const unlockGroup = safeGetElement('unlockGroup');
+            const unlockPassword = safeGetElement('unlockPassword');
+            if (unlockGroup && unlockPassword) {
+                if (unlockGroup.style.display === 'block') {
+                    unlockPassword.required = true;
+                } else {
+                    unlockPassword.required = false;
+                }
+            }
         } else {
             operationOptions.style.display = 'none';
+            // Remove required from all password fields if no options
+            const protectionPassword = safeGetElement('protectionPassword');
+            const confirmPassword = safeGetElement('confirmPassword');
+            const unlockPassword = safeGetElement('unlockPassword');
+            if (protectionPassword) protectionPassword.required = false;
+            if (confirmPassword) confirmPassword.required = false;
+            if (unlockPassword) unlockPassword.required = false;
         }
     }
 }
@@ -844,6 +1094,112 @@ function showOperationOptions(options, hasPreview) {
 
                     <div class="form-group" id="compareTypeGroup" style="display: none;">
                         <small>ಪಠ್ಯ ಹೋಲಿಕೆ ಕನ್ನಡ ಪಠ್ಯವನ್ನು ಬೆಂಬಲಿಸುತ್ತದೆ</small>
+                    </div>
+                    
+                    
+                    <div class="form-group" id="protectGroup" style="display: ${config.options && config.options.includes('protect') ? 'block' : 'none'};">
+                        <h4 style="color: var(--brown-text); margin-bottom: 1rem;">
+                            <i class="fas fa-lock"></i> PDF ರಕ್ಷಣೆ ಸೆಟ್ಟಿಂಗ್ಸ್
+                        </h4>
+                        
+                        <!-- Password Input -->
+                        <div class="form-group">
+                            <label class="form-label" for="protectionPassword">
+                                <i class="fas fa-key"></i> ಪಾಸ್‌ವರ್ಡ್ ಸೆಟ್ ಮಾಡಿ
+                            </label>
+                            <input type="password" name="protection_password" id="protectionPassword" 
+                                   class="form-input" placeholder="ಸುರಕ್ಷಿತ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ" required>
+                            <small style="color: var(--light-brown);">
+                                <i class="fas fa-info-circle"></i> 
+                                ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು, ಅಕ್ಷರ ಮತ್ತು ಸಂಖ್ಯೆಗಳ ಸಂಯೋಜನೆ ಶಿಫಾರಸು
+                            </small>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">
+                                <i class="fas fa-key"></i> ಪಾಸ್‌ವರ್ಡ್ ಖಚಿತಪಡಿಸಿ
+                            </label>
+                            <input type="password" name="confirm_password" id="confirmPassword" 
+                                   class="form-input" placeholder="ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತೆ ನಮೂದಿಸಿ" required>
+                        </div>
+
+                        <!-- Protection Level -->
+                        <div class="form-group">
+                            <label class="form-label" for="protectionLevel">
+                                <i class="fas fa-shield-alt"></i> ಸುರಕ್ಷತೆ ಮಟ್ಟ
+                            </label>
+                            <select name="protection_level" id="protectionLevel" class="form-select">
+                                <option value="128" selected>ಮಧ್ಯಮ ಸುರಕ್ಷತೆ (128-bit)</option>
+                                <option value="256">ಹೆಚ್ಚು ಸುರಕ್ಷತೆ (256-bit)</option>
+                            </select>
+                        </div>
+
+                        <!-- Permission Settings -->
+                        <details style="margin-top: 1rem; border: 1px solid var(--biscuit-light); border-radius: 8px; padding: 1rem;">
+                            <summary style="cursor: pointer; font-weight: 600; color: var(--brown-text);">
+                                <i class="fas fa-cog"></i> ಅನುಮತಿ ಸೆಟ್ಟಿಂಗ್ಸ್ (ಐಚ್ಛಿಕ)
+                            </summary>
+                            <div style="margin-top: 1rem;">
+                                <div style="display: grid; gap: 0.8rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" name="allow_printing" value="true" checked>
+                                        <i class="fas fa-print"></i> ಮುದ್ರಣ ಅನುಮತಿಸಿ
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" name="allow_copying" value="true">
+                                        <i class="fas fa-copy"></i> ಪಠ್ಯ ನಕಲು ಅನುಮತಿಸಿ
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" name="allow_modification" value="true">
+                                        <i class="fas fa-edit"></i> ಸಂಪಾದನೆ ಅನುಮತಿಸಿ
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" name="allow_annotation" value="true" checked>
+                                        <i class="fas fa-comment"></i> ಟಿಪ್ಪಣಿಗಳು ಅನುಮತಿಸಿ
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="checkbox" name="allow_form_filling" value="true" checked>
+                                        <i class="fas fa-wpforms"></i> ಫಾರ್ಮ್ ಭರ್ತಿ ಅನುಮತಿಸಿ
+                                    </label>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Security Notice -->
+                        <div style="background: rgba(30, 58, 138, 0.1); border: 1px solid var(--gov-blue); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <p style="margin: 0; color: var(--gov-blue); font-size: 0.9rem;">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>ಸೂಚನೆ:</strong> ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ಇರಿಸಿ. ಕಳೆದುಹೋದ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ಮರುಪ್ರಾಪ್ತಿ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="unlockGroup" style="display: ${config.options && config.options.includes('unlock') ? 'block' : 'none'};">
+                        <h4 style="color: var(--brown-text); margin-bottom: 1rem;">
+                            <i class="fas fa-unlock"></i> PDF ಅನ್‌ಲಾಕ್ ಸೆಟ್ಟಿಂಗ್ಸ್
+                        </h4>
+                        
+                        <!-- Unlock Password Input -->
+                        <div class="form-group">
+                            <label class="form-label" for="unlockPassword">
+                                <i class="fas fa-key"></i> PDF ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ
+                            </label>
+                            <input type="password" name="unlock_password" id="unlockPassword" 
+                                   class="form-input" placeholder="ರಕ್ಷಿತ PDF ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ" required>
+                            <small style="color: var(--light-brown);">
+                                <i class="fas fa-info-circle"></i> 
+                                ಈ PDF ಫೈಲ್ ಅನ್ನು ರಕ್ಷಿಸಲು ಬಳಸಿದ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ
+                            </small>
+                        </div>
+
+                        <!-- Unlock Notice -->
+                        <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success-green); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <p style="margin: 0; color: var(--success-green); font-size: 0.9rem;">
+                                <i class="fas fa-shield-alt"></i>
+                                <strong>ಸೂಚನೆ:</strong> ಯಶಸ್ವಿಯಾದ ನಂತರ, ನೀವು ಪಾಸ್‌ವರ್ಡ್ ರಹಿತ PDF ಫೈಲ್ ಪಡೆಯುತ್ತೀರಿ ಅದನ್ನು ಯಾರಾದರೂ ತೆರೆಯಬಹುದು.
+                            </p>
+                        </div>
                     </div>
 
                     <div class="form-group" id="targetSizeGroup" style="display: none;">
@@ -1090,38 +1446,60 @@ function showOperationOptions(options, hasPreview) {
         if (applyToAllCheckbox) {
             formData.append('apply_to_all', applyToAllCheckbox.checked);
         }
-        
+        // Add password fields for protect and unlock before fetch
+        if (currentOperation === 'protect') {
+            const protectionPassword = document.getElementById('protectionPassword');
+            if (protectionPassword && protectionPassword.value) {
+                formData.append('protection_password', protectionPassword.value);
+            }
+            const confirmPassword = document.getElementById('confirmPassword');
+            if (confirmPassword && confirmPassword.value) {
+                formData.append('confirm_password', confirmPassword.value);
+            }
+            const protectionLevel = document.getElementById('protectionLevel');
+            if (protectionLevel && protectionLevel.value) {
+                formData.append('protection_level', protectionLevel.value);
+            }
+            // Permission checkboxes
+            const allowPrinting = document.querySelector('input[name="allow_printing"]:checked');
+            if (allowPrinting) formData.append('allow_printing', 'true');
+            const allowCopying = document.querySelector('input[name="allow_copying"]:checked');
+            if (allowCopying) formData.append('allow_copying', 'true');
+            const allowModification = document.querySelector('input[name="allow_modification"]:checked');
+            if (allowModification) formData.append('allow_modification', 'true');
+            const allowAnnotation = document.querySelector('input[name="allow_annotation"]:checked');
+            if (allowAnnotation) formData.append('allow_annotation', 'true');
+            const allowFormFilling = document.querySelector('input[name="allow_form_filling"]:checked');
+            if (allowFormFilling) formData.append('allow_form_filling', 'true');
+        }
+        if (currentOperation === 'unlock') {
+            const unlockPassword = document.getElementById('unlockPassword');
+            if (unlockPassword && unlockPassword.value) {
+                formData.append('unlock_password', unlockPassword.value);
+            }
+        }
         // Close operation modal and show loading
         const operationModal = safeGetElement('operationModal');
         const loadingModal = safeGetElement('loadingModal');
-        
         if (operationModal) operationModal.style.display = 'none';
         if (loadingModal) loadingModal.style.display = 'block';
-        
         try {
             const response = await fetch('/upload', {
                 method: 'POST',
                 body: formData
             });
-            
             const result = await response.json();
-            
+            // Handle result after fetch
             if (result.success) {
                 // Special handling for compare operation
                 if (result.redirect_url) {
                     showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
-                    
                     setTimeout(() => {
                         window.location.href = result.redirect_url;
                     }, 1500);
-                    
                     return;
                 }
-                
-                // Regular operation success handling
                 showSuccessModal(result);
-                
-                // CRITICAL FIX: Complete state reset after successful operation
                 selectedFiles = [];
                 selectedPages.clear();
                 currentPreviewData = null;
@@ -1341,4 +1719,747 @@ function showOperationOptions(options, hasPreview) {
             }
         });
     }
-});
+
+    async function showSortPreview() {
+            const loadingPreview = document.getElementById('loadingPreview');
+            const pagesGrid = document.getElementById('pagesGrid');
+            
+            document.getElementById('previewModal').style.display = 'block';
+            loadingPreview.style.display = 'block';
+            pagesGrid.innerHTML = '';
+            selectedPages.clear();
+            updateSelectedPagesDisplay();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFiles[0]);
+
+                const response = await fetch('/generate-sort-preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentPreviewData = result;
+                    displaySortPreview(result);
+                } else {
+                    throw new Error(result.error || 'ಸಾರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲವಾಗಿದೆ');
+                }
+            } catch (error) {
+                showAlert('error', 'ಸಾರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ: ' + error.message);
+                closePreviewModal();
+            } finally {
+                loadingPreview.style.display = 'none';
+            }
+        }
+
+        function displaySortPreview(previewData) {
+            const pagesGrid = document.getElementById('pagesGrid');
+            pagesGrid.innerHTML = '';
+
+            // Create main content area with full width sorted preview
+            const mainContent = document.createElement('div');
+            mainContent.style.cssText = `
+                display: flex;
+                height: 75vh;
+                width: 150vh;
+                min-height: 600px;
+                max-height: 800px;
+                justify-content: center;
+            `;
+
+            // Full width - Sorted preview with checkboxes
+            const sortedOrderDiv = document.createElement('div');
+            sortedOrderDiv.className = 'sorted-order-preview';
+            sortedOrderDiv.style.cssText = `
+                background: var(--white);
+                padding: 1rem;
+                width: 100%;
+                flex: 1;
+                border-radius: 8px;
+                border: 1px solid var(--light-brown);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            `;
+            if (previewData.sorted_order && previewData.sorted_order.length > 0) {
+                sortedOrderDiv.innerHTML = `
+                    <h5 style="color: var(--brown-text); margin-bottom: 0.5rem;">
+                        <i class="fas fa-check-square"></i> ಸಾರಿಸಿದ ಪುಟಗಳ ಪೂರ್ವವೀಕ್ಷಣೆ - ಆಯ್ಕೆ ಮಾಡಿ:
+                        ${previewData.total_pages > 500 ? `<span style="font-size: 0.7rem; color: var(--light-brown);"> (ಮೊದಲ 500 ಪುಟಗಳು - ಒಟ್ಟು ${previewData.total_pages})</span>` : ''}
+                    </h5>
+                    <p style="color: var(--light-brown); font-size: 0.8rem; margin-bottom: 0.8rem; background: var(--biscuit-light); padding: 0.5rem; border-radius: 4px;">
+                        ✅ ಚೆಕ್‌ಬಾಕ್ಸ್ ಕ್ಲಿಕ್ ಮಾಡಿ ಅಥವಾ ಪುಟವನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ ಆಯ್ಕೆ ಮಾಡಲು
+                    </p>
+                    <div style="flex: 1; overflow-y: auto; padding: 0.8rem; border: 1px solid var(--biscuit-light); border-radius: 8px; background: var(--biscuit-light);">
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-start;">
+                            ${previewData.sorted_order.map((page, index) => `
+                                <div class="sorted-page-item" data-page-num="${page.page_num}" style="text-align: center; background: var(--biscuit-cream); border-radius: 8px; padding: 0.8rem; min-width: 140px; cursor: pointer; position: relative;">
+                                    <input type="checkbox" class="sorted-page-checkbox" onchange="togglePageSelection(${page.page_num})" 
+                                           style="position: absolute; top: 8px; left: 8px; transform: scale(1.3);">
+                                    <div style="color: var(--brown-text); font-weight: bold; margin-bottom: 0.5rem; font-size: 0.85rem; margin-top: 20px;">
+                                        ${index + 1}. ಪುಟ ${page.page_num}
+                                    </div>
+                                    ${page.thumbnail_path ? `
+                                        <img src="${page.thumbnail_path}" alt="ಪುಟ ${page.page_num}" 
+                                             style="width: 90px; height: 120px; border: 1px solid var(--light-brown); border-radius: 4px; object-fit: cover; margin-bottom: 0.5rem;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div style="display: none; width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                            📄<br><span style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</span>
+                                        </div>
+                                    ` : `
+                                        <div style="width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem; flex-direction: column;">
+                                            <div>📄</div>
+                                            <div style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</div>
+                                        </div>
+                                    `}
+                                    <div style="color: var(--light-brown); font-size: 0.7rem;">
+                                        ಸಂಖ್ಯೆ: ${page.extracted_number}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+
+            // Add only the sorted preview to main content
+            mainContent.appendChild(sortedOrderDiv);
+            pagesGrid.appendChild(mainContent);
+
+            // Add click event listeners for sorted page selection
+            if (sortedOrderDiv.querySelectorAll) {
+                sortedOrderDiv.querySelectorAll('.sorted-page-item').forEach(pageDiv => {
+                    pageDiv.onclick = (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const pageNum = parseInt(pageDiv.dataset.pageNum);
+                            togglePageSelection(pageNum);
+                            const checkbox = pageDiv.querySelector('.sorted-page-checkbox');
+                            checkbox.checked = selectedPages.has(pageNum);
+                        }
+                    };
+                });
+            }
+
+            // Select all pages by default for sorting and update checkboxes
+            previewData.previews.forEach(preview => {
+                selectedPages.add(preview.page_num);
+                
+                // Update sorted preview checkboxes
+                const sortedPageDiv = sortedOrderDiv.querySelector(`[data-page-num="${preview.page_num}"]`);
+                if (sortedPageDiv) {
+                    const checkbox = sortedPageDiv.querySelector('.sorted-page-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                    sortedPageDiv.style.borderColor = 'var(--gold)';
+                    sortedPageDiv.style.background = 'var(--biscuit-light)';
+                }
+            });
+
+            updateSelectedPagesDisplay();
+        }
+        // Language change function
+        function changeLanguage(lang, langName, flagClass, event) {
+            // Prevent default link behavior
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Store language preference
+            localStorage.setItem('preferredLanguage', lang);
+            localStorage.setItem('preferredLanguageName', langName);
+            localStorage.setItem('preferredLanguageFlag', flagClass);
+            
+            // Update current language display
+            const currentLang = document.getElementById('currentLanguage');
+            const currentFlag = document.querySelector('.language-button .language-flag');
+            
+            if (currentLang) currentLang.textContent = langName;
+            if (currentFlag) {
+                currentFlag.className = `language-flag ${flagClass}`;
+            }
+            
+            // Update active state
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            
+            // Add active class to clicked option
+            if (event && event.target) {
+                const clickedOption = event.target.closest('.language-option');
+                if (clickedOption) {
+                    clickedOption.classList.add('active');
+                }
+            }
+            
+            // Close dropdown
+            const dropdown = document.getElementById('languageDropdown');
+            if (dropdown) {
+                dropdown.classList.remove('active');
+            }
+            
+            console.log('Language changed to:', lang, langName);
+            
+            // Show notification based on language
+            if (lang === 'en') {
+                showLanguageNotification('English language support will be added soon!', 'info');
+            } else {
+                showLanguageNotification('ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ: ' + langName, 'success');
+            }
+        }
+
+        function showLanguageNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--success-green)' : 'var(--gov-blue)'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                z-index: 10000;
+                font-family: 'Noto Sans Kannada', sans-serif;
+                font-size: 0.9rem;
+                max-width: 300px;
+                animation: slideInRight 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Show notification
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                    if (style.parentNode) {
+                        style.parentNode.removeChild(style);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Load preferred language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const preferredLang = localStorage.getItem('preferredLanguage') || 'kn';
+            const preferredLangName = localStorage.getItem('preferredLanguageName') || 'ಕನ್ನಡ';
+            const preferredLangFlag = localStorage.getItem('preferredLanguageFlag') || 'flag-kn';
+            
+            // Set initial language display
+            const currentLang = document.getElementById('currentLanguage');
+            const currentFlag = document.querySelector('.language-button .language-flag');
+            
+            if (currentLang) currentLang.textContent = preferredLangName;
+            if (currentFlag) {
+                currentFlag.className = `language-flag ${preferredLangFlag}`;
+            }
+            
+            // Update active state
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.remove('active');
+                const optionLang = option.getAttribute('onclick').match(/'(\w+)'/)[1];
+                if (optionLang === preferredLang) {
+                    option.classList.add('active');
+                }
+            });
+        });
+
+        // Password validation for PDF protection
+        function initializePasswordValidation() {
+            const protectionPassword = document.getElementById('protectionPassword');
+            const confirmPassword = document.getElementById('confirmPassword');
+            
+            if (protectionPassword && confirmPassword) {
+                protectionPassword.addEventListener('input', validatePassword);
+                confirmPassword.addEventListener('input', validatePasswordMatch);
+            }
+        }
+
+        function validatePassword() {
+            const password = document.getElementById('protectionPassword').value;
+            const feedback = document.getElementById('passwordFeedback');
+            
+            // Remove existing feedback
+            if (feedback) feedback.remove();
+            
+            const requirements = {
+                length: password.length >= 6,
+                hasLetter: /[a-zA-Z]/.test(password),
+                hasNumber: /[0-9]/.test(password),
+                noSpaces: !/\s/.test(password)
+            };
+            
+            const isValid = Object.values(requirements).every(req => req);
+            const input = document.getElementById('protectionPassword');
+            
+            // Create feedback element
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'passwordFeedback';
+            feedbackDiv.style.marginTop = '0.5rem';
+            feedbackDiv.style.fontSize = '0.85rem';
+            
+            if (password.length === 0) {
+                input.style.borderColor = '';
+                return;
+            }
+            
+            if (isValid) {
+                input.style.borderColor = '#28a745';
+                feedbackDiv.innerHTML = `
+                    <div style="color: #28a745;">
+                        <i class="fas fa-check-circle"></i> ಪಾಸ್‌ವರ್ಡ್ ಬಲವಾಗಿದೆ
+                    </div>
+                `;
+            } else {
+                input.style.borderColor = '#dc3545';
+                feedbackDiv.innerHTML = `
+                    <div style="color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle"></i> ಪಾಸ್‌ವರ್ಡ್ ಅವಶ್ಯಕತೆಗಳು:
+                        <ul style="margin: 0.3rem 0 0 1rem; font-size: 0.8rem;">
+                            <li style="color: ${requirements.length ? '#28a745' : '#dc3545'}">
+                                ${requirements.length ? '✓' : '✗'} ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು
+                            </li>
+                            <li style="color: ${requirements.hasLetter ? '#28a745' : '#dc3545'}">
+                                ${requirements.hasLetter ? '✓' : '✗'} ಕನಿಷ್ಠ ಒಂದು ಅಕ್ಷರ
+                            </li>
+                            <li style="color: ${requirements.hasNumber ? '#28a745' : '#dc3545'}">
+                                ${requirements.hasNumber ? '✓' : '✗'} ಕನಿಷ್ಠ ಒಂದು ಸಂಖ್ಯೆ
+                            </li>
+                            <li style="color: ${requirements.noSpaces ? '#28a745' : '#dc3545'}">
+                                ${requirements.noSpaces ? '✓' : '✗'} ಸ್ಪೇಸ್‌ಗಳಿಲ್ಲ
+                            </li>
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            input.parentNode.appendChild(feedbackDiv);
+            
+            // Re-validate password match
+            validatePasswordMatch();
+        }
+
+        function validatePasswordMatch() {
+            const password = document.getElementById('protectionPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const input = document.getElementById('confirmPassword');
+            const feedback = document.getElementById('confirmPasswordFeedback');
+            
+            // Remove existing feedback
+            if (feedback) feedback.remove();
+            
+            if (confirmPassword.length === 0) {
+                input.style.borderColor = '';
+                return;
+            }
+            
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'confirmPasswordFeedback';
+            feedbackDiv.style.marginTop = '0.5rem';
+            feedbackDiv.style.fontSize = '0.85rem';
+            
+            if (password === confirmPassword) {
+                input.style.borderColor = '#28a745';
+                feedbackDiv.innerHTML = `
+                    <div style="color: #28a745;">
+                        <i class="fas fa-check-circle"></i> ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತವೆ
+                    </div>
+                `;
+            } else {
+                input.style.borderColor = '#dc3545';
+                feedbackDiv.innerHTML = `
+                    <div style="color: #dc3545;">
+                        <i class="fas fa-times-circle"></i> ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ
+                    </div>
+                `;
+            }
+            
+            input.parentNode.appendChild(feedbackDiv);
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for menu items
+            const menuLinks = document.querySelectorAll('.menu-item a, .dropdown-item');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        const sectionId = href.substring(1);
+                        switch(sectionId) {
+                            case 'home':
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                break;
+                            case 'services':
+                                scrollToSection('operations-section') || document.querySelector('.operations-section')?.scrollIntoView({ behavior: 'smooth' });
+                                break;
+                            case 'help':
+                                showHelpModal();
+                                break;
+                            case 'about':
+                                showAboutModal();
+                                break;
+                            case 'contact':
+                                showContactModal();
+                                break;
+                            case 'merge':
+                                highlightOperationCard('merge');
+                                selectOperation('merge');
+                                break;
+                            case 'split':
+                                highlightOperationCard('split');
+                                selectOperation('split');
+                                break;
+                            case 'compress':
+                                highlightOperationCard('compress');
+                                selectOperation('compress');
+                                break;
+                            case 'protect':
+                                highlightOperationCard('protect');
+                                selectOperation('protect');
+                                break;
+                            case 'unlock':
+                                highlightOperationCard('unlock');
+                                selectOperation('unlock');
+                                break;
+                            case 'guide':
+                                showUserGuide();
+                                break;
+                            case 'faq':
+                                showFAQ();
+                                break;
+                            case 'video-help':
+                                showVideoHelp();
+                                break;
+                            default:
+                                const targetSection = document.getElementById(sectionId) || document.querySelector(`.${sectionId}-section`) || document.querySelector(`[data-section="${sectionId}"]`);
+                                if (targetSection) {
+                                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                                }
+                        }
+                        document.querySelectorAll('.menu-item a').forEach(a => a.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // Wire up help modal buttons
+            setTimeout(() => {
+                const userGuideBtn = document.getElementById('userGuideBtn');
+                if (userGuideBtn) {
+                    userGuideBtn.onclick = showUserGuide;
+                }
+                const faqBtn = document.getElementById('faqBtn');
+                if (faqBtn) {
+                    faqBtn.onclick = showFAQ;
+                }
+                const videoHelpBtn = document.getElementById('videoHelpBtn');
+                if (videoHelpBtn) {
+                    videoHelpBtn.onclick = showVideoHelp;
+                }
+            }, 500);
+        });
+
+        // Modal functions for menu items
+        function showHelpModal() {
+            showInfoModal('ಸಹಾಯ', `
+                <h4>ಕನ್ನಡ PDF ಉಪಕರಣಗಳು - ಬಳಕೆಯ ಮಾರ್ಗದರ್ಶಿ</h4>
+                <div style="text-align: left; line-height: 1.8;">
+                    <h5><i class="fas fa-layer-group"></i> PDF ವಿಲೀನಗೊಳಿಸಿ:</h5>
+                    <p>• ಬಹುಸಂಖ್ಯೆಯ PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ<br>
+                    • ಅವುಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಒಂದೇ ಫೈಲ್‌ಆಗಿ ಸಂಯೋಜಿಸಲ್ಪಡುತ್ತವೆ</p>
+                    
+                    <h5><i class="fas fa-cut"></i> PDF ವಿಭಾಗಿಸಿ:</h5>
+                    <p>• ಒಂದು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ<br>
+                    • ಪ್ರತ್ಯೇಕ ಪುಟಗಳಾಗಿ ಅಥವಾ ವ್ಯಾಪ್ತಿಗಳಾಗಿ ವಿಭಾಗಿಸಿ</p>
+                    
+                    <h5><i class="fas fa-compress-arrows-alt"></i> PDF ಸಂಕುಚಿಸಿ:</h5>
+                    <p>• ಫೈಲ್ ಗಾತ್ರವನ್ನು ಕಡಿಮೆ ಮಾಡಿ<br>
+                    • ಗುಣಮಟ್ಟವನ್ನು ಕಾಪಾಡಿಕೊಂಡು ಸಂಗ್ರಹಣೆ ಮತ್ತು ಹಂಚಿಕೆಗೆ ಸುಲಭ</p>
+                    
+                    <h5><i class="fas fa-shield-alt"></i> ಸುರಕ್ಷತೆ:</h5>
+                    <p>• ಎಲ್ಲಾ ಫೈಲ್‌ಗಳು ನಿಮ್ಮ ಸಿಸ್ಟಮ್‌ನಲ್ಲಿಯೇ ಪ್ರಕ್ರಿಯೆಗೊಳ್ಳುತ್ತವೆ<br>
+                    • ಯಾವುದೇ ಡೇಟಾ ಇಂಟರ್ನೆಟ್‌ಗೆ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ</p>
+                </div>
+            `);
+        }
+
+        function showAboutModal() {
+            showInfoModal('ನಮ್ಮ ಬಗ್ಗೆ', `
+                <div style="text-align: left; line-height: 1.8;">
+                    <h4><i class="fas fa-landmark"></i> ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ಇನಿಶಿಯೇಟಿವ್</h4>
+                    <p>ಈ PDF ಉಪಕರಣಗಳು ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್‌ನ ಭಾಗವಾಗಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಾಗಿದೆ.</p>
+                    
+                    <h5><i class="fas fa-target"></i> ಉದ್ದೇಶ:</h5>
+                    <p>ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸುರಕ್ಷಿತ ಮತ್ತು ಸುಲಭವಾದ PDF ಸಂಸ್ಕರಣಾ ಸೇವೆಗಳನ್ನು ಒದಗಿಸುವುದು.</p>
+                    
+                    <h5><i class="fas fa-users"></i> ಲಕ್ಷ್ಯ ಗುಂಪು:</h5>
+                    <p>ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಇಲಾಖೆಗಳು ಮತ್ತು ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರು</p>
+                    
+                    <h5><i class="fas fa-certificate"></i> ಗುಣಮಟ್ಟ ಭರವಸೆ:</h5>
+                    <p>• ISO 27001 ಸುರಕ್ಷತಾ ಮಾನದಂಡಗಳ ಅನುಸರಣೆ<br>
+                    • WCAG 2.1 ಪ್ರವೇಶಯೋಗ್ಯತಾ ಮಾನದಂಡಗಳು<br>
+                    • ಕನ್ನಡ ಭಾಷಾ ಬೆಂಬಲ</p>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
+                        <strong>ಆವೃತ್ತಿ:</strong> 2.0.0<br>
+                        <strong>ಕೊನೆಯ ನವೀಕರಣ:</strong> ಜನವರಿ 2025<br>
+                        <strong>ಸ್ಥಿತಿ:</strong> <span style="color: #16a34a;">🟢 ಸಕ್ರಿಯ</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        function showContactModal() {
+            showInfoModal('ಸಂಪರ್ಕಿಸಿ', `
+                <div style="text-align: left; line-height: 1.8;">
+                    <h4><i class="fas fa-phone"></i> ತಾಂತ್ರಿಕ ಬೆಂಬಲ</h4>
+                    
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-envelope"></i> ಇಮೇಲ್:</strong><br>
+                        <a href="mailto:support@kannadapdf.kar.gov.in">support@kannadapdf.kar.gov.in</a>
+                    </div>
+                    
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-phone"></i> ಫೋನ್:</strong><br>
+                        080-XXXX-XXXX (ಸೋಮ-ಶುಕ್ರ, 9:00-18:00)
+                    </div>
+                    
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-map-marker-alt"></i> ವಿಳಾಸ:</strong><br>
+                        ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ವಿಭಾಗ<br>
+                        ವಿಧಾನ ಸೌಧ, ಬೆಂಗಳೂರು<br>
+                        ಕರ್ನಾಟಕ - 560001
+                    </div>
+                    
+                    <h5><i class="fas fa-clock"></i> ಸೇವಾ ಸಮಯ:</h5>
+                    <p>ಸೋಮವಾರ ನಿಂದ ಶುಕ್ರವಾರ: 9:00 AM - 6:00 PM<br>
+                    ಶನಿ-ಭಾನುವಾರ: ಮುಚ್ಚಲಾಗಿದೆ</p>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(220, 38, 38, 0.1); border-radius: 5px;">
+                        <strong><i class="fas fa-exclamation-triangle"></i> ತುರ್ತು ಸಹಾಯ:</strong><br>
+                        ತುರ್ತು ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಗಳಿಗೆ, ದಯವಿಟ್ಟು ನಿಮ್ಮ IT ವಿಭಾಗವನ್ನು ಸಂಪರ್ಕಿಸಿ.
+                    </div>
+                </div>
+            `);
+        }
+
+        function showUserGuide() {
+            showInfoModal('ಬಳಕೆಯ ಮಾರ್ಗದರ್ಶಿ', `
+                <div style="text-align: left; line-height: 1.8;">
+                    <h4><i class="fas fa-book"></i> ವಿಸ್ತೃತ ಬಳಕೆಯ ಮಾರ್ಗದರ್ಶಿ</h4>
+                    
+                    <h5>1. ಫೈಲ್ ಆಯ್ಕೆ:</h5>
+                    <p>• "ಆರಂಭಿಸಿ" ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ<br>
+                    • ಫೈಲ್‌ಗಳನ್ನು ಎಳೆದು ಬಿಡಿ ಅಥವಾ ಬ್ರೌಸ್ ಮಾಡಿ<br>
+                    • ಸರಿಯಾದ ಫಾರ್ಮ್ಯಾಟ್ ಆಯ್ಕೆ ಮಾಡಿದ್ದೀರಾ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ</p>
+                    
+                    <h5>2. ವಿಕಲ್ಪಗಳು ಹೊಂದಿಸಿ:</h5>
+                    <p>• ಪುಟ ಸಂಖ್ಯೆಗಳು, ಸಂಕುಚನ ಮಟ್ಟ ಇತ್ಯಾದಿ<br>
+                    • ಪೂರ್ವವೀಕ್ಷಣೆ ವೈಶಿಷ್ಟ್ಯವನ್ನು ಬಳಸಿ<br>
+                    • ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ</p>
+                    
+                    <h5>3. ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ:</h5>
+                    <p>• "ಪ್ರಕ್ರಿಯೆ ಮಾಡಿ" ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ<br>
+                    • ಪ್ರಗತಿಗಾಗಿ ಕಾಯಿರಿ<br>
+                    • ಫಲಿತಾಂಶವನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ</p>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 5px;">
+                        <strong><i class="fas fa-lightbulb"></i> ಸುಝಾವುಗಳು:</strong><br>
+                        • ದೊಡ್ಡ ಫೈಲ್‌ಗಳಿಗೆ ಹೆಚ್ಚು ಸಮಯ ಬೇಕಾಗಬಹುದು<br>
+                        • ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕ ಅಗತ್ಯವಿಲ್ಲ<br>
+                        • ಫೈಲ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ
+                    </div>
+                </div>
+            `);
+        }
+
+        function showFAQ() {
+            showInfoModal('ಆಗಾಗ್ಗೆ ಕೇಳುವ ಪ್ರಶ್ನೆಗಳು', `
+                <div style="text-align: left; line-height: 1.8;">
+                    <h4><i class="fas fa-question-circle"></i> ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು</h4>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಈ ಸೇವೆ ಉಚಿತವೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಫೈಲ್ ಗಾತ್ರದ ಮಿತಿ ಎಷ್ಟು?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಪ್ರತಿ ಫೈಲ್‌ಗೆ ಗರಿಷ್ಠ 100MB ವರೆಗೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ನನ್ನ ಫೈಲ್‌ಗಳು ಸುರಕ್ಷಿತವೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಎಲ್ಲಾ ಪ್ರಕ್ರಿಯೆಗಳು ಸ್ಥಳೀಯವಾಗಿ ನಡೆಯುತ್ತವೆ ಮತ್ತು ಫೈಲ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಕನ್ನಡ ಪಠ್ಯ ಬೆಂಬಲವಿದೆಯೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಪೂರ್ಣ ಕನ್ನಡ ಯೂನಿಕೋಡ್ ಬೆಂಬಲವಿದೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಮೊಬೈಲ್ ಫೋನ್‌ನಲ್ಲಿ ಬಳಸಬಹುದೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಆದರೆ ಸಂಪೂರ್ಣ ಅನುಭವಕ್ಕಾಗಿ ಕಂಪ್ಯೂಟರ್ ಬಳಸಿ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಯಾದರೆ ಏನು ಮಾಡಬೇಕು?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: "ಸಂಪರ್ಕಿಸಿ" ವಿಭಾಗದಲ್ಲಿ ಅಡಿದ ಮಾಹಿತಿಯನ್ನು ಬಳಸಿ ಸಹಾಯ ಪಡೆಯಿರಿ.</p>
+                    </details>
+                </div>
+            `);
+        }
+
+        function showVideoHelp() {
+            showInfoModal('ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್', `
+                <div style="text-align: center; line-height: 1.8;">
+                    <h4><i class="fas fa-video"></i> ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳು</h4>
+                    
+                    <div style="margin: 2rem 0;">
+                        <i class="fas fa-play-circle" style="font-size: 4rem; color: var(--gov-blue); margin-bottom: 1rem;"></i>
+                        <h5>ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್‌ಗಳು ಶೀಘ್ರದಲ್ಲೇ ಲಭ್ಯವಾಗಲಿವೆ!</h5>
+                        <p>ನಾವು ಈ ಕೆಳಗಿನ ವಿಷಯಗಳ ಮೇಲೆ ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳನ್ನು ತಯಾರಿಸುತ್ತಿದ್ದೇವೆ:</p>
+                    </div>
+                    
+                    <div style="text-align: left; margin: 1rem 0;">
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಲೀನಗೊಳಿಸುವಿಕೆ</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಭಾಗಿಸುವಿಕೆ</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಸಂಕುಚನ ತಂತ್ರಗಳು</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ರಕ್ಷಣೆ ಮತ್ತು ಅನ್‌ಲಾಕ್</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
+                        <p><strong>ಅಪ್‌ಡೇಟ್ ಪಡೆಯಲು:</strong><br>
+                        support@kannadapdf.kar.gov.in ನಲ್ಲಿ ನಿಮ್ಮ ಇಮೇಲ್ ಅಡ್ರೆಸ್ ನೋಂದಾಯಿಸಿ</p>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Generic info modal function
+        function showInfoModal(title, content) {
+            // Create modal if it doesn't exist
+            let infoModal = document.getElementById('infoModal');
+            if (!infoModal) {
+                infoModal = document.createElement('div');
+                infoModal.id = 'infoModal';
+                infoModal.className = 'modal';
+                infoModal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="infoModalTitle">${title}</h3>
+                            <span class="close" onclick="closeInfoModal()">&times;</span>
+                        </div>
+                        <div class="modal-body" id="infoModalBody">
+                            ${content}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" onclick="closeInfoModal()">ಮುಚ್ಚಿ</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(infoModal);
+            } else {
+                document.getElementById('infoModalTitle').textContent = title;
+                document.getElementById('infoModalBody').innerHTML = content;
+            }
+            
+            infoModal.style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            const infoModal = document.getElementById('infoModal');
+            if (infoModal) {
+                infoModal.style.display = 'none';
+            }
+        }
+
+        // Highlight operation card when accessed from menu
+        function highlightOperationCard(operationId) {
+            // First scroll to services section
+            const servicesSection = document.getElementById('services');
+            if (servicesSection) {
+                servicesSection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Remove previous highlights
+            document.querySelectorAll('.operation-card').forEach(card => {
+                card.classList.remove('highlighted');
+            });
+            
+            // Highlight the target card
+            setTimeout(() => {
+                const targetCard = document.getElementById(operationId) || 
+                                 document.querySelector(`[data-operation="${operationId}"]`);
+                if (targetCard) {
+                    targetCard.classList.add('highlighted');
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        targetCard.classList.remove('highlighted');
+                    }, 3000);
+                }
+            }, 500);
+        }
+   
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure all modals are hidden on page load
+        document.getElementById('operationModal').style.display = 'none';
+        document.getElementById('previewModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'none';
+        
+        // Ensure main content is visible
+        const container = document.querySelector('.container');
+        const operationsSection = document.querySelector('.operations-section');
+        const operationsGrid = document.querySelector('.operations-grid');
+        
+        if (container) {
+            container.style.display = 'block';
+            container.style.visibility = 'visible';
+        }
+        if (operationsSection) {
+            operationsSection.style.display = 'block';
+            operationsSection.style.visibility = 'visible';
+        }
+        if (operationsGrid) {
+            operationsGrid.style.display = 'grid';
+            operationsGrid.style.visibility = 'visible';
+        }
+        
+        // Initialize language dropdown
+        initializeLanguageDropdown();
+    });
+ });

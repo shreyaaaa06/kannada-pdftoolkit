@@ -43,9 +43,13 @@ app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
 
 # UTF-8 encoding configuration
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stderr.reconfigure(encoding='utf-8')
+# Set UTF-8 encoding for stdout and stderr if possible, otherwise rely on PYTHONIOENCODING
 os.environ['PYTHONIOENCODING'] = 'utf-8'
+try:
+    sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
+    sys.stderr = open(sys.stderr.fileno(), mode='w', encoding='utf-8', buffering=1)
+except Exception:
+    pass  # If running in an environment where fileno is not available, skip
 
 # Set UTF-8 encoding for the entire application
 if sys.platform.startswith('win'):
@@ -247,9 +251,9 @@ def generate_preview():
         
         if preview_data:
             for preview in preview_data['previews']:
-                if preview.get('thumbnail_path'):
+                if isinstance(preview, dict) and preview.get('thumbnail_path'):
                     preview['image_path'] = preview['thumbnail_path']
-                else:
+                elif isinstance(preview, dict):
                     preview['image_path'] = None
             
             return jsonify({
@@ -387,19 +391,35 @@ def upload_file():
                 unique_filename = f"{session_id}_{file_index}_{timestamp}_{unique_id}_{secure_name}"
                 print(f"Final unique filename: '{unique_filename}'")
                 
+                # Truncate filename if too long (Windows path limit safety)
+                if len(unique_filename) > 100:
+                    ext = ''
+                    if '.' in unique_filename:
+                        ext = '.' + unique_filename.rsplit('.', 1)[1]
+                    unique_filename = unique_filename[:95] + ext
+                    print(f"Truncated unique filename: '{unique_filename}'")
+                print(f"Final unique filename: '{unique_filename}'")
+
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 print(f"Full file path: '{file_path}'")
-                
+
                 try:
+                    # Check if file stream is empty before saving
+                    file.seek(0, os.SEEK_END)
+                    file_size_check = file.tell()
+                    file.seek(0)
+                    if file_size_check == 0:
+                        print(f"✗ File {i+1} stream is empty before save")
+                        continue
                     # Save the file
                     file.save(file_path)
                     print(f"File saved successfully")
-                    
+
                     # CRITICAL: Verify file was saved with correct content
                     if os.path.exists(file_path):
                         file_size = os.path.getsize(file_path)
                         print(f"Saved file size: {file_size} bytes")
-                        
+
                         if file_size > 0:
                             file_paths.append(file_path)
                             print(f"✓ File {i+1} processed successfully: {file_path}")
@@ -407,7 +427,7 @@ def upload_file():
                             print(f"✗ File {i+1} is empty after save")
                     else:
                         print(f"✗ File {i+1} was not saved properly")
-                        
+
                 except Exception as save_error:
                     print(f"✗ Error saving file {i+1} ({file.filename}): {save_error}")
                     continue
@@ -420,7 +440,7 @@ def upload_file():
                             file.stream.close()
                     except:
                         pass
-                
+
                 print(f"=== FILE {i+1} PROCESSING COMPLETE ===")
         
         print(f"=== FINAL SUMMARY ===")
@@ -699,63 +719,42 @@ def upload_file():
                     'allow_annotation': request.form.get('allow_annotation') == 'true',
                     'allow_form_filling': request.form.get('allow_form_filling') == 'true'
                 }
-                
+                print(f"=== PROTECT OPERATION START ===")
+                print(f"Session ID: {session_id}")
+                print(f"File: {file_paths[0] if file_paths else 'No file'}")
+                print(f"Protection options: {protection_options}")
                 # Validate password
                 if len(protection_options['protection_password']) < 6:
+                    print("✗ Password too short")
                     return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರಗಳು ಇರಬೇಕು'})
-                
                 if protection_options['protection_password'] != protection_options['confirm_password']:
+                    print("✗ Passwords do not match")
                     return jsonify({'success': False, 'error': 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ'})
-                
                 result = pdf_ops.protect_pdf(file_paths[0], session_id, protection_options)
                 if result['success']:
                     result_path = result['output_path']
+                    print(f"✓ PDF protected successfully: {result_path}")
                     flash(result['message'], 'success')
                 else:
+                    print(f"✗ Protect error: {result['error']}")
                     return jsonify({'success': False, 'error': result['error']})
-            
             elif operation == 'unlock':
                 unlock_password = request.form.get('unlock_password', '').strip()
-                
+                print(f"=== UNLOCK OPERATION START ===")
+                print(f"Session ID: {session_id}")
+                print(f"File: {file_paths[0] if file_paths else 'No file'}")
+                print(f"Unlock password: {unlock_password}")
                 if not unlock_password:
+                    print("✗ Unlock password missing")
                     return jsonify({'success': False, 'error': 'PDF ಅನ್‌ಲಾಕ್ ಮಾಡಲು ಪಾಸ್‌ವರ್ಡ್ ಅಗತ್ಯ'})
-                
                 result = pdf_ops.unlock_pdf(file_paths[0], unlock_password, session_id)
                 if result['success']:
                     result_path = result['output_path']
+                    print(f"✓ PDF unlocked successfully: {result_path}")
                     flash(result['message'], 'success')
                 else:
+                    print(f"✗ Unlock error: {result['error']}")
                     return jsonify({'success': False, 'error': result['error']})
-                
-                if not comparison_results:
-                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'})
-                
-                # Store comparison data in session for the results page
-                session['comparison_summary'] = {
-                    'file1_name': comparison_results['file1_name'],
-                    'file2_name': comparison_results['file2_name'],
-                    'file1_pages': comparison_results['file1_pages'],
-                    'file2_pages': comparison_results['file2_pages'],
-                    'total_text_changes': comparison_results['summary']['total_text_changes'],
-                    'visual_diff_pages': comparison_results['summary']['visual_diff_pages'],
-                    'session_id': session_id
-                }
-
-                # Save full data to file instead of session
-                comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
-                with open(comparison_file, 'w', encoding='utf-8') as f:
-                    json.dump(comparison_results, f, ensure_ascii=False, indent=2)
-
-                session['comparison_report_url'] = comparison_results.get('report_path', '')
-                session.modified = True
-
-                # Return success with redirect to results page
-                return jsonify({
-                    'success': True,
-                    'message': 'ಹೋಲಿಕೆ ಪೂರ್ಣಗೊಂಡಿದೆ!',
-                    'redirect_url': '/compare-result',
-                    'comparison_data': comparison_results
-                })
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
                 
@@ -807,6 +806,12 @@ def upload_file():
                 user_filename = f"{base_name}.docx"
             elif operation == 'word_to_pdf':
                 user_filename = f"{base_name}.pdf"
+            elif operation == 'sort':
+                user_filename = f"{base_name}_sorted.pdf"       
+            elif operation == 'protect':
+                user_filename = f"{base_name}_protected.pdf"
+            elif operation == 'unlock':
+                user_filename = f"{base_name}_unlocked.pdf"
             else:
                 user_filename = original_name
 
@@ -862,16 +867,6 @@ def download_file(session_id, filename):
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
         
         # Check if file exists
-        if os.path.exists(file_path):
-            # For backward compatibility, allow files that start with session_id
-            # Also allow files that are in the current session's processed files
-            if (filename.startswith(session_id) or 
-                ('processed_files' in session and 
-                 any(f['filename'] == filename for f in session['processed_files']))):
-                return send_file(file_path, as_attachment=True, download_name=filename)
-        
-        return jsonify({'error': 'ಫೈಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
-        
         print(f"Download request - Session: {session_id}, File: {filename}")
         print(f"Looking for file at: {file_path}")
         print(f"File exists: {os.path.exists(file_path)}")
@@ -1088,8 +1083,6 @@ def generate_page_image(pdf_path, session_id, file_num, page_num):
         
         return image_path
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-    
         print(f"Image generation error: {e}")
         return None 
 
