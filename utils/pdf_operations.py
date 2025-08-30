@@ -1,5 +1,6 @@
 import os
 import zipfile
+import threading
 from PyPDF2 import PdfReader, PdfWriter
 from PIL import Image
 import fitz  # PyMuPDF
@@ -21,18 +22,8 @@ import gc
 from datetime import datetime
 import json
 import tempfile
-import os
-import platform
-import shutil
-import subprocess
-from pathlib import Path
-import platform
-import subprocess
-import shutil
-import os
-from pathlib import Path
-import threading
-from .pdf_compare import PDFCompare
+from docx import Document
+from textUtils.pdf_text_extractor import extract_text_ocr
 
 class PDFOperations:
     def __init__(self):
@@ -2414,65 +2405,45 @@ class PDFOperations:
     
     
     def pdf_to_word(self, file_path, session_id):
-        """Convert PDF to Word document - FIXED VERSION"""
+        """
+        Convert PDF to Word document using OCR from textUtils.
+        """
         try:
-            doc = fitz.open(file_path)
-            
-            # Create Word document
-            word_doc = Document()
-            
-            # Add title
-            title = word_doc.add_heading('PDF ನಿಂದ ಪರಿವರ್ತಿತ ದಾಖಲೆ', 0)
-            
-            # Extract text from each page
-            for page_num in range(len(doc)):
-                page = doc.load_page(page_num)
-                text = page.get_text()
-                
-                if text.strip():  # Only add non-empty pages
-                    # Add page header
-                    word_doc.add_heading(f'ಪುಟ {page_num + 1}', level=2)
-                    
-                    # Split text into paragraphs and add them
-                    paragraphs = text.split('\n\n')
-                    for para in paragraphs:
-                        if para.strip():
-                            word_doc.add_paragraph(para.strip())
-                    
-                    # Add page break except for last page
-                    if page_num < len(doc) - 1:
-                        word_doc.add_page_break()
-            
-            doc.close()
-            
-            # Save as .docx file
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_converted.docx")
-            word_doc.save(output_path)
-            
+            print(f"=== PDF TO WORD CONVERSION (OCR) ===")
+            print(f"Input file: {file_path}")
+            print(f"Session ID: {session_id}")
+
+            # 1. Extract text using the OCR function from textUtils
+            # This function is specifically for OCR and is ideal for scanned documents.
+            extracted_text = extract_text_ocr(file_path)
+
+            if not extracted_text or extracted_text.startswith("❌"):
+                # Pass the detailed error message from the extractor
+                raise Exception(f"OCR ಹೊರತೆಗೆಯುವಿಕೆ ವಿಫಲವಾಗಿದೆ: {extracted_text}")
+
+            # 2. Create a new Word document in memory
+            doc = Document()
+            doc.add_paragraph(extracted_text)
+
+            # 3. Define the output path and save the Word document
+            output_filename = f"{session_id}_{os.path.splitext(os.path.basename(file_path))[0]}.docx"
+            output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+
+            doc.save(output_path)
+
+            # 4. Validate that the file was created successfully
+            if not os.path.exists(output_path):
+                raise Exception("Word ಫೈಲ್ ರಚನೆ ವಿಫಲವಾಗಿದೆ")
+
+            print(f"Conversion completed successfully. Output: {output_path}")
             return output_path
-            
+
         except Exception as e:
-            raise Exception(f"PDF Word ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
-    
-    def _parse_page_ranges(self, pages_str, total_pages):
-        """Parse page ranges like '1,3,5-10' into list of page numbers"""
-        pages = []
-    
-        for part in pages_str.split(','):
-            part = part.strip()
-            if '-' in part:
-                start, end = map(int, part.split('-'))
-                pages.extend(range(start, min(end + 1, total_pages + 1)))
-            else:
-                page_num = int(part)
-                if 1 <= page_num <= total_pages:
-                    pages.append(page_num)
-    
-        return sorted(list(set(pages)))  # This should be OUTSIDE the for loop
-        # Replace your existing word_to_pdf method with this complete version:
-
-
-
+            print(f"PDF to Word conversion error: {str(e)}")
+            # Re-raise the exception so app.py can catch it and show the user
+            raise Exception(f"PDF ಇಂದ Word ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
+        
+        
     def word_to_pdf(self, file_path, session_id):
         """
         Enhanced Word to PDF conversion with proper Kannada text rendering

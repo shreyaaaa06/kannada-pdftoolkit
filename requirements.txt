@@ -28,6 +28,7 @@ grpcio==1.74.0
 grpcio-status==1.74.0
 httplib2==0.22.0
 idna==3.10
+indic-transliteration==2.3.73
 itsdangerous==2.2.0
 Jinja2==3.1.6
 lxml==6.0.0
@@ -39,7 +40,7 @@ packaging==25.0
 pdf2image==1.17.0
 pdfminer.six==20250506
 pdfplumber==0.11.7
-pillow==11.3.0
+Pillow==11.3.0
 proto-plus==1.26.1
 protobuf==6.31.1
 pyasn1==0.6.1
