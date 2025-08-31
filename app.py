@@ -1,29 +1,20 @@
-from flask import Flask, request, render_template, jsonify, send_file, session, url_for
+from flask import Flask, request, render_template, jsonify, send_file, session, url_for, redirect, make_response
 import os
 import uuid
+import sys
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
+from utils.pdf_compare import PDFCompare
 import config
 import fitz  # PyMuPDF
 from PIL import Image
 import io
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-import traceback
 import time
-import sys
-import html
-from flask import redirect, url_for
 from utils.pdf_compare import PDFCompare
-import unicodedata
-from flask import Response
-import requests
-from weasyprint import HTML, CSS
-from flask import make_response
-import json
 
-# Initialize Flask app
+
+
 app = Flask(__name__)
 
 # Base directory setup
@@ -432,106 +423,16 @@ def upload_file():
                 print("Processing JPEG to PDF operation")
                 result_path = pdf_ops.images_to_pdf(file_paths, session_id)
                 
+            
+
             elif operation == 'pdf_to_word':
                 print("Processing PDF to Word operation")
                 result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
-
-            elif operation == 'word_to_pdf':
-                # Enhanced Word to PDF operation from file 2
-                print("=== PROCESSING WORD TO PDF OPERATION (FIXED) ===")
-                print(f"File paths: {file_paths}")
-                
-                if not file_paths:
-                    return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಅಗತ್ಯ'})
-                
-                word_file_path = file_paths[0]
-                print(f"Processing Word file: {word_file_path}")
-                
-                # Validate file exists and has content
-                if not os.path.exists(word_file_path):
-                    return jsonify({'success': False, 'error': 'Word ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'})
-                
-                file_size = os.path.getsize(word_file_path)
-                if file_size == 0:
-                    return jsonify({'success': False, 'error': 'ಖಾಲಿ Word ಫೈಲ್'})
-                
-                # Check file extension
-                file_ext = os.path.splitext(word_file_path)[1].lower()
-                if file_ext not in ['.doc', '.docx']:
-                    return jsonify({'success': False, 'error': 'ಮಾನ್ಯವಾದ Word ಫೈಲ್ ಅಲ್ಲ (.doc ಅಥವಾ .docx ಬೇಕು)'})
-                
-                print(f"File validation passed - Extension: {file_ext}, Size: {file_size} bytes")
-                
-                # Call the conversion function with proper error handling
-                try:
-                    result_path = pdf_ops.word_to_pdf(word_file_path, session_id)
-                    print(f"word_to_pdf returned: {result_path}")
-                    
-                    if result_path and os.path.exists(result_path):
-                        result_size = os.path.getsize(result_path)
-                        print(f"✓ Word to PDF conversion successful: {result_size} bytes")
-                        
-                        if result_size == 0:
-                            print("✗ Result file is empty")
-                            return jsonify({'success': False, 'error': 'ಪರಿವರ್ತನೆ ವಿಫಲ - ಖಾಲಿ PDF ರಚಿಸಲಾಗಿದೆ'})
-                    else:
-                        print("✗ Word to PDF conversion failed - no result file")
-                        return jsonify({'success': False, 'error': 'Word to PDF ಪರಿವರ್ತನೆ ವಿಫಲವಾಗಿದೆ'})
-                        
-                except Exception as word_error:
-                    print(f"✗ Word to PDF conversion error: {word_error}")
-                    traceback.print_exc()
-                    return jsonify({'success': False, 'error': f'Word to PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(word_error)}'})
-                
-                print("=== WORD TO PDF OPERATION COMPLETE ===")
             
-            elif operation == 'compare':
-                print("Processing compare operation")
-                if len(file_paths) != 2:
-                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು'})
+            elif operation == 'word_to_pdf':
+                print("Processing Word to PDF operation")
+                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
                 
-                session.pop('comparison_data', None)
-                session.pop('comparison_report_url', None)
-                compare_type = 'both'
-                
-                # Maintain upload order
-                pdf1_path = file_paths[0]  # First uploaded file - LEFT side
-                pdf2_path = file_paths[1]  # Second uploaded file - RIGHT side
-                
-                print(f"Comparing: {pdf1_path} (LEFT) vs {pdf2_path} (RIGHT)")
-                
-                # Use the dedicated comparison class with maintained order
-                comparison_results = pdf_compare.compare_pdfs_web(pdf1_path, pdf2_path, session_id, compare_type)
-                
-                if not comparison_results:
-                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'})
-                
-                # Store comparison data in session for the results page
-                session['comparison_summary'] = {
-                    'file1_name': comparison_results['file1_name'],
-                    'file2_name': comparison_results['file2_name'],
-                    'file1_pages': comparison_results['file1_pages'],
-                    'file2_pages': comparison_results['file2_pages'],
-                    'total_text_changes': comparison_results['summary']['total_text_changes'],
-                    'visual_diff_pages': comparison_results['summary']['visual_diff_pages'],
-                    'session_id': session_id
-                }
-
-                # Save full data to file instead of session
-                comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
-                with open(comparison_file, 'w', encoding='utf-8') as f:
-                    json.dump(comparison_results, f, ensure_ascii=False, indent=2)
-
-                session['comparison_report_url'] = comparison_results.get('report_path', '')
-                session.modified = True
-
-                # Return success with redirect to results page
-                return jsonify({
-                    'success': True,
-                    'message': 'ಹೋಲಿಕೆ ಪೂರ್ಣಗೊಂಡಿದೆ!',
-                    'redirect_url': '/compare-result',
-                    'comparison_data': comparison_results
-                })
             else:
                 return jsonify({'success': False, 'error': f'ಅಮಾನ್ಯ ಕಾರ್ಯಾಚರಣೆ: {operation}'})
                 
