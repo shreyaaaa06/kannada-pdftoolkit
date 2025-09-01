@@ -1149,7 +1149,7 @@ class PDFOperations:
         except Exception as e:
             print(f"Preview generation error: {str(e)}")
         return None
-    def _compress_ultra_aggressive(self, input_path, output_path, level, target_size_mb=None):
+    def _compress_ultra_aggressive(self, input_path, output_path, params, remove_metadata=False, optimize_fonts=False):
         """
         Ultra-aggressive compression - maximum size reduction
         """
@@ -1158,10 +1158,11 @@ class PDFOperations:
             doc = fitz.open(input_path)
             new_doc = fitz.open()
             
-            # Very aggressive settings
-            dpi = 72  # Very low DPI
-            jpeg_quality = 30  # Very low quality
-            scale_factor = 0.4  # Scale down to 40%
+            # Get parameters from params dict
+            dpi = params.get('dpi', 72)  # Very low DPI
+            jpeg_quality = params.get('quality', 30)  # Very low quality
+            scale_factor = params.get('scale', 0.4)  # Scale down to 40%
+            target_size_mb = params.get('target_size_mb')
             
             # If target size specified, adjust parameters dynamically
             if target_size_mb:
@@ -1218,12 +1219,11 @@ class PDFOperations:
             
             doc.close()
             
-            # Save with maximum compression
+            # Save with maximum compression (removed linear=True as it's deprecated)
             new_doc.save(output_path, 
                         deflate=True, 
                         garbage=4, 
                         clean=True,
-                        linear=True,
                         pretty=False)
             new_doc.close()
             
@@ -1755,12 +1755,21 @@ class PDFOperations:
             
             # Select compression methods based on aggressiveness needed
             if compression_level == 'maximum' or (target_size_mb and target_size_mb < original_size_mb * 0.3):
+                print("Using aggressive compression methods for maximum/small target size")
                 methods = [
                     ("Extreme Aggressive", self._compress_extreme_aggressive),
                     ("Ultra Aggressive", self._compress_ultra_aggressive),
                     ("Smart Adaptive", self._compress_smart_adaptive),
                 ]
+            elif compression_level == 'high' or (target_size_mb and target_size_mb < original_size_mb * 0.6):
+                print("Using high compression methods")
+                methods = [
+                    ("Ultra Aggressive", self._compress_ultra_aggressive),
+                    ("Smart Adaptive", self._compress_smart_adaptive),
+                    ("Enhanced Image Recreation", self._compress_image_recreation_enhanced),
+                ]
             else:
+                print("Using standard compression methods")
                 methods = [
                     ("Smart Adaptive", self._compress_smart_adaptive),
                     ("Enhanced Image Recreation", self._compress_image_recreation_enhanced),
@@ -1823,7 +1832,13 @@ class PDFOperations:
                 
                 return output_path
             else:
-                raise Exception("ಎಲ್ಲಾ ಸಂಕುಚನ ವಿಧಾನಗಳು ವಿಫಲವಾಗಿವೆ")
+                # Fallback to basic compression if all enhanced methods fail
+                print("All enhanced methods failed, trying basic compression...")
+                try:
+                    return self._fallback_basic_compression(file_path, output_path, compression_level)
+                except Exception as fallback_error:
+                    print(f"Fallback compression also failed: {fallback_error}")
+                    raise Exception("ಎಲ್ಲಾ ಸಂಕುಚನ ವಿಧಾನಗಳು ವಿಫಲವಾಗಿವೆ")
                 
         except Exception as e:
             print(f"Enhanced compression error: {str(e)}")
@@ -1833,12 +1848,12 @@ class PDFOperations:
                                 custom_quality=None, custom_dpi=None):
         """Get compression parameters based on level and target size"""
         
-        # Base parameters for each level
+        # Base parameters for each level - made more aggressive
         level_configs = {
-            'low': {'dpi': 200, 'quality': 80, 'scale': 0.9},
-            'medium': {'dpi': 150, 'quality': 60, 'scale': 0.8},
-            'high': {'dpi': 100, 'quality': 45, 'scale': 0.6},
-            'maximum': {'dpi': 75, 'quality': 30, 'scale': 0.4},
+            'low': {'dpi': 200, 'quality': 75, 'scale': 0.95},
+            'medium': {'dpi': 150, 'quality': 55, 'scale': 0.8},
+            'high': {'dpi': 80, 'quality': 35, 'scale': 0.5},  # More aggressive
+            'maximum': {'dpi': 50, 'quality': 20, 'scale': 0.3},  # Much more aggressive
             'custom': {'dpi': 150, 'quality': 60, 'scale': 0.8}
         }
         
@@ -1848,22 +1863,127 @@ class PDFOperations:
         if target_size_mb and original_size_mb > 0:
             compression_ratio = target_size_mb / original_size_mb
             
-            if compression_ratio < 0.1:  # Need >90% compression
-                params.update({'dpi': 50, 'quality': 20, 'scale': 0.3})
+            print(f"Compression ratio needed: {compression_ratio:.3f} ({(1-compression_ratio)*100:.1f}% reduction)")
+            
+            if compression_ratio < 0.05:  # Need >95% compression
+                params.update({'dpi': 30, 'quality': 10, 'scale': 0.2})
+                print("Ultra-extreme compression settings applied")
+            elif compression_ratio < 0.1:  # Need >90% compression
+                params.update({'dpi': 40, 'quality': 15, 'scale': 0.25})
+                print("Extreme compression settings applied")
             elif compression_ratio < 0.2:  # Need >80% compression
                 params.update({'dpi': 60, 'quality': 25, 'scale': 0.35})
+                print("High compression settings applied")
             elif compression_ratio < 0.3:  # Need >70% compression
                 params.update({'dpi': 75, 'quality': 35, 'scale': 0.4})
+                print("Medium-high compression settings applied")
             elif compression_ratio < 0.5:  # Need >50% compression
                 params.update({'dpi': 100, 'quality': 45, 'scale': 0.6})
+                print("Medium compression settings applied")
         
         # Override with custom values if provided
         if custom_quality:
             params['quality'] = custom_quality
+            print(f"Custom quality applied: {custom_quality}")
         if custom_dpi:
             params['dpi'] = custom_dpi
+            print(f"Custom DPI applied: {custom_dpi}")
         
+        print(f"Final compression parameters: DPI={params['dpi']}, Quality={params['quality']}, Scale={params['scale']}")
         return params
+
+    def _fallback_basic_compression(self, input_path, output_path, compression_level):
+        """Fallback basic compression when all enhanced methods fail"""
+        try:
+            print("Using fallback basic compression...")
+            doc = fitz.open(input_path)
+            
+            # Enhanced compression settings based on level
+            if compression_level == 'maximum':
+                garbage = 4
+                deflate = True
+                clean = True
+                # Additional aggressive settings
+                print("Applying maximum compression settings")
+                
+                # Try to compress images within the PDF first
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    # Get all images on the page
+                    image_list = page.get_images()
+                    
+                    for img_index, img in enumerate(image_list):
+                        try:
+                            # Extract image
+                            base_image = doc.extract_image(img[0])
+                            image_bytes = base_image["image"]
+                            
+                            # Compress the image
+                            pil_img = Image.open(io.BytesIO(image_bytes))
+                            if pil_img.mode != 'RGB':
+                                pil_img = pil_img.convert('RGB')
+                            
+                            # Aggressive resizing and compression
+                            new_width = max(100, int(pil_img.width * 0.3))
+                            new_height = max(100, int(pil_img.height * 0.3))
+                            pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                            
+                            # Reduce colors
+                            pil_img = pil_img.quantize(colors=16).convert('RGB')
+                            
+                            # Compress
+                            compressed_io = io.BytesIO()
+                            pil_img.save(compressed_io, format='JPEG', quality=15, optimize=True)
+                            compressed_bytes = compressed_io.getvalue()
+                            
+                            # Replace the image in the page
+                            img_rect = page.get_image_bbox(img)
+                            page.delete_image(img[0])
+                            page.insert_image(img_rect, stream=compressed_bytes)
+                            
+                        except Exception as img_error:
+                            print(f"Could not compress image {img_index}: {img_error}")
+                            continue
+                            
+            elif compression_level == 'high':
+                garbage = 3
+                deflate = True
+                clean = True
+                print("Applying high compression settings")
+            elif compression_level == 'medium':
+                garbage = 2
+                deflate = True
+                clean = False
+                print("Applying medium compression settings")
+            else:  # low
+                garbage = 1
+                deflate = False
+                clean = False
+                print("Applying low compression settings")
+            
+            # Save with compression
+            doc.save(output_path, 
+                    garbage=garbage, 
+                    deflate=deflate,
+                    clean=clean,
+                    pretty=False)
+            doc.close()
+            
+            # Verify the output
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                output_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+                print(f"Fallback compression completed. Output size: {output_size_mb:.2f}MB")
+                return output_path
+            else:
+                raise Exception("Fallback compression produced no output")
+                
+        except Exception as e:
+            print(f"Fallback compression error: {e}")
+            raise Exception(f"ಸಂಕುಚನ ವಿಫಲವಾಗಿದೆ: {str(e)}")
+            
+        except Exception as e:
+            print(f"✗ Fallback basic compression failed: {e}")
+            raise e
 
     def _compress_smart_adaptive(self, input_path, output_path, params, remove_metadata, optimize_fonts):
         """Smart adaptive compression that analyzes content"""
@@ -2200,61 +2320,80 @@ class PDFOperations:
             new_doc = fitz.open()
             
             # Ultra-low settings for maximum compression
-            dpi = max(50, params.get('dpi', 50))  # Very low DPI
-            quality = max(15, params.get('quality', 20))  # Ultra low quality
-            scale_factor = min(0.3, params.get('scale', 0.3))  # Scale down to 30%
+            dpi = max(30, params.get('dpi', 50))  # Even lower DPI
+            quality = max(10, params.get('quality', 15))  # Ultra low quality
+            scale_factor = min(0.25, params.get('scale', 0.3))  # Scale down to 25%
             
             print(f"Extreme settings: DPI={dpi}, Quality={quality}, Scale={scale_factor}")
             
             for page_num in range(len(doc)):
-                page = doc[page_num]
-                
-                # Convert to very low resolution image
-                mat = fitz.Matrix(dpi/72, dpi/72)
-                pix = page.get_pixmap(matrix=mat, alpha=False)
-                
-                # Convert to PIL for aggressive processing
-                img_data = pix.tobytes("png")
-                pil_img = Image.open(io.BytesIO(img_data))
-                
-                # Scale down dramatically
-                new_width = int(pil_img.width * scale_factor)
-                new_height = int(pil_img.height * scale_factor)
-                pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                
-                # Convert to RGB
-                if pil_img.mode != 'RGB':
-                    pil_img = pil_img.convert('RGB')
-                
-                # Reduce color depth for smaller file size
-                pil_img = pil_img.quantize(colors=32).convert('RGB')  # Reduce to 32 colors
-                
-                # Apply aggressive compression
-                jpeg_io = io.BytesIO()
-                pil_img.save(jpeg_io, format='JPEG', 
-                            quality=quality, 
-                            optimize=True, 
-                            progressive=True)
-                jpeg_data = jpeg_io.getvalue()
-                
-                # Create new page
-                img_rect = fitz.Rect(0, 0, pil_img.width, pil_img.height)
-                new_page = new_doc.new_page(width=img_rect.width, height=img_rect.height)
-                new_page.insert_image(img_rect, stream=jpeg_data)
+                try:
+                    page = doc[page_num]
+                    
+                    # Convert to very low resolution image
+                    mat = fitz.Matrix(dpi/72, dpi/72)
+                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    
+                    # Convert to PIL for aggressive processing
+                    img_data = pix.tobytes("png")
+                    pil_img = Image.open(io.BytesIO(img_data))
+                    
+                    # Scale down dramatically
+                    new_width = max(100, int(pil_img.width * scale_factor))  # Minimum width
+                    new_height = max(100, int(pil_img.height * scale_factor))  # Minimum height
+                    pil_img = pil_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    
+                    # Convert to RGB
+                    if pil_img.mode != 'RGB':
+                        pil_img = pil_img.convert('RGB')
+                    
+                    # Reduce color depth for smaller file size
+                    pil_img = pil_img.quantize(colors=16).convert('RGB')  # Reduce to 16 colors
+                    
+                    # Apply aggressive compression
+                    jpeg_io = io.BytesIO()
+                    pil_img.save(jpeg_io, format='JPEG', 
+                                quality=quality, 
+                                optimize=True, 
+                                progressive=True)
+                    jpeg_data = jpeg_io.getvalue()
+                    
+                    # Create new page with proper scaling
+                    page_rect = page.rect
+                    img_rect = fitz.Rect(0, 0, page_rect.width, page_rect.height)
+                    new_page = new_doc.new_page(width=page_rect.width, height=page_rect.height)
+                    new_page.insert_image(img_rect, stream=jpeg_data)
+                    
+                except Exception as page_error:
+                    print(f"Error processing page {page_num}: {page_error}")
+                    # Skip this page or create a blank page
+                    page_rect = doc[page_num].rect
+                    new_page = new_doc.new_page(width=page_rect.width, height=page_rect.height)
+                    continue
             
             doc.close()
             
             # Save with maximum compression
-            new_doc.save(output_path, 
-                        deflate=True, 
-                        garbage=4, 
-                        clean=True,
-                        linear=True,
-                        pretty=False)
-            new_doc.close()
-            
-            print("Extreme aggressive compression completed")
-            return True
+            try:
+                new_doc.save(output_path, 
+                            deflate=True, 
+                            garbage=4, 
+                            clean=True,
+                            pretty=False)
+                new_doc.close()
+                
+                # Verify the file was created and has content
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    print("Extreme aggressive compression completed successfully")
+                    return True
+                else:
+                    print("Output file not created or empty")
+                    return False
+                    
+            except Exception as save_error:
+                print(f"Error saving compressed file: {save_error}")
+                new_doc.close()
+                return False
             
         except Exception as e:
             print(f"Extreme aggressive compression error: {e}")

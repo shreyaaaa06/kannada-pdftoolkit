@@ -616,17 +616,45 @@ def upload_file():
                 print(f"Compression settings: level={compression_level}, target={target_size}MB")
                 print(f"Advanced options: quality={quality}, dpi={dpi}, remove_metadata={remove_metadata}, optimize_fonts={optimize_fonts}")
                 
-                # Use the enhanced compression method
-                result_path = pdf_ops.compress_pdf_enhanced(
-                    file_paths[0], 
-                    compression_level, 
-                    session_id,
-                    target_size_mb=target_size,
-                    image_quality=quality,
-                    image_dpi=dpi,
-                    remove_metadata=remove_metadata,
-                    optimize_fonts=optimize_fonts
-                )
+                try:
+                    # Use the enhanced compression method
+                    result_path = pdf_ops.compress_pdf_enhanced(
+                        file_paths[0], 
+                        compression_level, 
+                        session_id,
+                        target_size_mb=target_size,
+                        image_quality=quality,
+                        image_dpi=dpi,
+                        remove_metadata=remove_metadata,
+                        optimize_fonts=optimize_fonts
+                    )
+                    
+                    if result_path and os.path.exists(result_path):
+                        original_size = os.path.getsize(file_paths[0]) / (1024 * 1024)
+                        compressed_size = os.path.getsize(result_path) / (1024 * 1024)
+                        reduction = (1 - compressed_size/original_size) * 100
+                        
+                        print(f"Compression successful!")
+                        print(f"Original: {original_size:.2f}MB -> Compressed: {compressed_size:.2f}MB")
+                        print(f"Size reduction: {reduction:.1f}%")
+                    else:
+                        raise Exception("Compression method did not produce output file")
+                        
+                except Exception as compression_error:
+                    print(f"Enhanced compression failed: {compression_error}")
+                    print("Attempting fallback compression...")
+                    
+                    try:
+                        # Fallback to basic compression
+                        result_path = pdf_ops.compress_pdf(file_paths[0], compression_level, session_id)
+                        if not result_path or not os.path.exists(result_path):
+                            raise Exception("Fallback compression also failed")
+                    except Exception as fallback_error:
+                        print(f"Fallback compression failed: {fallback_error}")
+                        return jsonify({
+                            'success': False, 
+                            'error': f'PDF ಸಂಕುಚನ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೊಂದು ಫೈಲ್ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಕಡಿಮೆ ಸಂಕುಚನ ಮಟ್ಟವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ.'
+                        })
                 
             elif operation == 'pdf_to_jpeg':
                 result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
