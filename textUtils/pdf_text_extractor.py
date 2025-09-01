@@ -32,6 +32,13 @@ try:
 except ImportError:
     OCR_AVAILABLE = False
 
+# Word document library
+try:
+    from docx import Document
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
 
 def check_dependencies():
     """Check if required dependencies are installed."""
@@ -53,12 +60,18 @@ def check_dependencies():
         print("⚠️  OCR libraries not available (for image-based PDFs)")
         missing_deps.append("pytesseract, pillow, pdf2image (for OCR)")
     
+    if DOCX_AVAILABLE:
+        print("✅ python-docx is available")
+    else:
+        print("⚠️  python-docx not available (for DOCX output)")
+        missing_deps.append("python-docx (for DOCX output)")
+    
     if missing_deps:
         print("\n❌ Missing dependencies:")
         for dep in missing_deps:
             print(f"   - {dep}")
         print("\nInstall with:")
-        print("pip install PyPDF2 pdfplumber pytesseract pillow pdf2image")
+        print("pip install PyPDF2 pdfplumber pytesseract pillow pdf2image python-docx")
         return False
     
     return True
@@ -84,7 +97,7 @@ def extract_text_pypdf2(pdf_path):
             for page_num, page in enumerate(pdf_reader.pages, 1):
                 print(f"📖 Processing page {page_num}...")
                 page_text = page.extract_text()
-                if page_text.strip():
+                if page_text and page_text.strip():
                     text += f"\n--- Page {page_num} ---\n"
                     text += page_text + "\n"
             
@@ -248,6 +261,47 @@ def save_text_to_file(text, pdf_path, output_dir=None):
         return None
 
 
+def save_text_to_docx(text, output_path):
+    """Save extracted text to a DOCX file."""
+    if not DOCX_AVAILABLE:
+        raise RuntimeError("python-docx is not available. Install with 'pip install python-docx'")
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+    doc = Document()
+    # Split by lines to preserve basic structure
+    for line in text.splitlines():
+        doc.add_paragraph(line)
+    doc.save(output_path)
+    return output_path
+
+
+def convert_pdf_to_docx(pdf_path, session_id, output_dir=None, method='ocr', ocr_language='kan'):
+    """
+    Convert a PDF to a DOCX by extracting text (auto/ocr) and writing to a Word document.
+    Returns the path to the generated .docx file.
+    """
+    if not os.path.exists(pdf_path):
+        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+
+    # Extract text using the chosen method
+    extracted_text = extract_text_from_pdf(pdf_path, method=method, ocr_language=ocr_language)
+    if not extracted_text or extracted_text.startswith("❌"):
+        raise RuntimeError(f"Text extraction failed: {extracted_text}")
+
+    base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+    output_dir_final = output_dir or (os.path.dirname(pdf_path) or '.')
+    output_filename = f"{session_id}_{base_name}.docx"
+    output_path = os.path.join(output_dir_final, output_filename)
+
+    # Save to DOCX
+    save_text_to_docx(extracted_text, output_path)
+
+    if not os.path.exists(output_path):
+        raise RuntimeError("DOCX file was not created")
+
+    return output_path
+
+
 def display_results(text, pdf_path, save_output=False, output_dir=None):
     """
     Display the extraction results and optionally save to file.
@@ -306,7 +360,7 @@ def process_multiple_pdfs(folder_path, method='auto', ocr_language='kan', save_o
         print(f"❌ No PDF files found in '{folder_path}'")
         return
     
-    print(f"📁 Found {len(pdf_files)} PDF file(s) in '{folder_path}'")
+    print(f"📁 Found {len(pdf_files)} PDF file(s) in '{folder_path}")
     
     for i, pdf_file in enumerate(pdf_files, 1):
         print(f"\n🔄 Processing PDF {i}/{len(pdf_files)}: {pdf_file}")
