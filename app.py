@@ -1,21 +1,23 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for, redirect, flash
+from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for, redirect, flash , make_response
 import os
 import uuid
+import sys
 from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
+from utils.pdf_compare import PDFCompare
 from utils.auth import AuthenticationManager
 import config
+import traceback
 from functools import wraps
 
 import fitz  # PyMuPDF
 from PIL import Image
 import io
+import time
+from utils.pdf_compare import PDFCompare
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import traceback
-import time
-import sys
 import html
 from flask import redirect, url_for
 from utils.pdf_compare import PDFCompare
@@ -24,9 +26,9 @@ from flask import Response
 import requests
 from weasyprint import HTML, CSS
 from flask import make_response
+import traceback
 import json
 
-# Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'karnataka-govt-pdf-toolkit-secret-key-2025'
 
@@ -44,6 +46,7 @@ app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
 
 # UTF-8 encoding configuration
 # Set UTF-8 encoding for stdout and stderr if possible, otherwise rely on PYTHONIOENCODING
+
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 try:
     sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
@@ -657,15 +660,22 @@ def upload_file():
                         })
                 
             elif operation == 'pdf_to_jpeg':
+                print("Processing PDF to JPEG operation")
                 result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
                 
             elif operation == 'jpeg_to_pdf':
+                print("Processing JPEG to PDF operation")   
                 result_path = pdf_ops.images_to_pdf(file_paths, session_id)
                 
-            elif operation == 'pdf_to_word':
-                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+            
 
+            elif operation == 'pdf_to_word':
+                print("Processing PDF to Word operation")
+                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+            
             elif operation == 'word_to_pdf':
+                print("Processing Word to PDF operation")
+                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
                 result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
                 # Enhanced Word to PDF operation from file 2
                 print("=== PROCESSING WORD TO PDF OPERATION (FIXED) ===")
@@ -1191,5 +1201,8 @@ def cleanup_old_files():
 
 if __name__ == '__main__':
     cleanup_old_files()
-    app.run(debug=True)
+    # Run without Flask debug to ensure JSON error handlers are used (avoid HTML error pages)
+    import os
+    debug_flag = os.environ.get('FLASK_DEBUG', '0') in ('1', 'true', 'True')
+    app.run(debug=debug_flag)
 

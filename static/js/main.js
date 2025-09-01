@@ -1536,11 +1536,29 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('/upload', {
                 method: 'POST',
+                // Hint server to return JSON even in errors (Flask debug can send HTML)
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 body: formData
             });
-            const result = await response.json();
+
+            // Try to parse JSON only when content-type indicates JSON
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            let result;
+            if (contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                // If non-OK and non-JSON, throw a readable error with a short preview
+                if (!response.ok) {
+                    const preview = (text || '').trim().slice(0, 500) || `HTTP ${response.status}`;
+                    throw new Error(preview);
+                }
+                // If OK but not JSON, still surface as an error
+                throw new Error('ಸರ್ವರ್‌ನಿಂದ ಮಾನ್ಯ JSON ಪ್ರತಿಕ್ರಿಯೆ ಬಂದಿಲ್ಲ.');
+            }
+
             // Handle result after fetch
-            if (result.success) {
+            if (result && result.success) {
                 // Special handling for compare operation
                 if (result.redirect_url) {
                     showAlert('success', result.message || 'ಕಾರ್ಯಾಚರಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!');
@@ -1554,10 +1572,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectedPages.clear();
                 currentPreviewData = null;
             } else {
-                showErrorModal(result.error);
+                const message = (result && result.error) ? result.error : 'ಅಪರಿಚಿತ ದೋಷ ಸಂಭವಿಸಿದೆ';
+                showErrorModal(message);
             }
         } catch (error) {
-            showErrorModal('ನೆಟ್‌ವರ್ಕ್ ದೋಷ: ' + error.message);
+            // Show a clean error if server returned HTML or plain text
+            showErrorModal('ನೆಟ್‌ವರ್ಕ್/ಸರ್ವರ್ ದೋಷ: ' + (error && error.message ? error.message : 'ಅಪರಿಚಿತ ದೋಷ'));
         } finally {
             if (loadingModal) loadingModal.style.display = 'none';
         }
@@ -1600,12 +1620,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const modalBody = modal.querySelector('.modal-body');
         if (!modalBody) return;
+        // Prevent raw HTML injection if server returned an HTML error page
+        const escape = (s) => String(s || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
         
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 2rem;">
                 <div style="font-size: 4rem; color: #f44336; margin-bottom: 1rem;">❌</div>
                 <h3>ದೋಷ ಸಂಭವಿಸಿದೆ</h3>
-                <p style="margin: 1rem 0;">${errorMessage}</p>
+                <p style="margin: 1rem 0;">${escape(errorMessage)}</p>
                 <div style="margin-top: 2rem;">
                     <button class="btn btn-primary" onclick="startNewOperation('${currentOperation}')">
                         <i class="fas fa-redo"></i> ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ
