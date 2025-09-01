@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
 from utils.pdf_compare import PDFCompare
+from textUtils.pdf_text_extractor import convert_pdf_to_docx
 import config
 import fitz  # PyMuPDF
 from PIL import Image
@@ -427,7 +428,14 @@ def upload_file():
 
             elif operation == 'pdf_to_word':
                 print("Processing PDF to Word operation")
-                result_path = pdf_ops.pdf_to_word(file_paths[0], session_id)
+                # Use textUtils extractor to convert PDF to DOCX (auto chooses best method incl. OCR)
+                result_path = convert_pdf_to_docx(
+                    file_paths[0],
+                    session_id,
+                    output_dir=app.config['OUTPUT_FOLDER'],
+                    method='ocr',
+                    ocr_language='kan'
+                )
             
             elif operation == 'word_to_pdf':
                 print("Processing Word to PDF operation")
