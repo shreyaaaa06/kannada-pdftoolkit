@@ -2431,8 +2431,7 @@
             <div class="ornament"></div>
         </div>
     </header>
-    <!-- Info Modal placeholder for JS -->
-<div id="infoModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); justify-content:center; align-items:center;"></div>
+
     <!-- Main Menu Section -->
     <section class="main-menu">
         <div class="menu-container">
@@ -2461,21 +2460,6 @@
                             </a>
                             <a href="#convert" class="dropdown-item">
                                 <i class="fas fa-exchange-alt"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ
-                            </a>
-                            <a href="#rotate" class="dropdown-item">
-                                <i class="fas fa-redo-alt"></i> PDF ತಿರುಗಿಸಿ
-                            </a>
-                            <a href="#compare" class="dropdown-item">
-                                <i class="fas fa-balance-scale"></i> PDF ಹೋಲಿಕೆ
-                            </a>
-                            <a href="#sort" class="dropdown-item">
-                                <i class="fas fa-sort-numeric-down"></i> ಪುಟ ಸಂಖ್ಯೆ ಆಧಾರಿತವಾಗಿ ಸಾರಿ
-                            </a>
-                            <a href="#protect" class="dropdown-item">
-                                <i class="fas fa-lock"></i> PDF ರಕ್ಷಿಸಿ
-                            </a>
-                            <a href="#unlock" class="dropdown-item">
-                                <i class="fas fa-unlock"></i> PDF ಅನ್‌ಲಾಕ್
                             </a>
                         </div>
                     </li>
@@ -2663,7 +2647,7 @@
                         <i class="fas fa-arrow-right"></i> ಆರಂಭಿಸಿ
                     </button>
                 </div>
-                <div id="rotate" class="operation-card" data-operation="rotate">
+                <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-redo-alt"></i></div>
                     <h3 class="operation-title">PDF ತಿರುಗಿಸಿ</h3>
                     <p class="operation-description">PDF ಪುಟಗಳನ್ನು 90°, 180°, 270° ತಿರುಗಿಸಿ</p>
@@ -2672,7 +2656,7 @@
                     </button>
                 </div>
                 <!-- Add this card to your operations grid in index.html -->
-                <div id="compare" class="operation-card" data-operation="compare">
+                <div class="operation-card">
                     <div class="operation-icon"><i class="fas fa-balance-scale"></i></div>
                     <h3 class="operation-title">PDF ಹೋಲಿಕೆ</h3>
                     <p class="operation-description">ಎರಡು PDF ಫೈಲ್‌ಗಳನ್ನು ಹೋಲಿಸಿ ಮತ್ತು ವ್ಯತ್ಯಾಸಗಳನ್ನು ಹುಡುಕಿ</p>
@@ -2685,7 +2669,7 @@
                 
 
                                 <!--sorting -->
-                <div id="sort" class="operation-card" data-operation="sort">
+                <div class="operation-card" data-operation="sort">
                     <div class="operation-icon"><i class="fas fa-sort-numeric-down"></i></div>
                     <h3 class="operation-title">ಪುಟ ಸಂಖ್ಯೆ ಆಧಾರಿತವಾಗಿ PDF ಸಾರಿ ಹಾಕಿ</h3>
                     <p class="operation-description">ಪುಟ ಸಂಖ್ಯೆ ಆಧಾರಿತವಾಗಿ PDF ಪುಟಗಳನ್ನು ಸಾರಿ ಹಾಕಿ</p>

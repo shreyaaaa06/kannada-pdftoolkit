@@ -1,21 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Define menu contents for various sections
-    const menuContents = {
-        'about': {
-            title: 'ನಮ್ಮ ಬಗ್ಗೆ',
-            content: 'ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್ ಅಡಿಯಲ್ಲಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಾದ ಸುರಕ್ಷಿತ PDF ಉಪಕರಣಗಳು.'
-        },
-        'contact': {
-            title: 'ಸಂಪರ್ಕಿಸಿ',
-            content: 'ತಾಂತ್ರಿಕ ಸಹಾಯಕ್ಕಾಗಿ: support@kannadapdf.kar.gov.in<br>ಫೋನ್: 080-2212-3456'
-        },
-        'help': {
-            title: 'ಸಹಾಯ',
-            content: 'PDF ಕಾರ್ಯಾಚರಣೆಗಳಿಗಾಗಿ ಸಂಪೂರ್ಣ ಮಾರ್ಗದರ್ಶನ ಮತ್ತು ಸಹಾಯ ಪಡೆಯಿರಿ.'
-        }
-    };
-
     // Function to show menu content modal
     window.showMenuContent = function(menuKey) {
         const modal = safeGetElement('operationModal');
@@ -302,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Compression functions
     window.updateCompressionUI = function() {
-        console.log('updateCompressionUI called');
         const compressionSelect = safeGetElement('compressionSelect');
         const targetSizeGroup = safeGetElement('targetSizeGroup');
         const advancedToggle = safeGetElement('advancedToggle');
@@ -310,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!compressionSelect) return;
         
         const selectedValue = compressionSelect.value;
-        console.log('Selected compression level:', selectedValue);
         
         if (selectedValue === 'custom') {
             if (targetSizeGroup) targetSizeGroup.style.display = 'block';
@@ -325,39 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetSizeGroup) targetSizeGroup.style.display = 'none';
             if (advancedToggle) advancedToggle.style.display = 'block';
         }
-        
-        // Add description for compression levels
-        updateCompressionDescription(selectedValue);
     };
-    
-    function updateCompressionDescription(level) {
-        const descriptions = {
-            'low': 'ಕಡಿಮೆ ಸಂಕುಚನ - ಉತ್ತಮ ಗುಣಮಟ್ಟ ಉಳಿಯುತ್ತದೆ, ಸ್ವಲ್ಪ ಗಾತ್ರ ಕಡಿಮೆಯಾಗುತ್ತದೆ',
-            'medium': 'ಮಧ್ಯಮ ಸಂಕುಚನ - ಗುಣಮಟ್ಟ ಮತ್ತು ಗಾತ್ರದ ನಡುವೆ ಸಮತೋಲನ',
-            'high': 'ಹೆಚ್ಚಿನ ಸಂಕುಚನ - ಗಾತ್ರ ಗಣನೀಯವಾಗಿ ಕಡಿಮೆಯಾಗುತ್ತದೆ (ದೊಡ್ಡ ಫೈಲ್‌ಗಳಿಗೆ ಉತ್ತಮ)',
-            'maximum': 'ಅತ್ಯಧಿಕ ಸಂಕುಚನ - ಅತಿ ಚಿಕ್ಕ ಗಾತ್ರ (ದೊಡ್ಡ ಫೈಲ್‌ಗಳಿಗೆ ಶಿಫಾರಸು)',
-            'custom': 'ಕಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್ಸ್ - ನೀವು ನಿರ್ದಿಷ್ಟಪಡಿಸಿದ ಗಾತ್ರ ಮತ್ತು ಗುಣಮಟ್ಟ'
-        };
-        
-        // Find or create description element
-        let descElement = safeGetElement('compressionDescription');
-        if (!descElement) {
-            const compressionGroup = safeGetElement('compressionGroup');
-            if (compressionGroup) {
-                descElement = document.createElement('small');
-                descElement.id = 'compressionDescription';
-                descElement.style.color = '#666';
-                descElement.style.fontStyle = 'italic';
-                descElement.style.display = 'block';
-                descElement.style.marginTop = '0.5rem';
-                compressionGroup.appendChild(descElement);
-            }
-        }
-        
-        if (descElement) {
-            descElement.textContent = descriptions[level] || '';
-        }
-    }
 
     window.toggleAdvancedCompression = function() {
         const showAdvancedComp = safeGetElement('showAdvancedComp');
@@ -2153,9 +2103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             input.parentNode.appendChild(feedbackDiv);
         }
-        // NOTE: Avoid nested DOMContentLoaded listeners — they won't fire here.
-        // Initialize menu link click handlers immediately (we're already in DOMContentLoaded).
-        function initMenuLinkHandlers() {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for menu items
             const menuLinks = document.querySelectorAll('.menu-item a, .dropdown-item');
             menuLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
@@ -2165,17 +2114,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         const sectionId = href.substring(1);
                         switch(sectionId) {
                             case 'home':
-                                try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                                 break;
                             case 'services':
-                                try {
-                                    if (!scrollToSection('operations-section')) {
-                                        const servicesSection = document.querySelector('.operations-section') ||
-                                                                document.getElementById('services') ||
-                                                                document.querySelector('[data-section="services"]');
-                                        if (servicesSection) servicesSection.scrollIntoView({ behavior: 'smooth' });
-                                    }
-                                } catch (error) { console.error('Error scrolling to services:', error); }
+                                scrollToSection('operations-section') || document.querySelector('.operations-section')?.scrollIntoView({ behavior: 'smooth' });
                                 break;
                             case 'help':
                                 showHelpModal();
@@ -2198,21 +2140,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 highlightOperationCard('compress');
                                 selectOperation('compress');
                                 break;
-                            case 'rotate':
-                                highlightOperationCard('rotate');
-                                selectOperation('rotate');
-                                break;
-                            case 'compare':
-                                highlightOperationCard('compare');
-                                selectOperation('compare');
-                                break;
-                            case 'sort':
-                                highlightOperationCard('sort');
-                                selectOperation('sort');
-                                break;
-                            case 'convert':
-                                showFormatConversionOptions();
-                                break;
                             case 'protect':
                                 highlightOperationCard('protect');
                                 selectOperation('protect');
@@ -2232,7 +2159,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 break;
                             default:
                                 const targetSection = document.getElementById(sectionId) || document.querySelector(`.${sectionId}-section`) || document.querySelector(`[data-section="${sectionId}"]`);
-                                if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+                                if (targetSection) {
+                                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                                }
                         }
                         document.querySelectorAll('.menu-item a').forEach(a => a.classList.remove('active'));
                         this.classList.add('active');
@@ -2240,305 +2169,105 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
 
-            // Wire up help modal quick actions if present (after modals are injected)
+            // Wire up help modal buttons
             setTimeout(() => {
                 const userGuideBtn = document.getElementById('userGuideBtn');
-                if (userGuideBtn) userGuideBtn.onclick = showUserGuide;
+                if (userGuideBtn) {
+                    userGuideBtn.onclick = showUserGuide;
+                }
                 const faqBtn = document.getElementById('faqBtn');
-                if (faqBtn) faqBtn.onclick = showFAQ;
+                if (faqBtn) {
+                    faqBtn.onclick = showFAQ;
+                }
                 const videoHelpBtn = document.getElementById('videoHelpBtn');
-                if (videoHelpBtn) videoHelpBtn.onclick = showVideoHelp;
+                if (videoHelpBtn) {
+                    videoHelpBtn.onclick = showVideoHelp;
+                }
             }, 500);
-        }
+        });
 
         // Modal functions for menu items
         function showHelpModal() {
-            console.log('showHelpModal called');
-            showInfoModal('ಸಹಾಯ - ಮಾರ್ಗದರ್ಶನ', `
+            showInfoModal('ಸಹಾಯ', `
+                <h4>ಕನ್ನಡ PDF ಉಪಕರಣಗಳು - ಬಳಕೆಯ ಮಾರ್ಗದರ್ಶಿ</h4>
                 <div style="text-align: left; line-height: 1.8;">
-                    <h4><i class="fas fa-info-circle"></i> ಕನ್ನಡ PDF ಉಪಕರಣಗಳು - ಸಂಪೂರ್ಣ ಮಾರ್ಗದರ್ಶಿ</h4>
+                    <h5><i class="fas fa-layer-group"></i> PDF ವಿಲೀನಗೊಳಿಸಿ:</h5>
+                    <p>• ಬಹುಸಂಖ್ಯೆಯ PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ<br>
+                    • ಅವುಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಒಂದೇ ಫೈಲ್‌ಆಗಿ ಸಂಯೋಜಿಸಲ್ಪಡುತ್ತವೆ</p>
                     
-                    <div style="background: rgba(30, 58, 138, 0.1); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <h5><i class="fas fa-rocket"></i> ಪ್ರಾರಂಭಿಸುವ ಮುನ್ನ:</h5>
-                        <ul style="margin-left: 1rem;">
-                            <li>ನಿಮ್ಮ ಫೈಲ್‌ಗಳು 100MB ಗಿಂತ ಕಡಿಮೆ ಗಾತ್ರದಲ್ಲಿರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ</li>
-                            <li>ಉತ್ತಮ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವಿರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ</li>
-                            <li>ಬ್ರೌಸರ್ ಅಪ್‌ಡೇಟ್ ಆಗಿರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ</li>
-                        </ul>
-                    </div>
+                    <h5><i class="fas fa-cut"></i> PDF ವಿಭಾಗಿಸಿ:</h5>
+                    <p>• ಒಂದು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ<br>
+                    • ಪ್ರತ್ಯೇಕ ಪುಟಗಳಾಗಿ ಅಥವಾ ವ್ಯಾಪ್ತಿಗಳಾಗಿ ವಿಭಾಗಿಸಿ</p>
                     
-                    <h5><i class="fas fa-layer-group text-primary"></i> PDF ವಿಲೀನಗೊಳಿಸುವಿಕೆ:</h5>
-                    <div style="background: #f8f9fa; padding: 0.8rem; border-left: 4px solid #1e3a8a; margin: 0.5rem 0;">
-                        <p><strong>ಹಂತಗಳು:</strong></p>
-                        <ol style="margin-left: 1rem;">
-                            <li>"PDF ವಿಲೀನಗೊಳಿಸಿ" ಆಯ್ಕೆ ಮಾಡಿ</li>
-                            <li>2 ಅಥವಾ ಹೆಚ್ಚು PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ</li>
-                            <li>ಫೈಲ್‌ಗಳ ಕ್ರಮವನ್ನು ಜೋಡಿಸಿ</li>
-                            <li>"ವಿಲೀನಗೊಳಿಸಿ" ಬಟನ್ ಒತ್ತಿ</li>
-                        </ol>
-                        <p><em>ಫಲಿತಾಂಶ: ಒಂದೇ ಸಂಯೋಜಿತ PDF ಫೈಲ್</em></p>
-                    </div>
+                    <h5><i class="fas fa-compress-arrows-alt"></i> PDF ಸಂಕುಚಿಸಿ:</h5>
+                    <p>• ಫೈಲ್ ಗಾತ್ರವನ್ನು ಕಡಿಮೆ ಮಾಡಿ<br>
+                    • ಗುಣಮಟ್ಟವನ್ನು ಕಾಪಾಡಿಕೊಂಡು ಸಂಗ್ರಹಣೆ ಮತ್ತು ಹಂಚಿಕೆಗೆ ಸುಲಭ</p>
                     
-                    <h5><i class="fas fa-cut text-warning"></i> PDF ವಿಭಾಗಿಸುವಿಕೆ:</h5>
-                    <div style="background: #f8f9fa; padding: 0.8rem; border-left: 4px solid #ffc107; margin: 0.5rem 0;">
-                        <p><strong>ಹಂತಗಳು:</strong></p>
-                        <ol style="margin-left: 1rem;">
-                            <li>"PDF ವಿಭಾಗಿಸಿ" ಆಯ್ಕೆ ಮಾಡಿ</li>
-                            <li>ಒಂದು PDF ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ</li>
-                            <li>ವಿಭಾಗಿಸುವ ವಿಧಾನ ಆಯ್ಕೆ ಮಾಡಿ</li>
-                            <li>ಪುಟ ಸಂಖ್ಯೆಗಳನ್ನು ನಿರ್ದಿಷ್ಟಪಡಿಸಿ</li>
-                        </ol>
-                        <p><em>ಫಲಿತಾಂಶ: ಪ್ರತ್ಯೇಕ PDF ಫೈಲ್‌ಗಳು</em></p>
-                    </div>
-                    
-                    <h5><i class="fas fa-compress-arrows-alt text-success"></i> PDF ಸಂಕುಚನ:</h5>
-                    <div style="background: #f8f9fa; padding: 0.8rem; border-left: 4px solid #16a34a; margin: 0.5rem 0;">
-                        <p><strong>ಸಂಕುಚನ ಮಟ್ಟಗಳು:</strong></p>
-                        <ul style="margin-left: 1rem;">
-                            <li><strong>ಕಡಿಮೆ:</strong> ಉತ್ತಮ ಗುಣಮಟ್ಟ, ಸ್ವಲ್ಪ ಸಂಕುಚನ</li>
-                            <li><strong>ಮಧ್ಯಮ:</strong> ಸಮತೋಲಿತ ಗುಣಮಟ್ಟ ಮತ್ತು ಗಾತ್ರ</li>
-                            <li><strong>ಹೆಚ್ಚು:</strong> ಕಡಿಮೆ ಗಾತ್ರ, ಸರಾಸರಿ ಗುಣಮಟ್ಟ</li>
-                        </ul>
-                    </div>
-                    
-                    <h5><i class="fas fa-exchange-alt text-info"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ:</h5>
-                    <div style="background: #f8f9fa; padding: 0.8rem; border-left: 4px solid #0ea5e9; margin: 0.5rem 0;">
-                        <p><strong>ಲಭ್ಯವಿರುವ ಪರಿವರ್ತನೆಗಳು:</strong></p>
-                        <ul style="margin-left: 1rem;">
-                            <li>PDF ↔ Word (DOCX)</li>
-                            <li>PDF ↔ Images (JPEG, PNG)</li>
-                            <li>Multiple Images → PDF</li>
-                        </ul>
-                    </div>
-                    
-                    <div style="background: rgba(220, 38, 38, 0.1); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <h5><i class="fas fa-shield-alt"></i> ಸುರಕ್ಷತಾ ಮಾಹಿತಿ:</h5>
-                        <ul style="margin-left: 1rem;">
-                            <li>ಎಲ್ಲಾ ಪ್ರಕ್ರಿಯೆಗಳು ನಿಮ್ಮ ಸ್ಥಳೀಯ ಸಿಸ್ಟಮ್‌ನಲ್ಲಿಯೇ ನಡೆಯುತ್ತವೆ</li>
-                            <li>ಫೈಲ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ 24 ಗಂಟೆಗಳ ನಂತರ ಅಳಿಸಲ್ಪಡುತ್ತವೆ</li>
-                            <li>ಯಾವುದೇ ಡೇಟಾ ಬಾಹ್ಯ ಸರ್ವರ್‌ಗಳಿಗೆ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ</li>
-                        </ul>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; border-radius: 8px;">
-                        <p><strong><i class="fas fa-phone"></i> ಸಹಾಯ ಬೇಕೇ?</strong><br>
-                        <a href="#contact" style="color: #fbbf24;" onclick="closeInfoModal(); setTimeout(() => showContactModal(), 100);">ಸಂಪರ್ಕಿಸಿ</a> ಅಥವಾ 
-                        <a href="#faq" style="color: #fbbf24;" onclick="closeInfoModal(); setTimeout(() => showFAQ(), 100);">FAQ ವೀಕ್ಷಿಸಿ</a></p>
-                    </div>
+                    <h5><i class="fas fa-shield-alt"></i> ಸುರಕ್ಷತೆ:</h5>
+                    <p>• ಎಲ್ಲಾ ಫೈಲ್‌ಗಳು ನಿಮ್ಮ ಸಿಸ್ಟಮ್‌ನಲ್ಲಿಯೇ ಪ್ರಕ್ರಿಯೆಗೊಳ್ಳುತ್ತವೆ<br>
+                    • ಯಾವುದೇ ಡೇಟಾ ಇಂಟರ್ನೆಟ್‌ಗೆ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ</p>
                 </div>
             `);
         }
 
         function showAboutModal() {
-            console.log('showAboutModal called');
-            try {
-                showInfoModal('ನಮ್ಮ ಬಗ್ಗೆ - ಪರಿಚಯ', `
+            showInfoModal('ನಮ್ಮ ಬಗ್ಗೆ', `
                 <div style="text-align: left; line-height: 1.8;">
-                    <div style="text-align: center; margin-bottom: 2rem;">
-                        <i class="fas fa-landmark" style="font-size: 3rem; color: #1e3a8a; margin-bottom: 1rem;"></i>
-                        <h4 style="color: #1e3a8a; margin: 0;">ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್</h4>
-                        <p style="font-style: italic; color: #666; margin: 0.5rem 0;">ಆಧುನಿಕ ತಂತ್ರಜ್ಞಾನದ ಮೂಲಕ ಕರ್ನಾಟಕವನ್ನು ಮುಂದಕ್ಕೆ ಕೊಂಡೊಯ್ಯುವ ದಿಕ್ಕಿನಲ್ಲಿ</p>
-                    </div>
+                    <h4><i class="fas fa-landmark"></i> ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ಇನಿಶಿಯೇಟಿವ್</h4>
+                    <p>ಈ PDF ಉಪಕರಣಗಳು ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ಡಿಜಿಟಲ್ ಇನಿಶಿಯೇಟಿವ್‌ನ ಭಾಗವಾಗಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಾಗಿದೆ.</p>
                     
-                    <div style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
-                        <h5><i class="fas fa-bullseye"></i> ನಮ್ಮ ಮಿಷನ್:</h5>
-                        <p style="margin: 0;">ಕರ್ನಾಟಕದ ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸುರಕ್ಷಿತ, ವಿಶ್ವಾಸಾರ್ಹ ಮತ್ತು ಬಳಕೆದಾರ-ಸ್ನೇಹಿ PDF ಸಂಸ್ಕರಣಾ ಸೇವೆಗಳನ್ನು ಒದಗಿಸುವುದು.</p>
-                    </div>
+                    <h5><i class="fas fa-target"></i> ಉದ್ದೇಶ:</h5>
+                    <p>ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸುರಕ್ಷಿತ ಮತ್ತು ಸುಲಭವಾದ PDF ಸಂಸ್ಕರಣಾ ಸೇವೆಗಳನ್ನು ಒದಗಿಸುವುದು.</p>
                     
-                    <h5><i class="fas fa-target text-primary"></i> ನಮ್ಮ ಉದ್ದೇಶಗಳು:</h5>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <ul style="margin-left: 1rem; margin-bottom: 0;">
-                            <li><strong>ಡಿಜಿಟಲ್ ಗವರ್ನೆನ್ಸ್:</strong> ಸರ್ಕಾರಿ ಕೆಲಸಗಳಲ್ಲಿ ಡಿಜಿಟಲ್ ದಕ್ಷತೆಯನ್ನು ಹೆಚ್ಚಿಸುವುದು</li>
-                            <li><strong>ಭಾಷಾ ಬೆಂಬಲ:</strong> ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಸಂಪೂರ್ಣ ಯೂನಿಕೋಡ್ ಬೆಂಬಲ</li>
-                            <li><strong>ಸುರಕ್ಷತೆ:</strong> ಅತ್ಯುನ್ನತ ಮಟ್ಟದ ಡೇಟಾ ಸುರಕ್ಷತೆ ಮತ್ತು ಗೌಪ್ಯತೆ</li>
-                            <li><strong>ಪ್ರವೇಶಯೋಗ್ಯತೆ:</strong> ಎಲ್ಲರಿಗೂ ಸುಲಭವಾಗಿ ಬಳಸಬಹುದಾದ ಇಂಟರ್‌ಫೇಸ್</li>
-                        </ul>
-                    </div>
+                    <h5><i class="fas fa-users"></i> ಲಕ್ಷ್ಯ ಗುಂಪು:</h5>
+                    <p>ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಇಲಾಖೆಗಳು ಮತ್ತು ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರು</p>
                     
-                    <h5><i class="fas fa-users text-success"></i> ನಮ್ಮ ಸೇವೆಗಳ ಲಾಭಾರ್ಥಿಗಳು:</h5>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0;">
-                        <div style="background: rgba(30, 58, 138, 0.1); padding: 1rem; border-radius: 8px; text-align: center;">
-                            <i class="fas fa-building" style="font-size: 2rem; color: #1e3a8a; margin-bottom: 0.5rem;"></i>
-                            <p style="margin: 0; font-weight: bold;">ಸರ್ಕಾರಿ ಇಲಾಖೆಗಳು</p>
-                        </div>
-                        <div style="background: rgba(16, 163, 74, 0.1); padding: 1rem; border-radius: 8px; text-align: center;">
-                            <i class="fas fa-user-tie" style="font-size: 2rem; color: #16a34a; margin-bottom: 0.5rem;"></i>
-                            <p style="margin: 0; font-weight: bold;">ಸರ್ಕಾರಿ ಅಧಿಕಾರಿಗಳು</p>
-                        </div>
-                        <div style="background: rgba(255, 193, 7, 0.1); padding: 1rem; border-radius: 8px; text-align: center;">
-                            <i class="fas fa-graduation-cap" style="font-size: 2rem; color: #ffc107; margin-bottom: 0.5rem;"></i>
-                            <p style="margin: 0; font-weight: bold;">ಶಿಕ್ಷಣ ಸಂಸ್ಥೆಗಳು</p>
-                        </div>
-                    </div>
+                    <h5><i class="fas fa-certificate"></i> ಗುಣಮಟ್ಟ ಭರವಸೆ:</h5>
+                    <p>• ISO 27001 ಸುರಕ್ಷತಾ ಮಾನದಂಡಗಳ ಅನುಸರಣೆ<br>
+                    • WCAG 2.1 ಪ್ರವೇಶಯೋಗ್ಯತಾ ಮಾನದಂಡಗಳು<br>
+                    • ಕನ್ನಡ ಭಾಷಾ ಬೆಂಬಲ</p>
                     
-                    <h5><i class="fas fa-certificate text-warning"></i> ಗುಣಮಟ್ಟದ ಭರವಸೆ:</h5>
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-                            <div style="text-align: center;">
-                                <i class="fas fa-shield-alt" style="color: #dc2626; font-size: 1.5rem;"></i>
-                                <p style="margin: 0.5rem 0 0 0; font-weight: bold;">ISO 27001</p>
-                                <small>ಸುರಕ್ಷತಾ ಮಾನದಂಡಗಳು</small>
-                            </div>
-                            <div style="text-align: center;">
-                                <i class="fas fa-universal-access" style="color: #2563eb; font-size: 1.5rem;"></i>
-                                <p style="margin: 0.5rem 0 0 0; font-weight: bold;">WCAG 2.1</p>
-                                <small>ಪ್ರವೇಶಯೋಗ್ಯತೆ</small>
-                            </div>
-                            <div style="text-align: center;">
-                                <i class="fas fa-language" style="color: #16a34a; font-size: 1.5rem;"></i>
-                                <p style="margin: 0.5rem 0 0 0; font-weight: bold;">Unicode</p>
-                                <small>ಕನ್ನಡ ಬೆಂಬಲ</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: rgba(139, 115, 85, 0.1); padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <h5><i class="fas fa-info-circle"></i> ತಾಂತ್ರಿಕ ಮಾಹಿತಿ:</h5>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div>
-                                <p><strong>ಆವೃತ್ತಿ:</strong> 2.1.0</p>
-                                <p><strong>ಕೊನೆಯ ಅಪ್‌ಡೇಟ್:</strong> ಜನವರಿ 2025</p>
-                                <p><strong>ಬೆಂಬಲಿತ ಬ್ರೌಸರ್‌ಗಳು:</strong> Chrome, Firefox, Edge, Safari</p>
-                            </div>
-                            <div>
-                                <p><strong>ಸೇವಾ ಸ್ಥಿತಿ:</strong> <span style="color: #16a34a; font-weight: bold;">🟢 ಸಕ್ರಿಯ</span></p>
-                                <p><strong>ಅಪ್‌ಟೈಮ್:</strong> 99.9%</p>
-                                <p><strong>ಬೆಂಬಲ:</strong> 24/7 ಲಭ್ಯ</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #ff6600, #ffffff, #16a34a); border-radius: 10px;">
-                        <p style="margin: 0; font-weight: bold; color: #333;">
-                            <i class="fas fa-heart" style="color: #dc2626;"></i> 
-                            ಕರ್ನಾಟಕದ ಡಿಜಿಟಲ್ ಭವಿಷ್ಯಕ್ಕೆ ನಮ್ಮ ಕೊಡುಗೆ
-                            <i class="fas fa-heart" style="color: #dc2626;"></i>
-                        </p>
-                        <p style="margin: 0.5rem 0 0 0; font-style: italic; color: #666;">
-                            "ಸರಳತೆ, ಸುರಕ್ಷತೆ, ಮತ್ತು ದಕ್ಷತೆ - ನಮ್ಮ ಮೂಲ ತತ್ವಗಳು"
-                        </p>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
+                        <strong>ಆವೃತ್ತಿ:</strong> 2.0.0<br>
+                        <strong>ಕೊನೆಯ ನವೀಕರಣ:</strong> ಜನವರಿ 2025<br>
+                        <strong>ಸ್ಥಿತಿ:</strong> <span style="color: #16a34a;">🟢 ಸಕ್ರಿಯ</span>
                     </div>
                 </div>
             `);
-            } catch (error) {
-                console.error('Error in showAboutModal:', error);
-                alert('About modal error: ' + error.message);
-            }
         }
 
         function showContactModal() {
-            console.log('showContactModal called');
-            try {
-                showInfoModal('ಸಂಪರ್ಕಿಸಿ - ಬೆಂಬಲ ಮಾಹಿತಿ', `
+            showInfoModal('ಸಂಪರ್ಕಿಸಿ', `
                 <div style="text-align: left; line-height: 1.8;">
-                    <div style="text-align: center; margin-bottom: 2rem;">
-                        <i class="fas fa-headset" style="font-size: 3rem; color: #1e3a8a; margin-bottom: 1rem;"></i>
-                        <h4 style="color: #1e3a8a; margin: 0;">ತಾಂತ್ರಿಕ ಬೆಂಬಲ ಮತ್ತು ಸಹಾಯ</h4>
-                        <p style="font-style: italic; color: #666; margin: 0.5rem 0;">ನಿಮ್ಮ ಸೇವೆಯಲ್ಲಿ ಯಾವಾಗಲೂ ಸಿದ್ಧರಿದ್ದೇವೆ</p>
+                    <h4><i class="fas fa-phone"></i> ತಾಂತ್ರಿಕ ಬೆಂಬಲ</h4>
+                    
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-envelope"></i> ಇಮೇಲ್:</strong><br>
+                        <a href="mailto:support@kannadapdf.kar.gov.in">support@kannadapdf.kar.gov.in</a>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
-                        <div style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-                            <i class="fas fa-envelope" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                            <h5 style="margin: 0 0 1rem 0;">ಇಮೇಲ್ ಬೆಂಬಲ</h5>
-                            <p style="margin: 0 0 1rem 0;">ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಗಳಿಗೆ</p>
-                            <a href="mailto:support@kannadapdf.kar.gov.in" style="color: #fbbf24; text-decoration: none; font-weight: bold;">
-                                support@kannadapdf.kar.gov.in
-                            </a>
-                            <p style="margin: 1rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-                                <i class="fas fa-clock"></i> 24 ಗಂಟೆಗಳಲ್ಲಿ ಪ್ರತಿಕ್ರಿಯೆ
-                            </p>
-                        </div>
-                        
-                        <div style="background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-                            <i class="fas fa-phone" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                            <h5 style="margin: 0 0 1rem 0;">ಫೋನ್ ಬೆಂಬಲ</h5>
-                            <p style="margin: 0 0 1rem 0;">ತುರ್ತು ಸಹಾಯಕ್ಕಾಗಿ</p>
-                            <a href="tel:080-22123456" style="color: #fbbf24; text-decoration: none; font-weight: bold;">
-                                080-2212-3456
-                            </a>
-                            <p style="margin: 1rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-                                <i class="fas fa-calendar"></i> ಸೋಮ-ಶುಕ್ರ, 9:00-18:00
-                            </p>
-                        </div>
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-phone"></i> ಫೋನ್:</strong><br>
+                        080-XXXX-XXXX (ಸೋಮ-ಶುಕ್ರ, 9:00-18:00)
                     </div>
                     
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <h5><i class="fas fa-map-marker-alt text-danger"></i> ಕಚೇರಿ ವಿಳಾಸ:</h5>
-                        <div style="margin-left: 1rem;">
-                            <p style="margin: 0.5rem 0;"><strong>ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ವಿಭಾಗ</strong></p>
-                            <p style="margin: 0.5rem 0;">ಇ-ಗವರ್ನೆನ್ಸ್ ಮತ್ತು IT ವಿಭಾಗ</p>
-                            <p style="margin: 0.5rem 0;">ವಿಧಾನ ಸೌಧ, ಮೂರನೇ ಮಹಡಿ</p>
-                            <p style="margin: 0.5rem 0;">ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ - 560001</p>
-                        </div>
+                    <div style="margin: 1rem 0;">
+                        <strong><i class="fas fa-map-marker-alt"></i> ವಿಳಾಸ:</strong><br>
+                        ಡಿಜಿಟಲ್ ಕರ್ನಾಟಕ ವಿಭಾಗ<br>
+                        ವಿಧಾನ ಸೌಧ, ಬೆಂಗಳೂರು<br>
+                        ಕರ್ನಾಟಕ - 560001
                     </div>
                     
-                    <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <h5><i class="fas fa-clock text-warning"></i> ಸೇವಾ ಸಮಯಗಳು:</h5>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                            <div>
-                                <p><strong><i class="fas fa-business-time"></i> ಕೆಲಸದ ದಿನಗಳು:</strong></p>
-                                <p style="margin-left: 1rem;">ಸೋಮವಾರ ನಿಂದ ಶುಕ್ರವಾರ<br>9:00 AM - 6:00 PM</p>
-                            </div>
-                            <div>
-                                <p><strong><i class="fas fa-moon"></i> ವಾರಾಂತ್ಯ:</strong></p>
-                                <p style="margin-left: 1rem;">ಶನಿ ಮತ್ತು ಭಾನುವಾರ<br>ಮುಚ್ಚಲಾಗಿದೆ</p>
-                            </div>
-                        </div>
-                    </div>
+                    <h5><i class="fas fa-clock"></i> ಸೇವಾ ಸಮಯ:</h5>
+                    <p>ಸೋಮವಾರ ನಿಂದ ಶುಕ್ರವಾರ: 9:00 AM - 6:00 PM<br>
+                    ಶನಿ-ಭಾನುವಾರ: ಮುಚ್ಚಲಾಗಿದೆ</p>
                     
-                    <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid #dc2626; padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <h5><i class="fas fa-exclamation-triangle text-danger"></i> ತುರ್ತು ಸಹಾಯ:</h5>
-                        <div style="margin-left: 1rem;">
-                            <p><strong>ತಕ್ಷಣದ ತಾಂತ್ರಿಕ ಸಹಾಯಕ್ಕಾಗಿ:</strong></p>
-                            <ul style="margin-left: 1rem;">
-                                <li>ನಿಮ್ಮ ಇಲಾಖೆಯ IT ಸಹಾಯಕ್ಕೆ ಸಂಪರ್ಕಿಸಿ</li>
-                                <li>ಅಥವಾ ನಮ್ಮ ಹಾಟ್‌ಲೈನ್ ಕರೆ ಮಾಡಿ: <strong>1800-XXX-XXXX</strong></li>
-                                <li>ಬ್ರೌಸರ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div style="background: rgba(30, 58, 138, 0.1); padding: 1.5rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <h5><i class="fas fa-question-circle text-primary"></i> ಸಾಮಾನ್ಯ ಸಹಾಯ:</h5>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; text-align: center; margin-top: 1rem;">
-                            <div>
-                                <a href="#faq" onclick="closeInfoModal(); setTimeout(() => showFAQ(), 100);" style="color: #1e3a8a; text-decoration: none;">
-                                    <i class="fas fa-question" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                                    <p style="margin: 0; font-weight: bold;">FAQ</p>
-                                </a>
-                            </div>
-                            <div>
-                                <a href="#video-help" onclick="closeInfoModal(); setTimeout(() => showVideoHelp(), 100);" style="color: #1e3a8a; text-decoration: none;">
-                                    <i class="fas fa-video" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                                    <p style="margin: 0; font-weight: bold;">ವೀಡಿಯೋ ಸಹಾಯ</p>
-                                </a>
-                            </div>
-                            <div>
-                                <a href="#guide" onclick="closeInfoModal(); setTimeout(() => showUserGuide(), 100);" style="color: #1e3a8a; text-decoration: none;">
-                                    <i class="fas fa-book" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                                    <p style="margin: 0; font-weight: bold;">ಮಾರ್ಗದರ್ಶಿ</p>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; border-radius: 10px;">
-                        <p style="margin: 0; font-weight: bold;">
-                            <i class="fas fa-heart" style="color: #f87171;"></i> 
-                            ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ ನಮಗೆ ಮುಖ್ಯ!
-                            <i class="fas fa-heart" style="color: #f87171;"></i>
-                        </p>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-                            ಸೇವೆಯನ್ನು ಸುಧಾರಿಸಲು ನಿಮ್ಮ ಸಲಹೆಗಳನ್ನು ಕಳುಹಿಸಿ
-                        </p>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(220, 38, 38, 0.1); border-radius: 5px;">
+                        <strong><i class="fas fa-exclamation-triangle"></i> ತುರ್ತು ಸಹಾಯ:</strong><br>
+                        ತುರ್ತು ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಗಳಿಗೆ, ದಯವಿಟ್ಟು ನಿಮ್ಮ IT ವಿಭಾಗವನ್ನು ಸಂಪರ್ಕಿಸಿ.
                     </div>
                 </div>
             `);
-            } catch (error) {
-                console.error('Error in showContactModal:', error);
-                alert('Contact modal error: ' + error.message);
-            }
         }
 
         function showUserGuide() {
@@ -2572,304 +2301,108 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function showFAQ() {
-            try {
-                showInfoModal('ಆಗಾಗ್ಗೆ ಕೇಳುವ ಪ್ರಶ್ನೆಗಳು', `
-                    <div style="text-align: left; line-height: 1.8;">
-                        <h4><i class="fas fa-question-circle"></i> ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು</h4>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಈ ಸೇವೆ ಉಚಿತವೇ?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತ.</p>
-                        </details>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಫೈಲ್ ಗಾತ್ರದ ಮಿತಿ ಎಷ್ಟು?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಪ್ರತಿ ಫೈಲ್‌ಗೆ ಗರಿಷ್ಠ 100MB ವರೆಗೆ.</p>
-                        </details>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ನನ್ನ ಫೈಲ್‌ಗಳು ಸುರಕ್ಷಿತವೇ?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಎಲ್ಲಾ ಪ್ರಕ್ರಿಯೆಗಳು ಸ್ಥಳೀಯವಾಗಿ ನಡೆಯುತ್ತವೆ ಮತ್ತು ಫೈಲ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ.</p>
-                        </details>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಕನ್ನಡ ಪಠ್ಯ ಬೆಂಬಲವಿದೆಯೇ?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಪೂರ್ಣ ಕನ್ನಡ ಯೂನಿಕೋಡ್ ಬೆಂಬಲವಿದೆ.</p>
-                        </details>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಮೊಬೈಲ್ ಫೋನ್‌ನಲ್ಲಿ ಬಳಸಬಹುದೇ?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಆದರೆ ಸಂಪೂರ್ಣ ಅನುಭವಕ್ಕಾಗಿ ಕಂಪ್ಯೂಟರ್ ಬಳಸಿ.</p>
-                        </details>
-                        
-                        <details style="margin: 1rem 0; cursor: pointer;">
-                            <summary style="font-weight: bold; color: var(--gov-blue);">Q: ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಯಾದರೆ ಏನು ಮಾಡಬೇಕು?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: "ಸಂಪರ್ಕಿಸಿ" ವಿಭಾಗದಲ್ಲಿ ಅಡಿದ ಮಾಹಿತಿಯನ್ನು ಬಳಸಿ ಸಹಾಯ ಪಡೆಯಿರಿ.</p>
-                        </details>
-                    </div>
-                `);
-            } catch (error) {
-                console.error('Error showing FAQ:', error);
-                alert('ದೋಷ: FAQ ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.');
-            }
+            showInfoModal('ಆಗಾಗ್ಗೆ ಕೇಳುವ ಪ್ರಶ್ನೆಗಳು', `
+                <div style="text-align: left; line-height: 1.8;">
+                    <h4><i class="fas fa-question-circle"></i> ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು</h4>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಈ ಸೇವೆ ಉಚಿತವೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಕೆಲಸಗಾರರಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಫೈಲ್ ಗಾತ್ರದ ಮಿತಿ ಎಷ್ಟು?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಪ್ರತಿ ಫೈಲ್‌ಗೆ ಗರಿಷ್ಠ 100MB ವರೆಗೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ನನ್ನ ಫೈಲ್‌ಗಳು ಸುರಕ್ಷಿತವೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಎಲ್ಲಾ ಪ್ರಕ್ರಿಯೆಗಳು ಸ್ಥಳೀಯವಾಗಿ ನಡೆಯುತ್ತವೆ ಮತ್ತು ಫೈಲ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಳಿಸಲ್ಪಡುತ್ತವೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಕನ್ನಡ ಪಠ್ಯ ಬೆಂಬಲವಿದೆಯೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಪೂರ್ಣ ಕನ್ನಡ ಯೂನಿಕೋಡ್ ಬೆಂಬಲವಿದೆ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಮೊಬೈಲ್ ಫೋನ್‌ನಲ್ಲಿ ಬಳಸಬಹುದೇ?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಹೌದು, ಆದರೆ ಸಂಪೂರ್ಣ ಅನುಭವಕ್ಕಾಗಿ ಕಂಪ್ಯೂಟರ್ ಬಳಸಿ.</p>
+                    </details>
+                    
+                    <details style="margin: 1rem 0; cursor: pointer;">
+                        <summary style="font-weight: bold; color: var(--gov-blue);">Q: ತಾಂತ್ರಿಕ ಸಮಸ್ಯೆಯಾದರೆ ಏನು ಮಾಡಬೇಕು?</summary>
+                        <p style="margin-left: 1rem; margin-top: 0.5rem;">A: "ಸಂಪರ್ಕಿಸಿ" ವಿಭಾಗದಲ್ಲಿ ಅಡಿದ ಮಾಹಿತಿಯನ್ನು ಬಳಸಿ ಸಹಾಯ ಪಡೆಯಿರಿ.</p>
+                    </details>
+                </div>
+            `);
         }
 
         function showVideoHelp() {
-            try {
-                showInfoModal('ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್', `
-                    <div style="text-align: center; line-height: 1.8;">
-                        <h4><i class="fas fa-video"></i> ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳು</h4>
-                        
-                        <div style="margin: 2rem 0;">
-                            <i class="fas fa-play-circle" style="font-size: 4rem; color: var(--gov-blue); margin-bottom: 1rem;"></i>
-                            <h5>ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್‌ಗಳು ಶೀಘ್ರದಲ್ಲೇ ಲಭ್ಯವಾಗಲಿವೆ!</h5>
-                            <p>ನಾವು ಈ ಕೆಳಗಿನ ವಿಷಯಗಳ ಮೇಲೆ ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳನ್ನು ತಯಾರಿಸುತ್ತಿದ್ದೇವೆ:</p>
-                        </div>
-                        
-                        <div style="text-align: left; margin: 1rem 0;">
-                            <ul style="list-style: none; padding: 0;">
-                                <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಲೀನಗೊಳಿಸುವಿಕೆ</li>
-                                <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಭಾಗಿಸುವಿಕೆ</li>
-                                <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಸಂಕುಚನ ತಂತ್ರಗಳು</li>
-                                <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ರಕ್ಷಣೆ ಮತ್ತು ಅನ್‌ಲಾಕ್</li>
-                                <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ</li>
-                            </ul>
-                        </div>
-                        
-                        <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
-                            <p><strong>ಅಪ್‌ಡೇಟ್ ಪಡೆಯಲು:</strong><br>
-                            support@kannadapdf.kar.gov.in ನಲ್ಲಿ ನಿಮ್ಮ ಇಮೇಲ್ ಅಡ್ರೆಸ್ ನೋಂದಾಯಿಸಿ</p>
-                        </div>
+            showInfoModal('ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್', `
+                <div style="text-align: center; line-height: 1.8;">
+                    <h4><i class="fas fa-video"></i> ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳು</h4>
+                    
+                    <div style="margin: 2rem 0;">
+                        <i class="fas fa-play-circle" style="font-size: 4rem; color: var(--gov-blue); margin-bottom: 1rem;"></i>
+                        <h5>ವೀಡಿಯೋ ಟ್ಯುಟೋರಿಯಲ್‌ಗಳು ಶೀಘ್ರದಲ್ಲೇ ಲಭ್ಯವಾಗಲಿವೆ!</h5>
+                        <p>ನಾವು ಈ ಕೆಳಗಿನ ವಿಷಯಗಳ ಮೇಲೆ ವೀಡಿಯೋ ಮಾರ್ಗದರ್ಶಿಗಳನ್ನು ತಯಾರಿಸುತ್ತಿದ್ದೇವೆ:</p>
                     </div>
-                `);
-            } catch (error) {
-                console.error('Error showing video help:', error);
-                alert('ದೋಷ: ವೀಡಿಯೋ ಸಹಾಯ ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.');
-            }
+                    
+                    <div style="text-align: left; margin: 1rem 0;">
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಲೀನಗೊಳಿಸುವಿಕೆ</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ವಿಭಾಗಿಸುವಿಕೆ</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಸಂಕುಚನ ತಂತ್ರಗಳು</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> PDF ರಕ್ಷಣೆ ಮತ್ತು ಅನ್‌ಲಾಕ್</li>
+                            <li style="margin: 0.5rem 0;"><i class="fas fa-video text-primary"></i> ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
+                        <p><strong>ಅಪ್‌ಡೇಟ್ ಪಡೆಯಲು:</strong><br>
+                        support@kannadapdf.kar.gov.in ನಲ್ಲಿ ನಿಮ್ಮ ಇಮೇಲ್ ಅಡ್ರೆಸ್ ನೋಂದಾಯಿಸಿ</p>
+                    </div>
+                </div>
+            `);
         }
 
         // Generic info modal function
         function showInfoModal(title, content) {
-            console.log('showInfoModal called with title:', title);
-            
-            // Remove any existing modal first
-            const existingModal = document.getElementById('infoModal');
-            if (existingModal) {
-                existingModal.remove();
+            // Create modal if it doesn't exist
+            let infoModal = document.getElementById('infoModal');
+            if (!infoModal) {
+                infoModal = document.createElement('div');
+                infoModal.id = 'infoModal';
+                infoModal.className = 'modal';
+                infoModal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="infoModalTitle">${title}</h3>
+                            <span class="close" onclick="closeInfoModal()">&times;</span>
+                        </div>
+                        <div class="modal-body" id="infoModalBody">
+                            ${content}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" onclick="closeInfoModal()">ಮುಚ್ಚಿ</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(infoModal);
+            } else {
+                document.getElementById('infoModalTitle').textContent = title;
+                document.getElementById('infoModalBody').innerHTML = content;
             }
             
-            // Create modal
-            const infoModal = document.createElement('div');
-            infoModal.id = 'infoModal';
-            infoModal.style.display = 'flex';
-            infoModal.style.position = 'fixed';
-            infoModal.style.zIndex = '9999';
-            infoModal.style.left = '0';
-            infoModal.style.top = '0';
-            infoModal.style.width = '100%';
-            infoModal.style.height = '100%';
-            infoModal.style.background = 'rgba(61, 39, 35, 0.7)';
-            infoModal.style.backdropFilter = 'blur(10px)';
-            infoModal.style.alignItems = 'center';
-            infoModal.style.justifyContent = 'center';
-            infoModal.style.animation = 'fadeIn 0.3s ease-in-out';
-            
-            // Add CSS animations
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideIn {
-                    from { transform: translateY(-50px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-                .modal-content {
-                    animation: slideIn 0.3s ease-out !important;
-                }
-                .conversion-option:hover {
-                    transform: translateY(-5px) !important;
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-                    border-color: #1e3a8a !important;
-                }
-                details summary {
-                    transition: color 0.2s ease;
-                }
-                details summary:hover {
-                    color: #1e3a8a !important;
-                }
-            `;
-            document.head.appendChild(style);
-            
-            infoModal.innerHTML = `
-                <div class="modal-content" style="background: #f5f1e8; margin: 5% auto; padding: 0; border: 3px solid #d4af37; border-radius: 15px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(139, 115, 85, 0.2);">
-                    <div class="modal-header" style="padding: 1.5rem; border-bottom: 2px solid #d4af37; display: flex; justify-content: space-between; align-items: center; background: #e8e0d1;">
-                        <h3 class="modal-title" style="font-family: 'Cinzel', serif; font-size: 1.5rem; color: #5d4037; margin: 0;">${title}</h3>
-                        <span class="close" onclick="closeInfoModal()" style="color: #8b7355; font-size: 1.8rem; font-weight: bold; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: all 0.3s ease;">&times;</span>
-                    </div>
-                    <div class="modal-body" style="padding: 2rem; font-family: 'Noto Sans Kannada', sans-serif; color: #5d4037; line-height: 1.6;">
-                        ${content}
-                    </div>
-                    <div class="modal-footer" style="padding: 1rem 2rem; border-top: 1px solid #8b7355; text-align: center; background: #e8e0d1;">
-                        <button class="btn btn-primary" onclick="closeInfoModal()" style="background: #1e3a8a; color: white; border: none; padding: 0.75rem 2rem; border-radius: 5px; cursor: pointer; font-weight: 500;">ಮುಚ್ಚಿ</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(infoModal);
-            console.log('Modal created and added to DOM');
+            infoModal.style.display = 'block';
         }
 
         function closeInfoModal() {
             const infoModal = document.getElementById('infoModal');
             if (infoModal) {
                 infoModal.style.display = 'none';
-                setTimeout(() => {
-                    if (infoModal.parentNode) {
-                        infoModal.parentNode.removeChild(infoModal);
-                    }
-                }, 300);
             }
-        }
-
-        // Make functions globally accessible for HTML onclick handlers
-        window.closeInfoModal = closeInfoModal;
-        window.showMenuContent = function(menuKey) {
-            const modal = safeGetElement('operationModal');
-            if (!modal) return;
-            const modalBody = modal.querySelector('.modal-body');
-            if (!modalBody) return;
-            const info = menuContents[menuKey];
-            if (!info) return;
-            modalBody.innerHTML = `<h2 style="text-align:center; color:#5d4037;">${info.title}</h2><div style="margin:2rem 0; font-size:1.1rem; color:#3e2723; text-align:center;">${info.content}</div><div style="text-align:center;"><button class='btn btn-primary' onclick='closeModal()'>ಮುಚ್ಚಿ</button></div>`;
-            modal.style.display = 'block';
-        };
-        window.showFAQ = showFAQ;
-        window.showVideoHelp = showVideoHelp;
-        window.showUserGuide = showUserGuide;
-        window.showAboutModal = showAboutModal;
-        window.showContactModal = showContactModal;
-        window.showHelpModal = showHelpModal;
-        
-        // Mobile menu toggle function
-        window.toggleMobileMenu = function() {
-            console.log('toggleMobileMenu called');
-            const menuItems = document.querySelector('.menu-items');
-            const mobileToggle = document.querySelector('.mobile-menu-toggle');
-            
-            if (menuItems) {
-                // Toggle visibility
-                if (menuItems.style.display === 'none' || menuItems.style.display === '') {
-                    menuItems.style.display = 'flex';
-                    menuItems.style.flexDirection = 'column';
-                    menuItems.style.position = 'absolute';
-                    menuItems.style.top = '100%';
-                    menuItems.style.left = '0';
-                    menuItems.style.right = '0';
-                    menuItems.style.backgroundColor = '#f5f1e8';
-                    menuItems.style.border = '1px solid #d4af37';
-                    menuItems.style.borderTop = 'none';
-                    menuItems.style.zIndex = '1000';
-                    menuItems.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                    if (mobileToggle) {
-                        mobileToggle.innerHTML = '<i class="fas fa-times"></i>';
-                    }
-                } else {
-                    menuItems.style.display = 'none';
-                    if (mobileToggle) {
-                        mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
-                    }
-                }
-            }
-        };
-        
-        // Debug function to test modal functionality
-        window.testModal = function(type) {
-            console.log('Testing modal:', type);
-            switch(type) {
-                case 'help':
-                    showHelpModal();
-                    break;
-                case 'about':
-                    showAboutModal();
-                    break;
-                case 'contact':
-                    showContactModal();
-                    break;
-                case 'faq':
-                    showFAQ();
-                    break;
-                case 'video':
-                    showVideoHelp();
-                    break;
-                default:
-                    console.log('Available tests: help, about, contact, faq, video');
-            }
-        };
-
-        // Utility function to scroll to a section
-        function scrollToSection(sectionId) {
-            const section = document.getElementById(sectionId) || 
-                           document.querySelector(`.${sectionId}`) || 
-                           document.querySelector(`[data-section="${sectionId}"]`);
-            if (section) {
-                try {
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return true;
-                } catch (error) {
-                    section.scrollIntoView();
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Function to show format conversion options
-        function showFormatConversionOptions() {
-            showInfoModal('ಫಾರ್ಮ್ಯಾಟ್ ಪರಿವರ್ತನೆ ಆಯ್ಕೆಗಳು', `
-                <div style="text-align: center; line-height: 1.8;">
-                    <h4><i class="fas fa-exchange-alt"></i> ಲಭ್ಯವಿರುವ ಪರಿವರ್ತನೆ ಆಯ್ಕೆಗಳು</h4>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
-                        <div class="conversion-option" onclick="closeInfoModal(); setTimeout(() => selectOperation('pdf_to_jpeg'), 100);" style="background: #ffffff; border: 2px solid #d4af37; border-radius: 10px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease;">
-                            <i class="fas fa-file-image" style="font-size: 2rem; color: #1e3a8a; margin-bottom: 1rem;"></i>
-                            <h5>PDF ನಿಂದ JPEG</h5>
-                            <p style="font-size: 0.9rem; color: #666;">PDF ಪುಟಗಳನ್ನು ಚಿತ್ರಗಳಾಗಿ ಪರಿವರ್ತಿಸಿ</p>
-                        </div>
-                        
-                        <div class="conversion-option" onclick="closeInfoModal(); setTimeout(() => selectOperation('jpeg_to_pdf'), 100);" style="background: #ffffff; border: 2px solid #d4af37; border-radius: 10px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease;">
-                            <i class="fas fa-file-pdf" style="font-size: 2rem; color: #dc2626; margin-bottom: 1rem;"></i>
-                            <h5>JPEG ನಿಂದ PDF</h5>
-                            <p style="font-size: 0.9rem; color: #666;">ಚಿತ್ರಗಳನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
-                        </div>
-                        
-                        <div class="conversion-option" onclick="closeInfoModal(); setTimeout(() => selectOperation('pdf_to_word'), 100);" style="background: #ffffff; border: 2px solid #d4af37; border-radius: 10px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease;">
-                            <i class="fas fa-file-word" style="font-size: 2rem; color: #2563eb; margin-bottom: 1rem;"></i>
-                            <h5>PDF ನಿಂದ Word</h5>
-                            <p style="font-size: 0.9rem; color: #666;">PDF ಅನ್ನು Word ದಾಖಲೆಯಾಗಿ ಪರಿವರ್ತಿಸಿ</p>
-                        </div>
-                        
-                        <div class="conversion-option" onclick="closeInfoModal(); setTimeout(() => selectOperation('word_to_pdf'), 100);" style="background: #ffffff; border: 2px solid #d4af37; border-radius: 10px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease;">
-                            <i class="fas fa-file-alt" style="font-size: 2rem; color: #16a34a; margin-bottom: 1rem;"></i>
-                            <h5>Word ನಿಂದ PDF</h5>
-                            <p style="font-size: 0.9rem; color: #666;">Word ದಾಖಲೆಗಳನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಿ</p>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 2rem; padding: 1rem; background: rgba(30, 58, 138, 0.1); border-radius: 5px;">
-                        <p><i class="fas fa-info-circle"></i> <strong>ಸೂಚನೆ:</strong> ಯಾವುದೇ ಆಯ್ಕೆಯ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ ಪರಿವರ್ತನೆ ಪ್ರಕ್ರಿಯೆ ಪ್ರಾರಂಭಿಸಿ.</p>
-                    </div>
-                </div>
-                
-                <style>
-                    .conversion-option:hover {
-                        transform: translateY(-5px);
-                        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-                        border-color: #1e3a8a;
-                    }
-                </style>
-            `);
         }
 
         // Highlight operation card when accessed from menu
@@ -2902,40 +2435,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
    
 
-    // Initialize base UI now (we're already in DOMContentLoaded)
-    function initialPageSetup() {
-        const opModal = document.getElementById('operationModal');
-        const prevModal = document.getElementById('previewModal');
-        const loadModal = document.getElementById('loadingModal');
-        if (opModal) opModal.style.display = 'none';
-        if (prevModal) prevModal.style.display = 'none';
-        if (loadModal) loadModal.style.display = 'none';
-
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure all modals are hidden on page load
+        document.getElementById('operationModal').style.display = 'none';
+        document.getElementById('previewModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'none';
+        
+        // Ensure main content is visible
         const container = document.querySelector('.container');
         const operationsSection = document.querySelector('.operations-section');
         const operationsGrid = document.querySelector('.operations-grid');
-        if (container) { container.style.display = 'block'; container.style.visibility = 'visible'; }
-        if (operationsSection) { operationsSection.style.display = 'block'; operationsSection.style.visibility = 'visible'; }
-        if (operationsGrid) { operationsGrid.style.display = 'grid'; operationsGrid.style.visibility = 'visible'; }
-
-        // Initialize language dropdown (if available)
-        try { if (typeof initializeLanguageDropdown === 'function') initializeLanguageDropdown(); } catch (_) {}
-
-        // Click-outside handler for mobile menu
-        document.addEventListener('click', function(e) {
-            const menuItems = document.querySelector('.menu-items');
-            const mobileToggle = document.querySelector('.mobile-menu-toggle');
-            const nav = document.querySelector('nav');
-            if (menuItems && menuItems.style.display === 'flex') {
-                if (nav && !nav.contains(e.target)) {
-                    menuItems.style.display = 'none';
-                    if (mobileToggle) mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
-                }
-            }
-        });
-    }
-
-    // Run initializers
-    initMenuLinkHandlers();
-    initialPageSetup();
+        
+        if (container) {
+            container.style.display = 'block';
+            container.style.visibility = 'visible';
+        }
+        if (operationsSection) {
+            operationsSection.style.display = 'block';
+            operationsSection.style.visibility = 'visible';
+        }
+        if (operationsGrid) {
+            operationsGrid.style.display = 'grid';
+            operationsGrid.style.visibility = 'visible';
+        }
+        
+        // Initialize language dropdown
+        initializeLanguageDropdown();
+    });
  });
