@@ -4,6 +4,7 @@ from PIL import Image
 import pytesseract
 import cv2
 import numpy as np
+import config
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,23 +16,37 @@ import io
 
 class PDFOCRProcessor:
     def __init__(self):
+        self.ocr_available = False
+        self._warned = False
         self.setup_ocr()
         self.setup_fonts()
     
     def setup_ocr(self):
         """Setup Tesseract OCR for Kannada"""
         try:
+            # Respect configured Tesseract paths on Windows
+            cfg = config.Config()
+            if cfg.TESSERACT_CMD and os.path.exists(cfg.TESSERACT_CMD):
+                pytesseract.pytesseract.tesseract_cmd = cfg.TESSERACT_CMD
+            if cfg.TESSDATA_PREFIX and os.path.isdir(cfg.TESSDATA_PREFIX):
+                os.environ['TESSDATA_PREFIX'] = cfg.TESSDATA_PREFIX
+
             # Test if Tesseract is available
             pytesseract.get_tesseract_version()
             
             # Configure for Kannada
             self.ocr_config = '--oem 3 --psm 6 -l kan+eng'
+            self.ocr_available = True
             print("✓ Tesseract OCR configured for Kannada")
             
         except Exception as e:
-            print(f"⚠ OCR setup warning: {e}")
-            print("Install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki")
+            # Warn once; stay quiet on subsequent page OCR attempts
+            if not self._warned:
+                print(f"⚠ OCR setup warning: {e}")
+                print("Install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki")
+                self._warned = True
             self.ocr_config = '--oem 3 --psm 6 -l eng'  # Fallback to English
+            self.ocr_available = False
     
     def setup_fonts(self):
         """Setup fonts for output PDF"""
@@ -123,6 +138,9 @@ class PDFOCRProcessor:
     def extract_text_with_ocr(self, page):
         """Extract text using OCR but SKIP image regions"""
         try:
+            if not self.ocr_available:
+                # Short-circuit when OCR not available
+                return ""
             # First detect image regions
             image_regions = self.detect_image_regions(page)
             
@@ -163,7 +181,9 @@ class PDFOCRProcessor:
             return ""
             
         except Exception as e:
-            print(f"OCR extraction error: {e}")
+            if not self._warned:
+                print(f"OCR extraction error: {e}")
+                self._warned = True
             return ""
 
     def mask_image_regions(self, image, image_regions, page):

@@ -3,9 +3,8 @@ import os
 class Config:
     # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'kannada-pdf-toolkit-secret-key-2024'
-    
     # File upload settings
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max file size
+    MAX_CONTENT_LENGTH = 1024 * 1024 * 1024  # 1GB max file size
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
     OUTPUT_FOLDER = os.path.join(os.getcwd(), 'output')
     

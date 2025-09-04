@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
             multiple: true,
             options: [],
             minFiles: 1,
-            hasPreview: false
+            hasPreview: true
         },
         'jpeg_to_pdf': {
             title: 'JPEG ನಿಂದ PDF',
@@ -117,10 +117,10 @@ document.addEventListener('DOMContentLoaded', function() {
         'compare': {
             title: 'PDF ಫೈಲ್‌ಗಳನ್ನು ಹೋಲಿಸಿ',
             accept: '.pdf',
-            supportText: 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ',
+            supportText: 'ಹೋಲಿಕೆಗಾಗಿ PDF ಫೈಲ್‌ಗಳನ್ನು ಒಂದೊಂದಾಗಿ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ',
             multiple: true,
             options: ['compareType'],
-            minFiles: 2,
+            minFiles: 2, // Changed back to 2 for processing
             maxFiles: 2,
             hasPreview: false
         },
@@ -803,8 +803,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Special handling for compare operation
         if (currentOperation === 'compare') {
-            if (files.length !== 2) {
-                showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ');
+            if (files.length < 1) {
+                showAlert('error', 'ಹೋಲಿಕೆಗಾಗಿ ಕನಿಷ್ಠ 1 PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ');
                 return;
             }
             
@@ -814,7 +814,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            selectedFiles = files;
+            // Accumulate files for compare instead of replacing
+            files.forEach(file => {
+                const isDuplicate = selectedFiles.some(existing => 
+                    existing.name === file.name && existing.size === file.size
+                );
+                if (!isDuplicate && selectedFiles.length < 2) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            // Don't allow more than 2 files for compare
+            if (selectedFiles.length > 2) {
+                selectedFiles = selectedFiles.slice(0, 2);
+            }
         } else {
             // General validation for other operations
             if (!config.multiple && files.length > 1) {
@@ -898,7 +911,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const config = operationConfigs[currentOperation];
         
         if (processBtn && config) {
-            const hasEnoughFiles = selectedFiles.length >= (config.minFiles || 1);
+            let hasEnoughFiles;
+            
+            // Special logic for compare operation
+            if (currentOperation === 'compare') {
+                hasEnoughFiles = selectedFiles.length === 2; // Exactly 2 files required
+            } else {
+                hasEnoughFiles = selectedFiles.length >= (config.minFiles || 1);
+            }
             
             if (hasEnoughFiles) {
                 processBtn.disabled = false;
@@ -907,6 +927,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 processBtn.disabled = true;
                 if (currentOperation === 'merge') {
                     processBtn.innerHTML = '<i class="fas fa-cog"></i> ಕನಿಷ್ಠ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು';
+                } else if (currentOperation === 'compare') {
+                    if (selectedFiles.length === 0) {
+                        processBtn.innerHTML = '<i class="fas fa-cog"></i> ಮೊದಲ PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ';
+                    } else if (selectedFiles.length === 1) {
+                        processBtn.innerHTML = '<i class="fas fa-cog"></i> ಎರಡನೇ PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ';
+                    }
                 } else {
                     processBtn.innerHTML = '<i class="fas fa-cog"></i> ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ';
                 }
@@ -1787,13 +1813,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (uploadForm) {
         uploadForm.addEventListener('submit', function(e) {
             const operation = document.querySelector('input[name="operation"]')?.value;
-            
-            if (operation === 'compare') {
-                if (!validateCompareOperation()) {
-                    e.preventDefault();
-                    return false;
-                }
-            }
+            // Validation is handled in file selection stage
         });
     }
 

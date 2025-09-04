@@ -23,7 +23,11 @@ from datetime import datetime
 import json
 import tempfile
 from docx import Document
-from textUtils.pdf_text_extractor import extract_text_ocr, extract_text_from_pdf
+from textUtils.pdf_text_extractor import (
+    extract_text_ocr,
+    extract_text_from_pdf,
+    convert_pdf_to_docx_with_images,
+)
 
 class PDFOperations:
     def __init__(self):
@@ -2551,115 +2555,43 @@ class PDFOperations:
 
     def pdf_to_word(self, file_path, session_id):
         """
-        Convert PDF to Word document by extracting text from the PDF.
-        Prefers text-based extraction (pdfplumber/PyPDF2) and falls back to OCR.
+        Convert PDF to Word document using OCR from textUtils with text AND images.
         """
         try:
-            print(f"=== PDF TO WORD CONVERSION (OCR) ===")
+            print(f"=== PDF TO WORD CONVERSION (OCR + IMAGES) ===")
             print(f"Input file: {file_path}")
             print(f"Session ID: {session_id}")
 
-            # 1) Try text-based extraction first (auto tries: pdfplumber -> PyPDF2 -> OCR)
-            extracted_text = extract_text_from_pdf(file_path, method='auto', ocr_language='kan')
+            # Use the enhanced conversion function that includes both text and images
+            output_path = convert_pdf_to_docx_with_images(
+                pdf_path=file_path,
+                session_id=session_id,
+                output_dir=self.config.OUTPUT_FOLDER,
+                text_method='ocr',  # Force OCR for pure Kannada OCR
+                ocr_language='kan',  # Pure Kannada for best results
+                include_images=True,  # ✅ Enable image extraction
+                image_dpi=300,  # High quality images
+                image_max_width_inches=6.0  # Good size for Word documents
+            )
 
-            # 1a) If empty/error, try PyMuPDF (fitz) text extraction before OCR (works without poppler/tesseract)
-            if not extracted_text or extracted_text.strip() == '' or str(extracted_text).startswith("❌"):
-                try:
-                    import fitz
-                    print("Trying PyMuPDF text extraction...")
-                    doc = fitz.open(file_path)
-                    ftz_text = ""
-                    for i in range(doc.page_count):
-                        try:
-                            page = doc.load_page(i)
-                            page_text = page.get_text("text") or ""
-                            if page_text.strip():
-                                ftz_text += f"\n--- Page {i+1} ---\n{page_text}\n"
-                        except Exception as pe:
-                            print(f"PyMuPDF page {i+1} text error: {pe}")
-                            continue
-                    doc.close()
-                    if ftz_text.strip():
-                        extracted_text = ftz_text
-                        print("PyMuPDF text extraction succeeded.")
-                    else:
-                        print("PyMuPDF text extraction produced no text.")
-                except Exception as fitz_err:
-                    print(f"PyMuPDF extraction failed: {fitz_err}")
-
-            # 2) If still failing or empty, as a last resort try direct OCR explicitly
-            if not extracted_text or extracted_text.strip() == '' or str(extracted_text).startswith("❌"):
-                print("Text-based extraction did not yield usable text. Trying explicit OCR...")
-                ocr_text = extract_text_ocr(file_path)
-                extracted_text = ocr_text
-
-            # Validate extraction result; if empty, try pypdfium2 fallback to embed images in DOCX
-            if not extracted_text or extracted_text.strip() == '' or str(extracted_text).startswith("❌"):
-                print("No usable text extracted. Attempting image-based DOCX via pypdfium2 fallback...")
-                try:
-                    import pypdfium2 as pdfium
-                    from docx.shared import Inches
-                    pdfdoc = pdfium.PdfDocument(file_path)
-                    # Create a Word doc and embed first few pages as images
-                    doc = Document()
-                    doc.add_paragraph(
-                        "ಗಮನಿಸಿ: ಪಠ್ಯ ಹೊರತೆಗೆಯುವಿಕೆ ವಿಫಲವಾಯಿತು. ಪುಟಗಳ ಚಿತ್ರಗಳನ್ನು Word ಡಾಕ್ಯುಮೆಂಟ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ."
-                    )
-                    max_pages = min(len(pdfdoc), 5)
-                    for i in range(max_pages):
-                        try:
-                            page = pdfdoc[i]
-                            # Render at 150 DPI approx (scale 2.08: 150/72)
-                            bitmap = page.render(scale=(150/72))
-                            pil_img = bitmap.to_pil()
-                            buf = io.BytesIO()
-                            pil_img.save(buf, format='PNG')
-                            buf.seek(0)
-                            doc.add_paragraph(f"ಪುಟ {i+1}")
-                            doc.add_picture(buf, width=Inches(6.0))
-                        except Exception as img_err:
-                            print(f"pypdfium2 render error on page {i+1}: {img_err}")
-                            continue
-                    output_filename = f"{session_id}_{os.path.splitext(os.path.basename(file_path))[0]}.docx"
-                    output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
-                    doc.save(output_path)
-                    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                        raise Exception("pypdfium2 fallback produced no output")
-                    print("Image-based DOCX created via pypdfium2 fallback.")
-                    return output_path
-                except Exception as fallback_err:
-                    print(f"pypdfium2 fallback failed: {fallback_err}")
-                    # Compose a helpful message for common Windows dependency issues
-                    help_msg = (
-                        "PDF ಪಠ್ಯ ಹೊರತೆಗೆಯುವಿಕೆ ವಿಫಲವಾಗಿದೆ. "
-                        "ಟೆಕ್ಸ್ಟ್ ಆಧಾರಿತ ಹೊರತೆಗೆಯುವಿಕೆಯ ನಂತರವೂ OCR ವಿಫಲವಾಗಿದೆ. "
-                        "Windows ನಲ್ಲಿ OCR ಗಾಗಿ Tesseract (ಕನ್ನಡ ಭಾಷಾ ಡೇಟಾ) ಮತ್ತು Poppler 설치 ಅಗತ್ಯ."
-                    )
-                    detail = extracted_text if extracted_text else ""
-                    raise Exception(f"{help_msg} ವಿವರ: {detail}")
-
-            # 3) Create a new Word document in memory
-            doc = Document()
-            doc.add_paragraph(extracted_text)
-
-            # 4) Define the output path and save the Word document
-            output_filename = f"{session_id}_{os.path.splitext(os.path.basename(file_path))[0]}.docx"
-            output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
-
-            doc.save(output_path)
-
-            # 5) Validate that the file was created successfully
+            # Validate that the file was created successfully
             if not os.path.exists(output_path):
                 raise Exception("Word ಫೈಲ್ ರಚನೆ ವಿಫಲವಾಗಿದೆ")
 
-            print(f"Conversion completed successfully. Output: {output_path}")
+            # Check file size to ensure it's not empty
+            file_size = os.path.getsize(output_path)
+            if file_size == 0:
+                raise Exception("ಖಾಲಿ Word ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ")
+
+            print(f"✅ Conversion completed successfully with text + images!")
+            print(f"Output: {output_path} (Size: {file_size} bytes)")
             return output_path
 
         except Exception as e:
             print(f"PDF to Word conversion error: {str(e)}")
             # Re-raise the exception so app.py can catch it and show the user
             raise Exception(f"PDF ಇಂದ Word ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
-        
+    
     def _parse_page_ranges(self, pages_str, total_pages):
         """Parse page ranges like '1,3,5-10' into list of page numbers"""
         pages = []

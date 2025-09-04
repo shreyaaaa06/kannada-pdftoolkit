@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for, redirect, flash , make_response
+from flask import Flask, request, render_template, jsonify, send_from_directory, send_file, session, url_for, redirect, flash, make_response, Response
 import os
 import uuid
 import sys
@@ -7,62 +7,47 @@ from utils.file_handler import FileHandler
 from utils.pdf_operations import PDFOperations
 from utils.pdf_compare import PDFCompare
 from utils.auth import AuthenticationManager
-from textUtils.pdf_text_extractor import convert_pdf_to_docx
+from textUtils.pdf_text_extractor import convert_pdf_to_docx, convert_pdf_to_docx_with_images
 
 import config
 import traceback
 from functools import wraps
-
-import fitz  # PyMuPDF
+import fitz
 from PIL import Image
 import io
 import time
-from utils.pdf_compare import PDFCompare
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import html
-from flask import redirect, url_for
-from utils.pdf_compare import PDFCompare
 import unicodedata
-from flask import Response
 import requests
 from weasyprint import HTML, CSS
-from flask import make_response
-import traceback
 import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'karnataka-govt-pdf-toolkit-secret-key-2025'
 
-# Base directory setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')
 
-# Initialize PDF compare instance
 pdf_compare = PDFCompare()
 
-# Configure Flask app
 app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
-
-# UTF-8 encoding configuration
-# Set UTF-8 encoding for stdout and stderr if possible, otherwise rely on PYTHONIOENCODING
 
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 try:
     sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
     sys.stderr = open(sys.stderr.fileno(), mode='w', encoding='utf-8', buffering=1)
 except Exception:
-    pass  # If running in an environment where fileno is not available, skip
+    pass
 
-# Set UTF-8 encoding for the entire application
 if sys.platform.startswith('win'):
     os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 @app.after_request  
 def after_request(response):
-    """Ensure UTF-8 encoding for all responses"""
     if response.content_type:
         if 'charset' not in response.content_type:
             if 'text/html' in response.content_type:
@@ -71,7 +56,6 @@ def after_request(response):
                 response.content_type = 'application/json; charset=utf-8'
     return response
 
-# App configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
@@ -83,11 +67,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Initialize authentication
 auth_manager = AuthenticationManager()
 
 def login_required(f):
-    """Decorator to require authentication for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         session_token = session.get('auth_token')
@@ -98,7 +80,6 @@ def login_required(f):
                 return jsonify({'success': False, 'error': 'ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ', 'requires_login': True}), 401
             return redirect(url_for('login'))
         
-        # Store user info in session for access
         session['current_user'] = user_info
         return f(*args, **kwargs)
     return decorated_function
@@ -322,8 +303,10 @@ def upload_file():
         
         session_id = session['session_id']
 
-        
-        operation = request.form.get('operation')
+        # Normalize operation to a consistent format (supports hyphen/underscore variants)
+        raw_operation = request.form.get('operation') or ''
+        operation = raw_operation.strip().lower().replace('-', '_')
+
         # Store original filenames for later use
         original_filenames = []
         for file in request.files.getlist('files'):
@@ -337,9 +320,17 @@ def upload_file():
             file_paths = [f['path'] for f in session['processed_files']]
         else:
             files = request.files.getlist('files')
+            # If no 'files' list, try any file_* fields
+            if not files or all(not f.filename for f in files):
+                files = []
+                for key in request.files:
+                    if key.startswith('file_'):
+                        f = request.files.get(key)
+                        if f and f.filename:
+                            files.append(f)
             if not files or all(not f.filename for f in files):
                 return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
-            
+
             file_paths = []
             for file in files:
                 if file and file.filename:
@@ -356,8 +347,16 @@ def upload_file():
         # Get files from upload (enhanced file handling from file 2)
         files = request.files.getlist('files')
         if not files or all(not f.filename for f in files):
+            # fallback to individual file_* fields
+            files = []
+            for key in request.files:
+                if key.startswith('file_'):
+                    f = request.files.get(key)
+                    if f and f.filename:
+                        files.append(f)
+        if not files or all(not f.filename for f in files):
             return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
-        
+
         file_paths = []
         
         for i, file in enumerate(files):  # Add enumerate to ensure unique processing
@@ -672,15 +671,28 @@ def upload_file():
             
 
             elif operation == 'pdf_to_word':
-                print("Processing PDF to Word operation")
-                # Use textUtils extractor to convert PDF to DOCX (auto chooses best method incl. OCR)
-                result_path = convert_pdf_to_docx(
-                    file_paths[0],
-                    session_id,
-                    output_dir=app.config['OUTPUT_FOLDER'],
-                    method='ocr',
-                    ocr_language='kan'
-                )
+                print("Processing PDF to Word operation (PURE KANNADA OCR + IMAGES)")
+                try:
+                    # PURE OCR APPROACH with IMAGE EXTRACTION
+                    from textUtils.pdf_text_extractor import convert_pdf_to_docx_with_images
+                    
+                    print("🔍 Using PURE Kannada OCR + Image extraction for complete conversion...")
+                    result_path = convert_pdf_to_docx_with_images(
+                        file_paths[0],
+                        session_id,
+                        output_dir=app.config['OUTPUT_FOLDER'],
+                        text_method='ocr',  # Force OCR only
+                        ocr_language='kan',  # Pure Kannada for best results
+                        include_images=True,  # ✅ Extract and embed images
+                        image_dpi=300,  # High quality images
+                        image_max_width_inches=6.0  # Good size for Word documents
+                    )
+                    print(f"✅ Pure OCR + Image extraction completed: {result_path}")
+                        
+                except Exception as pdf_to_word_error:
+                    print(f"✗ PDF to Word conversion error: {pdf_to_word_error}")
+                    traceback.print_exc()
+                    return jsonify({'success': False, 'error': f'PDF to Word ಪರಿವರ್ತನೆ ವಿಫಲ: {str(pdf_to_word_error)}'})
             
             elif operation == 'word_to_pdf':
                 print("Processing Word to PDF operation")
@@ -736,8 +748,15 @@ def upload_file():
             
             elif operation == 'compare':
                 print("Processing compare operation")
-                if len(file_paths) != 2:
-                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆಗಾಗಿ ನಿಖರವಾಗಿ 2 PDF ಫೈಲ್‌ಗಳು ಬೇಕು'})
+                if len(file_paths) < 2:
+                    # Store the first file and ask for more (like merge)
+                    return jsonify({
+                        'success': True, 
+                        'message': f'ಮೊದಲ ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಆಯಿತು: {os.path.basename(file_paths[0])}. ಹೋಲಿಕೆಗಾಗಿ ಇನ್ನೊಂದು PDF ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
+                        'needs_more_files': True,
+                        'files_needed': 1,
+                        'current_files': len(file_paths)
+                    })
                 
                 session.pop('comparison_data', None)
                 session.pop('comparison_report_url', None)
@@ -747,10 +766,109 @@ def upload_file():
                 pdf1_path = file_paths[0]  # First uploaded file - LEFT side
                 pdf2_path = file_paths[1]  # Second uploaded file - RIGHT side
                 
+                # Extract original filenames for display
+                pdf1_original_name = None
+                pdf2_original_name = None
+                
+                # Try to get original filenames from current upload
+                if len(original_filenames) >= 2:
+                    pdf1_original_name = original_filenames[0]
+                    pdf2_original_name = original_filenames[1]
+                elif len(original_filenames) == 1:
+                    # Only one file uploaded this time, try to infer which one it is
+                    if len(file_paths) >= 2:
+                        # If we have 2 file paths but only 1 original name, 
+                        # the new upload is likely the second file
+                        pdf2_original_name = original_filenames[0]
+                
+                # Extract original names from filenames if not available
+                if not pdf1_original_name:
+                    # Try to extract from internal filename
+                    internal_name = os.path.basename(pdf1_path)
+                    if '_' in internal_name:
+                        # Try different formats:
+                        # Format 1: sessionid_f1_timestamp_hash_original.pdf  (newer format)
+                        # Format 2: sessionid_timestamp_hash_original.pdf     (older format)
+                        parts = internal_name.split('_')
+                        if len(parts) >= 5:
+                            # Check if second part is file index (f1, f2, etc.)
+                            if parts[1].startswith('f') and parts[1][1:].isdigit():
+                                # Newer format with file index
+                                pdf1_original_name = '_'.join(parts[4:])
+                            else:
+                                # Older format without file index  
+                                pdf1_original_name = '_'.join(parts[3:])
+                        elif len(parts) >= 4:
+                            # Fallback for older format
+                            pdf1_original_name = '_'.join(parts[3:])
+                    if not pdf1_original_name:
+                        pdf1_original_name = internal_name
+                        
+                if not pdf2_original_name:
+                    # Try to extract from internal filename  
+                    internal_name = os.path.basename(pdf2_path)
+                    if '_' in internal_name:
+                        # Try different formats:
+                        # Format 1: sessionid_f1_timestamp_hash_original.pdf  (newer format)
+                        # Format 2: sessionid_timestamp_hash_original.pdf     (older format)
+                        parts = internal_name.split('_')
+                        if len(parts) >= 5:
+                            # Check if second part is file index (f1, f2, etc.)
+                            if parts[1].startswith('f') and parts[1][1:].isdigit():
+                                # Newer format with file index
+                                pdf2_original_name = '_'.join(parts[4:])
+                            else:
+                                # Older format without file index
+                                pdf2_original_name = '_'.join(parts[3:])
+                        elif len(parts) >= 4:
+                            # Fallback for older format
+                            pdf2_original_name = '_'.join(parts[3:])
+                    if not pdf2_original_name:
+                        pdf2_original_name = internal_name
+                
                 print(f"Comparing: {pdf1_path} (LEFT) vs {pdf2_path} (RIGHT)")
+                print(f"Original names: {pdf1_original_name} (LEFT) vs {pdf2_original_name} (RIGHT)")
                 
                 # Use the dedicated comparison class with maintained order
-                comparison_results = pdf_compare.compare_pdfs_web(pdf1_path, pdf2_path, session_id, compare_type)
+                comparison_results = pdf_compare.compare_pdfs_web(pdf1_path, pdf2_path, session_id, compare_type, pdf1_original_name, pdf2_original_name)
+                
+                if comparison_results:
+                    # Store comparison data in session for web display
+                    session['comparison_data'] = comparison_results
+                    
+                    # ALSO save to file for persistence
+                    import json
+                    comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
+                    with open(comparison_file, 'w', encoding='utf-8') as f:
+                        json.dump(comparison_results, f, ensure_ascii=False, indent=2)
+                    
+                    # Generate the comparison report
+                    report_path = pdf_compare.generate_comparison_report_web(comparison_results, session_id)
+                    
+                    if report_path:
+                        # Create meaningful filename for download
+                        file1_name = os.path.splitext(pdf1_original_name or 'File1')[0]
+                        file2_name = os.path.splitext(pdf2_original_name or 'File2')[0]
+                        meaningful_filename = f"Comparison_{file1_name}_vs_{file2_name}.pdf"
+                        
+                        # Store the download mapping for meaningful filename
+                        session['download_mapping'] = {
+                            'system_filename': os.path.basename(report_path),
+                            'user_filename': meaningful_filename
+                        }
+                        
+                        session['comparison_report_url'] = f"/static/temp/{session_id}/comparison_report.html"
+                        
+                        # Return success with redirect to comparison results
+                        return jsonify({
+                            'success': True,
+                            'redirect_url': f'/compare_result/{session_id}',
+                            'message': 'ಹೋಲಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ!'
+                        })
+                    else:
+                        return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆ ವರದಿ ಸೃಷ್ಟಿಸಲು ವಿಫಲವಾಗಿದೆ'})
+                else:
+                    return jsonify({'success': False, 'error': 'ಹೋಲಿಕೆ ಪ್ರಕ್ರಿಯೆ ವಿಫಲವಾಗಿದೆ'})
                 
             elif operation == 'sort':
                 result_path = pdf_ops.sort_pdf_by_page_numbers(file_paths[0], session_id, pages)
@@ -1060,6 +1178,25 @@ def compare_pdfs():
         if not comparison_data:
             return jsonify({'error': 'ಹೋಲಿಕೆ ವಿಫಲವಾಗಿದೆ'}), 500
         
+        # Create meaningful filename for download
+        if comparison_data.get('report_path'):
+            # Get original file names (without extensions)
+            file1_name = os.path.splitext(comparison_data.get('file1_name', 'File1'))[0]
+            file2_name = os.path.splitext(comparison_data.get('file2_name', 'File2'))[0]
+            
+            # Create meaningful filename
+            meaningful_filename = f"Comparison_{file1_name}_vs_{file2_name}.pdf"
+            
+            # Get the actual system filename from the report_path
+            report_path_parts = comparison_data['report_path'].split('/')
+            system_filename = report_path_parts[-1]  # Last part after /download/session_id/
+            
+            # Store the download mapping for meaningful filename
+            session['download_mapping'] = {
+                'system_filename': system_filename,
+                'user_filename': meaningful_filename
+            }
+        
         # Store session data
         session['comparison_data'] = comparison_data
         session['session_id'] = session_id
@@ -1070,6 +1207,42 @@ def compare_pdfs():
     except Exception as e:
         print(f"Compare error: {e}")
         return jsonify({'error': f'ದೋಷ: {str(e)}'}), 500
+
+@app.route('/compare_result/<session_id>')
+def compare_result_with_session(session_id):
+    try:
+        comparison_data = None
+        
+        # Try to get data from session first
+        if 'comparison_data' in session:
+            comparison_data = session['comparison_data']
+            print("✓ Found comparison data in session")
+        else:
+            # Fallback: try to load from file
+            comparison_file = os.path.join(app.config['OUTPUT_FOLDER'], f'{session_id}_comparison.json')
+            if os.path.exists(comparison_file):
+                with open(comparison_file, 'r', encoding='utf-8') as f:
+                    comparison_data = json.load(f)
+                print("✓ Loaded comparison data from file")
+            else:
+                print(f"✗ No comparison file found: {comparison_file}")
+        
+        if not comparison_data:
+            print("✗ No comparison data found anywhere")
+            return jsonify({'error': 'ಹೋಲಿಕೆ ಡೇಟಾ ಕಂಡುಬಂದಿಲ್ಲ', 'success': False})
+        
+        # Set the session_id for template access
+        session['current_session_id'] = session_id
+        
+        print(f"✓ Rendering comparison results for session: {session_id}")
+        return render_template('compare_result.html', 
+                             comparison_data=comparison_data,
+                             session_id=session_id)
+        
+    except Exception as e:
+        print(f"Compare result error: {e}")
+        traceback.print_exc()
+        return jsonify({'error': f'ದೋಷ: {str(e)}', 'success': False})
 
 @app.route('/compare-result')
 def compare_result():
@@ -1101,8 +1274,7 @@ def compare_result():
         
         comparison_data = ensure_utf8(comparison_data)
         
-        response = make_response(render_template('compare_result.html', 
-                                               comparison_data=comparison_data))
+        response = make_response(render_template('compare_result.html', comparison_data=comparison_data))
         response.headers['Content-Type'] = 'text/html; charset=utf-8'
         return response
         

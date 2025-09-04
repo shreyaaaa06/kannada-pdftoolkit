@@ -20,10 +20,17 @@ from weasyprint import HTML, CSS
 from weasyprint.text.fonts import FontConfiguration
 import re 
 
+# Define fallback function in case it's called from somewhere
+def preprocess_stylesheet(stylesheet_content):
+    """Fallback function for stylesheet preprocessing"""
+    return stylesheet_content
 
 class PDFCompare:
     def __init__(self):
         self.kannada_font = 'KannadaFont'  # Default fallback
+        # Cache OCR processor to avoid repeated setup and warnings
+        self._ocr_processor = None
+        self._ocr_warned = False
         self.setup_fonts()
     
     def setup_fonts(self):
@@ -92,7 +99,7 @@ class PDFCompare:
             except:
                 pass
             
-            print(f"Page has {image_count} images detected")  # Debug info
+            # Debug: print(f"Page has {image_count} images detected")  # Commented out to reduce spam
             
             # Rest of your existing text extraction logic...
             for block in text_dict.get("blocks", []):
@@ -251,8 +258,15 @@ class PDFCompare:
         """Use OCR ONLY when regular text extraction fails"""
         try:
             from utils.pdf_ocr_processor import PDFOCRProcessor
-            ocr_processor = PDFOCRProcessor()
-            ocr_text = ocr_processor.extract_text_with_ocr(page)
+            if self._ocr_processor is None:
+                self._ocr_processor = PDFOCRProcessor()
+            # If OCR not available, skip attempts to avoid loops
+            if not getattr(self._ocr_processor, 'ocr_available', False):
+                if not self._ocr_warned:
+                    print("OCR not available; skipping OCR fallback.")
+                    self._ocr_warned = True
+                return ""
+            ocr_text = self._ocr_processor.extract_text_with_ocr(page)
             
             if ocr_text and len(ocr_text.strip()) > 0:
                 return self.clean_kannada_text(ocr_text)
@@ -260,10 +274,14 @@ class PDFCompare:
             return ""
             
         except ImportError:
-            print("⚠ OCR processor not available")
+            if not self._ocr_warned:
+                print("⚠ OCR processor not available")
+                self._ocr_warned = True
             return ""
         except Exception as e:
-            print(f"OCR fallback failed: {e}")
+            if not self._ocr_warned:
+                print(f"OCR fallback failed: {e}")
+                self._ocr_warned = True
             return ""
 
     def is_text_corrupted(self, text):
@@ -318,7 +336,7 @@ class PDFCompare:
             return text if isinstance(text, str) else ""
 
     
-    def compare_pdfs_web(self, pdf1_path, pdf2_path, session_id, compare_type='both'):
+    def compare_pdfs_web(self, pdf1_path, pdf2_path, session_id, compare_type='both', pdf1_original_name=None, pdf2_original_name=None):
         """FIXED: Web-friendly PDF comparison with proper page handling"""
         try:
             print(f"Starting comparison: {pdf1_path} vs {pdf2_path}")
@@ -326,10 +344,14 @@ class PDFCompare:
             doc1 = fitz.open(pdf1_path)
             doc2 = fitz.open(pdf2_path)
             
+            # Use original filenames if provided, otherwise fall back to basename
+            file1_display_name = pdf1_original_name if pdf1_original_name else os.path.basename(pdf1_path)
+            file2_display_name = pdf2_original_name if pdf2_original_name else os.path.basename(pdf2_path)
+            
             # CRITICAL FIX: Maintain upload order - first uploaded stays as file1
             comparison_data = {
-                'file1_name': os.path.basename(pdf1_path),
-                'file2_name': os.path.basename(pdf2_path),
+                'file1_name': file1_display_name,
+                'file2_name': file2_display_name,
                 'file1_pages': len(doc1),
                 'file2_pages': len(doc2),
                 'page_comparisons': [],
@@ -960,9 +982,12 @@ class PDFCompare:
                     print(f"✓ PDF report generated with Playwright: {pdf_path}")
                     return pdf_path
             except ImportError:
-                print("⚠ Playwright not available")
+                print("⚠ Playwright not available, trying alternative methods")
             except Exception as e:
-                print(f"⚠ Playwright failed: {e}")
+                print(f"⚠ Playwright PDF generation failed: {e}")
+                print("⚠ This usually means browser executables need to be installed")
+                print("⚠ Run: playwright install (to fix this in future)")
+                print("⚠ Continuing with alternative PDF generation...")
             
             # Convert HTML to PDF using wkhtmltopdf (if available)
             try:
@@ -988,15 +1013,37 @@ class PDFCompare:
                     print(f"✓ PDF report generated successfully: {pdf_path}")
                     return pdf_path
                 else:
-                    print("⚠ PDF generation failed, returning HTML")
-                    return html_path
+                    print("⚠ PDF generation failed, trying alternative method")
                     
             except ImportError:
-                print("⚠ pdfkit not available, trying alternative method")
-                return self.convert_html_to_pdf_alternative(html_path, pdf_path)
+                print("⚠ pdfkit not available, trying alternative PDF generation")
             except Exception as pdf_error:
-                print(f"⚠ PDF conversion failed: {pdf_error}, returning HTML")
-                return html_path
+                print(f"⚠ PDF conversion failed: {pdf_error}, trying alternative method")
+            
+            # FORCE PDF GENERATION: Try alternative PDF generation method
+            try:
+                alternative_pdf = self.convert_html_to_pdf_alternative(html_path, pdf_path)
+                if alternative_pdf and alternative_pdf.endswith('.pdf') and os.path.exists(alternative_pdf):
+                    print(f"✓ PDF generated using alternative method: {alternative_pdf}")
+                    return alternative_pdf
+                else:
+                    print("⚠ Alternative PDF generation also failed")
+            except Exception as alt_error:
+                print(f"⚠ Alternative PDF generation failed: {alt_error}")
+            
+            # LAST RESORT: Force create a simple PDF report
+            try:
+                print("🔄 Creating simple PDF report as last resort...")
+                simple_pdf = self.create_simple_pdf_report(comparison_data, session_id)
+                if simple_pdf and os.path.exists(simple_pdf):
+                    print(f"✓ Simple PDF report created: {simple_pdf}")
+                    return simple_pdf
+            except Exception as simple_error:
+                print(f"⚠ Simple PDF creation failed: {simple_error}")
+            
+            # FINAL FALLBACK: Return HTML only if ALL PDF methods fail
+            print("⚠ ALL PDF generation methods failed, returning HTML as final fallback")
+            return html_path
             
         except Exception as e:
             print(f"Report generation error: {e}")
@@ -1053,12 +1100,19 @@ class PDFCompare:
             # Try using weasyprint if available
             from weasyprint import HTML, CSS
             
-            # Custom CSS for better Kannada rendering
-            css = CSS(string='''
-                @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600&display=swap');
-                body { font-family: 'Noto Sans Kannada', Arial, sans-serif; }
-            ''')
+            # Simplified CSS without external imports to avoid issues
+            css_content = '''
+                body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 12px;
+                    line-height: 1.4;
+                }
+                .kannada { 
+                    font-family: Arial, sans-serif;
+                }
+            '''
             
+            css = CSS(string=css_content)
             HTML(filename=html_path).write_pdf(pdf_path, stylesheets=[css])
             
             if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 1000:
@@ -1554,3 +1608,56 @@ class PDFCompare:
         except Exception as e:
             print(f"Bullet normalization error: {e}")
             return text
+
+    def create_simple_pdf_report(self, comparison_data, session_id):
+        """Create a simple PDF report using ReportLab as last resort"""
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_LEFT, TA_CENTER
+            
+            pdf_path = f"output/{session_id}_comparison_report.pdf"
+            
+            # Create PDF document
+            doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+            story = []
+            styles = getSampleStyleSheet()
+            
+            # Title
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                alignment=TA_CENTER,
+                spaceAfter=20
+            )
+            story.append(Paragraph("PDF Comparison Report", title_style))
+            story.append(Spacer(1, 20))
+            
+            # File information
+            story.append(Paragraph(f"<b>File 1:</b> {comparison_data.get('file1_name', 'Unknown')}", styles['Normal']))
+            story.append(Paragraph(f"<b>File 2:</b> {comparison_data.get('file2_name', 'Unknown')}", styles['Normal']))
+            story.append(Spacer(1, 10))
+            
+            # Summary
+            summary = comparison_data.get('summary', {})
+            story.append(Paragraph(f"<b>Pages Compared:</b> {summary.get('total_pages_compared', 0)}", styles['Normal']))
+            story.append(Paragraph(f"<b>Text Changes:</b> {summary.get('total_text_changes', 0)}", styles['Normal']))
+            story.append(Paragraph(f"<b>Visual Differences:</b> {summary.get('visual_diff_pages', 0)} pages", styles['Normal']))
+            story.append(Spacer(1, 20))
+            
+            # Note about detailed comparison
+            story.append(Paragraph("<b>Note:</b> This is a simplified report. For detailed visual comparison with images, please use the HTML version in your browser.", styles['Normal']))
+            
+            # Build PDF
+            doc.build(story)
+            
+            if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 100:
+                return pdf_path
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Simple PDF creation error: {e}")
+            return None
