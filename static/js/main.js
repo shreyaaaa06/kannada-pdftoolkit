@@ -525,27 +525,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="flex: 1; overflow-y: auto; padding: 0.8rem; border: 1px solid var(--biscuit-light); border-radius: 8px; background: var(--biscuit-light);">
                     <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-start;">
                         ${previewData.sorted_order.map((page, index) => `
-                            <div class="sorted-page-item" data-page-num="${page.page_num}" style="text-align: center; background: var(--biscuit-cream); border-radius: 8px; padding: 0.8rem; min-width: 140px; cursor: pointer; position: relative;">
+                            <div class="sorted-page-item" data-page-num="${page.page_num}" style="text-align: center; background: var(--biscuit-cream); border-radius: 8px; padding: 0.8rem; min-width: 140px; cursor: pointer; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 <input type="checkbox" class="sorted-page-checkbox" onchange="togglePageSelection(${page.page_num})" 
-                                       style="position: absolute; top: 8px; left: 8px; transform: scale(1.3);">
-                                <div style="color: var(--brown-text); font-weight: bold; margin-bottom: 0.5rem; font-size: 0.85rem; margin-top: 20px;">
-                                    ${index + 1}. ಪುಟ ${page.page_num}
+                                       style="position: absolute; top: 8px; left: 8px; transform: scale(1.3); z-index: 10;">
+                                <div style="color: var(--brown-text); font-weight: bold; margin-bottom: 0.5rem; font-size: 0.8rem; margin-top: 20px;">
+                                    ${index + 1}. ಕ್ರಮ
                                 </div>
-                                ${page.thumbnail_path ? `
-                                    <img src="${page.thumbnail_path}" alt="ಪುಟ ${page.page_num}" 
-                                         style="width: 90px; height: 120px; border: 1px solid var(--light-brown); border-radius: 4px; object-fit: cover; margin-bottom: 0.5rem;"
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div style="display: none; width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem;">
-                                        📄<br><span style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</span>
+                                <div style="position: relative; display: inline-block; margin-bottom: 0.5rem;">
+                                    ${page.thumbnail_path ? `
+                                        <img src="${page.thumbnail_path}" alt="ಪುಟ ${page.page_num}" 
+                                             style="width: 90px; height: 120px; border: 2px solid var(--light-brown); border-radius: 6px; object-fit: cover; display: block;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div style="display: none; width: 90px; height: 120px; background: var(--biscuit-light); border: 2px solid var(--light-brown); border-radius: 6px; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem;">
+                                            📄<br><span style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</span>
+                                        </div>
+                                    ` : `
+                                        <div style="width: 90px; height: 120px; background: var(--biscuit-light); border: 2px solid var(--light-brown); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; flex-direction: column;">
+                                            <div style="font-size: 1.5rem;">📄</div>
+                                            <div style="font-size: 0.65rem; margin-top: 0.2rem;">ಪುಟ ${page.page_num}</div>
+                                        </div>
+                                    `}
+                                    <!-- Page number overlay at bottom of thumbnail -->
+                                    <div style="position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); background: var(--primary-brown); color: white; padding: 0.2rem 0.5rem; border-radius: 0 0 4px 4px; font-size: 0.7rem; font-weight: bold; min-width: 30px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                                        ${page.page_num}
                                     </div>
-                                ` : `
-                                    <div style="width: 90px; height: 120px; background: var(--biscuit-light); border: 1px solid var(--light-brown); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--light-brown); font-size: 0.75rem; margin-bottom: 0.5rem; flex-direction: column;">
-                                        <div>📄</div>
-                                        <div style="font-size: 0.65rem;">ಪುಟ ${page.page_num}</div>
-                                    </div>
-                                `}
-                                <div style="color: var(--light-brown); font-size: 0.7rem;">
+                                </div>
+                                <div style="color: var(--light-brown); font-size: 0.7rem; margin-top: 0.3rem;">
                                     ಸಂಖ್ಯೆ: ${page.extracted_number}
+                                </div>
+                                <div style="color: var(--primary-brown); font-size: 0.65rem; margin-top: 0.2rem; font-weight: 600;">
+                                    ಮೂಲ ಪುಟ: ${page.page_num}
                                 </div>
                             </div>
                         `).join('')}
