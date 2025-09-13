@@ -291,6 +291,113 @@ def generate_sort_preview():
     except Exception as e:
         return jsonify({'success': False, 'error': f'ಸಾರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ದೋಷ: {str(e)}'})
 
+@app.route('/generate-operation-preview', methods=['POST'])
+@login_required
+def generate_operation_preview():
+    """Generate preview for any PDF operation"""
+    try:
+        # Get operation type
+        operation = request.form.get('operation', '').strip().lower()
+        if not operation:
+            return jsonify({'success': False, 'error': 'ಆಪರೇಶನ್ ನಿರ್ದಿಷ್ಟಪಡಿಸಿ'})
+        
+        # Get session ID
+        if 'session_id' not in session:
+            session['session_id'] = str(uuid.uuid4())
+        session_id = session['session_id']
+        
+        # Handle file upload
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'ಯಾವುದೇ ಫೈಲ್ ಕಳುಹಿಸಲಾಗಿಲ್ಲ'})
+        
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'error': 'ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ'})
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_{filename}")
+        file.save(temp_path)
+        
+        # Collect operation-specific parameters
+        operation_params = {}
+        
+        if operation in ['split', 'extract', 'delete']:
+            operation_params['page_range'] = request.form.get('page_range', '')
+            if operation == 'split':
+                operation_params['split_method'] = request.form.get('split_method', 'pages')
+                operation_params['pages_per_file'] = int(request.form.get('pages_per_file', 1))
+        
+        elif operation == 'rotate':
+            operation_params['rotation_angle'] = int(request.form.get('rotation_angle', 90))
+            operation_params['page_range'] = request.form.get('page_range', '')
+        
+        elif operation == 'crop':
+            operation_params['top_margin'] = float(request.form.get('top_margin', 0))
+            operation_params['bottom_margin'] = float(request.form.get('bottom_margin', 0))
+            operation_params['left_margin'] = float(request.form.get('left_margin', 0))
+            operation_params['right_margin'] = float(request.form.get('right_margin', 0))
+        
+        elif operation == 'compress':
+            operation_params['compression_level'] = request.form.get('compression', 'medium')
+            target_size_mb = request.form.get('target_size_mb')
+            if target_size_mb:
+                try:
+                    operation_params['target_size_mb'] = float(target_size_mb)
+                except ValueError:
+                    pass
+        
+        elif operation == 'pdf-to-image' or operation == 'pdf_to_image':
+            operation_params['image_format'] = request.form.get('image_format', 'png')
+            operation_params['image_dpi'] = int(request.form.get('image_dpi', 300))
+            operation_params['page_range'] = request.form.get('page_range', '')
+        
+        elif operation == 'merge':
+            # Handle additional files for merge preview
+            additional_files = []
+            for i, additional_file in enumerate(request.files.getlist('additional_files')):
+                if additional_file and additional_file.filename:
+                    add_filename = secure_filename(additional_file.filename)
+                    add_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_merge_{i+1}_{add_filename}")
+                    additional_file.save(add_path)
+                    additional_files.append(add_path)
+            operation_params['additional_files'] = additional_files
+        
+        # Generate preview
+        pdf_ops = PDFOperations()
+        preview_data = pdf_ops.generate_operation_preview(temp_path, session_id, operation, operation_params)
+        
+        if preview_data.get('success'):
+            # Convert file paths to relative URLs for frontend
+            def convert_paths_to_urls(data):
+                if isinstance(data, dict):
+                    result = {}
+                    for key, value in data.items():
+                        if key.endswith('_path') or key == 'thumbnail' or 'thumbnail' in key:
+                            if value and os.path.exists(value):
+                                # Convert to relative URL
+                                rel_path = os.path.relpath(value, os.path.join(app.config['OUTPUT_FOLDER']))
+                                result[key] = f"/output/{rel_path.replace(os.sep, '/')}"
+                            else:
+                                result[key] = value
+                        else:
+                            result[key] = convert_paths_to_urls(value)
+                    return result
+                elif isinstance(data, list):
+                    return [convert_paths_to_urls(item) for item in data]
+                else:
+                    return data
+            
+            converted_data = convert_paths_to_urls(preview_data)
+            return jsonify(converted_data)
+        else:
+            return jsonify(preview_data)
+    
+    except Exception as e:
+        print(f"Preview generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲ: {str(e)}'})
 
 
 @app.route('/upload', methods=['POST'])
@@ -662,7 +769,18 @@ def upload_file():
                 
             elif operation == 'pdf_to_jpeg':
                 print("Processing PDF to JPEG operation")
-                result_path = pdf_ops.pdf_to_images(file_paths[0], session_id)
+                # Get page range and image parameters
+                page_range = request.form.get('page_range', '') or request.form.get('pages', '')
+                image_format = request.form.get('image_format', 'jpeg')
+                image_dpi = int(request.form.get('image_dpi', 300))
+                
+                result_path = pdf_ops.pdf_to_images(
+                    file_paths[0], 
+                    session_id, 
+                    page_range=page_range,
+                    image_format=image_format,
+                    image_dpi=image_dpi
+                )
                 
             elif operation == 'jpeg_to_pdf':
                 print("Processing JPEG to PDF operation")   
@@ -673,19 +791,14 @@ def upload_file():
             elif operation == 'pdf_to_word':
                 print("Processing PDF to Word operation (PURE KANNADA OCR + IMAGES)")
                 try:
-                    # PURE OCR APPROACH with IMAGE EXTRACTION
-                    from textUtils.pdf_text_extractor import convert_pdf_to_docx_with_images
+                    # Get page range parameter
+                    page_range = request.form.get('page_range', '') or request.form.get('pages', '')
                     
-                    print("🔍 Using PURE Kannada OCR + Image extraction for complete conversion...")
-                    result_path = convert_pdf_to_docx_with_images(
-                        file_paths[0],
+                    # Use the enhanced PDF to Word conversion with page range support
+                    result_path = pdf_ops.pdf_to_word(
+                        file_paths[0], 
                         session_id,
-                        output_dir=app.config['OUTPUT_FOLDER'],
-                        text_method='ocr',  # Force OCR only
-                        ocr_language='kan',  # Pure Kannada for best results
-                        include_images=True,  # ✅ Extract and embed images
-                        image_dpi=300,  # High quality images
-                        image_max_width_inches=6.0  # Good size for Word documents
+                        page_range=page_range
                     )
                     print(f"✅ Pure OCR + Image extraction completed: {result_path}")
                         
@@ -1347,6 +1460,34 @@ def not_found(e):
 def server_error(e):
     return jsonify({'success': False, 'error': 'ಸರ್ವರ್ ದೋಷ ಸಂಭವಿಸಿದೆ'}), 500
 
+@app.route('/output/<path:filename>')
+@login_required
+def serve_output_file(filename):
+    """Serve files from the output directory (including preview images)"""
+    try:
+        output_dir = os.path.abspath(app.config['OUTPUT_FOLDER'])
+        file_path = os.path.join(output_dir, filename)
+        
+        # Security check - ensure the file is within the output directory
+        if not os.path.abspath(file_path).startswith(output_dir):
+            return jsonify({'error': 'ಅನಧಿಕೃತ ಫೈಲ್ ಪ್ರವೇಶ'}), 403
+        
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'}), 404
+        
+        # Determine MIME type based on file extension
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            mimetype = 'image/png' if filename.lower().endswith('.png') else 'image/jpeg'
+            return send_file(file_path, mimetype=mimetype)
+        elif filename.lower().endswith('.pdf'):
+            return send_file(file_path, mimetype='application/pdf')
+        else:
+            return send_file(file_path)
+    
+    except Exception as e:
+        print(f"Error serving file {filename}: {e}")
+        return jsonify({'error': 'ಫೈಲ್ ಸೇವೆಯಲ್ಲಿ ದೋಷ'}), 500
+
 # Enhanced cleanup function from file 2
 def cleanup_old_files():
     """Clean up old files on server startup"""
@@ -1386,4 +1527,3 @@ if __name__ == '__main__':
     import os
     debug_flag = os.environ.get('FLASK_DEBUG', '0') in ('1', 'true', 'True')
     app.run(debug=debug_flag)
-

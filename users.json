@@ -72,6 +72,18 @@
     "role": "user",
     "created_at": "2025-08-07T23:38:56.308033",
     "is_verified": false,
-    "last_login": "2025-09-01T17:00:12.335408"
+    "last_login": "2025-09-04T20:14:04.270407"
+  },
+  "abhisheklgowda05": {
+    "email": "abhisheklgowda05@gmail.com",
+    "password_hash": "e4d3584e3586245b4ba95cfc8670647eb9b6986ecb5d23b970b76573abca1a78b4f3db50bc2f8e5321966d4115c8c3e2",
+    "name": "Abhishek L",
+    "employee_id": "KGV004",
+    "department": "ಸಾಮಾನ್ಯ ಬಳಕೆದಾರ",
+    "designation": "ಬಳಕೆದಾರ",
+    "role": "user",
+    "created_at": "2025-09-04T20:15:25.109081",
+    "is_verified": false,
+    "last_login": "2025-09-04T20:15:45.622953"
   }
 }

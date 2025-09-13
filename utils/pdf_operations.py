@@ -2498,24 +2498,52 @@ class PDFOperations:
         except Exception as e:
             print(f"Adaptive compression error: {e}")
             return False
-    def pdf_to_images(self, file_path, session_id):
-        """Convert PDF pages to JPEG images"""
+    def pdf_to_images(self, file_path, session_id, page_range="", image_format="jpeg", image_dpi=300):
+        """Convert PDF pages to images with page range support"""
         try:
             doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Determine which pages to convert
+            if page_range.strip():
+                pages_to_convert = self._parse_page_ranges_enhanced(page_range, total_pages)
+                print(f"Converting specific pages: {pages_to_convert}")
+            else:
+                pages_to_convert = list(range(1, total_pages + 1))
+                print(f"Converting all pages: {len(pages_to_convert)}")
+            
             images_folder = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_images")
             os.makedirs(images_folder, exist_ok=True)
             
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                mat = fitz.Matrix(2, 2)
-                pix = page.get_pixmap(matrix=mat)
-                
-                image_filename = f"page_{page_num + 1}.jpg"
-                image_path = os.path.join(images_folder, image_filename)
-                pix.save(image_path)
+            # Convert DPI to matrix scale
+            scale = image_dpi / 72.0
+            mat = fitz.Matrix(scale, scale)
+            
+            converted_count = 0
+            for page_num in pages_to_convert:
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]  # Convert to 0-based index
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Determine file extension
+                    ext = "jpg" if image_format.lower() in ["jpeg", "jpg"] else "png"
+                    image_filename = f"page_{page_num}.{ext}"
+                    image_path = os.path.join(images_folder, image_filename)
+                    
+                    if image_format.lower() in ["jpeg", "jpg"]:
+                        pix.save(image_path, "JPEG")
+                    else:
+                        pix.save(image_path, "PNG")
+                    
+                    converted_count += 1
+                    print(f"Converted page {page_num} to {image_filename}")
             
             doc.close()
             
+            if converted_count == 0:
+                raise Exception("ಯಾವುದೇ ಪುಟಗಳು ಪರಿವರ್ತನೆಯಾಗಲಿಲ್ಲ")
+            
+            # Create zip file
             zip_filename = f"{session_id}_images.zip"
             zip_path = os.path.join(self.config.OUTPUT_FOLDER, zip_filename)
             
@@ -2525,7 +2553,10 @@ class PDFOperations:
                         file_path = os.path.join(root, file)
                         zip_file.write(file_path, file)
             
+            # Clean up temporary folder
             shutil.rmtree(images_folder)
+            
+            print(f"Successfully converted {converted_count} pages to images")
             return zip_path
             
         except Exception as e:
@@ -2553,18 +2584,28 @@ class PDFOperations:
         except Exception as e:
             raise Exception(f"ಚಿತ್ರ PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
 
-    def pdf_to_word(self, file_path, session_id):
+    def pdf_to_word(self, file_path, session_id, page_range=""):
         """
         Convert PDF to Word document using OCR from textUtils with text AND images.
+        Supports page range selection.
         """
         try:
             print(f"=== PDF TO WORD CONVERSION (OCR + IMAGES) ===")
             print(f"Input file: {file_path}")
             print(f"Session ID: {session_id}")
+            print(f"Page range: {page_range}")
+
+            # If page range is specified, extract those pages first
+            temp_pdf_path = file_path
+            if page_range.strip():
+                print(f"Extracting specific pages: {page_range}")
+                temp_pdf_path = self.extract_pages(file_path, page_range, session_id + "_temp")
+                if not temp_pdf_path or not os.path.exists(temp_pdf_path):
+                    raise Exception("ಆಯ್ಕೆ ಮಾಡಿದ ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ")
 
             # Use the enhanced conversion function that includes both text and images
             output_path = convert_pdf_to_docx_with_images(
-                pdf_path=file_path,
+                pdf_path=temp_pdf_path,
                 session_id=session_id,
                 output_dir=self.config.OUTPUT_FOLDER,
                 text_method='ocr',  # Force OCR for pure Kannada OCR
@@ -2573,6 +2614,14 @@ class PDFOperations:
                 image_dpi=300,  # High quality images
                 image_max_width_inches=6.0  # Good size for Word documents
             )
+
+            # Clean up temporary extracted PDF if we created one
+            if temp_pdf_path != file_path and os.path.exists(temp_pdf_path):
+                try:
+                    os.remove(temp_pdf_path)
+                    print(f"Cleaned up temporary file: {temp_pdf_path}")
+                except Exception as cleanup_error:
+                    print(f"Warning: Could not clean up temporary file: {cleanup_error}")
 
             # Validate that the file was created successfully
             if not os.path.exists(output_path):
@@ -2583,7 +2632,9 @@ class PDFOperations:
             if file_size == 0:
                 raise Exception("ಖಾಲಿ Word ಫೈಲ್ ರಚಿಸಲಾಗಿದೆ")
 
+            pages_processed = page_range if page_range.strip() else "ಎಲ್ಲಾ ಪುಟಗಳು"
             print(f"✅ Conversion completed successfully with text + images!")
+            print(f"Pages processed: {pages_processed}")
             print(f"Output: {output_path} (Size: {file_size} bytes)")
             return output_path
 
@@ -2676,29 +2727,54 @@ class PDFOperations:
             raise Exception(f"Word to PDF ಪರಿವರ್ತನೆ ವಿಫಲ: {str(e)}")
 
     def sort_pdf_by_page_numbers(self, file_path, session_id, pages=""):
-        """Sort PDF pages by detected Kannada page numbers"""
+        """Sort PDF pages by detected Kannada page numbers with page range support"""
         try:
             from .kannada_numeral_converter import KannadaNumeralConverter
             
             converter = KannadaNumeralConverter()
             doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Determine which pages to sort
+            if pages.strip():
+                pages_to_sort = self._parse_page_ranges_enhanced(pages, total_pages)
+                print(f"Sorting specific pages: {pages_to_sort}")
+            else:
+                pages_to_sort = list(range(1, total_pages + 1))
+                print(f"Sorting all pages: {len(pages_to_sort)}")
             
             page_data = []
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                text = page.get_text()
-                extracted_number = converter.extract_page_number_from_text(text)
-                
-                page_data.append({
-                    'page': page,
-                    'original_num': page_num + 1,
-                    'extracted_num': extracted_number if extracted_number else page_num + 1
-                })
             
+            # Only process the specified pages
+            for page_num in pages_to_sort:
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]  # Convert to 0-based index
+                    text = page.get_text()
+                    extracted_number = converter.extract_page_number_from_text(text)
+                    
+                    page_data.append({
+                        'page': page,
+                        'original_num': page_num,
+                        'extracted_num': extracted_number if extracted_number else page_num
+                    })
+            
+            # Sort the selected pages by their extracted numbers
             page_data.sort(key=lambda x: x['extracted_num'])
             
             output_filename = f"{session_id}_sortedbynum.pdf"
             output_path = os.path.join(self.config.OUTPUT_FOLDER, output_filename)
+            
+            # Create new document with only the sorted pages
+            new_doc = fitz.open()
+            for data in page_data:
+                new_doc.insert_pdf(doc, from_page=data['original_num']-1, to_page=data['original_num']-1)
+            
+            new_doc.save(output_path)
+            new_doc.close()
+            doc.close()
+            
+            print(f"Successfully sorted {len(page_data)} pages by Kannada page numbers")
+            return output_path
             
             new_doc = fitz.open()
             for data in page_data:
@@ -3830,3 +3906,645 @@ class PDFOperations:
             import traceback
             traceback.print_exc()
             return None
+
+    # ======================== COMPREHENSIVE PREVIEW SYSTEM ========================
+    
+    def generate_operation_preview(self, file_path, session_id, operation, operation_params):
+        """
+        Generate preview for any PDF operation
+        
+        Args:
+            file_path: Path to the PDF file
+            session_id: Session identifier
+            operation: Type of operation (merge, split, extract, delete, rotate, crop, compress)
+            operation_params: Dictionary with operation-specific parameters
+        """
+        try:
+            print(f"=== GENERATING PREVIEW FOR {operation.upper()} ===")
+            
+            if not os.path.exists(file_path):
+                return {'success': False, 'error': 'PDF ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ'}
+            
+            # Create session-specific preview directory
+            preview_dir = os.path.join(self.config.OUTPUT_FOLDER, 'previews', session_id)
+            os.makedirs(preview_dir, exist_ok=True)
+            
+            # Route to specific preview generator
+            if operation == 'merge':
+                return self._generate_merge_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'split':
+                return self._generate_split_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'extract':
+                return self._generate_extract_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'delete':
+                return self._generate_delete_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'rotate':
+                return self._generate_rotate_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'crop':
+                return self._generate_crop_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'compress':
+                return self._generate_compress_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'pdf-to-image':
+                return self._generate_pdf_to_image_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'word-to-pdf':
+                return self._generate_word_to_pdf_preview(file_path, session_id, operation_params, preview_dir)
+            elif operation == 'pdf-to-word':
+                return self._generate_pdf_to_word_preview(file_path, session_id, operation_params, preview_dir)
+            else:
+                return {'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ಬೆಂಬಲಿತವಲ್ಲ: {operation}'}
+                
+        except Exception as e:
+            print(f"Preview generation error: {e}")
+            return {'success': False, 'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_merge_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for merge operation"""
+        try:
+            # Get additional files if provided
+            additional_files = params.get('additional_files', [])
+            all_files = [file_path] + additional_files
+            
+            preview_data = {
+                'success': True,
+                'operation': 'merge',
+                'operation_text': 'ಮರ್ಜ್',
+                'description': f'{len(all_files)} PDF ಗಳನ್ನು ಒಂದು ಫೈಲ್ ಆಗಿ ಸೇರಿಸಲಾಗುತ್ತದೆ',
+                'files': [],
+                'total_output_pages': 0,
+                'estimated_size': 'ಮೂಲ ಫೈಲ್‌ಗಳ ಒಟ್ಟು ಗಾತ್ರ'
+            }
+            
+            # Generate preview for each file
+            for i, pdf_file in enumerate(all_files):
+                if os.path.exists(pdf_file):
+                    doc = fitz.open(pdf_file)
+                    file_pages = len(doc)
+                    
+                    # Generate thumbnail for first page
+                    page = doc[0]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    # Save thumbnail
+                    thumb_path = os.path.join(preview_dir, f'merge_file_{i+1}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['files'].append({
+                        'name': os.path.basename(pdf_file),
+                        'pages': file_pages,
+                        'thumbnail': thumb_path,
+                        'order': i + 1
+                    })
+                    
+                    preview_data['total_output_pages'] += file_pages
+                    doc.close()
+            
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಮರ್ಜ್ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_split_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for split operation"""
+        try:
+            split_method = params.get('split_method', 'pages')
+            pages_per_file = params.get('pages_per_file', 1)
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            preview_data = {
+                'success': True,
+                'operation': 'split',
+                'operation_text': 'ವಿಭಾಗಿಸಿ',
+                'description': '',
+                'input_pages': total_pages,
+                'output_files': [],
+                'split_info': {}
+            }
+            
+            if split_method == 'pages':
+                num_files = (total_pages + pages_per_file - 1) // pages_per_file
+                preview_data['description'] = f'{total_pages} ಪುಟಗಳನ್ನು {num_files} ಫೈಲ್‌ಗಳಾಗಿ ವಿಭಾಗಿಸಲಾಗುತ್ತದೆ'
+                preview_data['split_info'] = {
+                    'method': 'ಪುಟಗಳ ಪ್ರಕಾರ',
+                    'pages_per_file': pages_per_file,
+                    'total_files': num_files
+                }
+                
+                # Generate preview for each split file
+                for i in range(num_files):
+                    start_page = i * pages_per_file
+                    end_page = min(start_page + pages_per_file - 1, total_pages - 1)
+                    
+                    # Generate thumbnail for first page of split
+                    page = doc[start_page]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'split_file_{i+1}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['output_files'].append({
+                        'file_name': f'ಭಾಗ_{i+1}.pdf',
+                        'page_range': f'{start_page + 1}-{end_page + 1}',
+                        'page_count': end_page - start_page + 1,
+                        'thumbnail': thumb_path
+                    })
+            
+            elif split_method == 'single':
+                preview_data['description'] = f'{total_pages} ಪುಟಗಳನ್ನು {total_pages} ಪ್ರತ್ಯೇಕ ಫೈಲ್‌ಗಳಾಗಿ ವಿಭಾಗಿಸಲಾಗುತ್ತದೆ'
+                preview_data['split_info'] = {
+                    'method': 'ಪ್ರತಿ ಪುಟ',
+                    'pages_per_file': 1,
+                    'total_files': total_pages
+                }
+                
+                # Generate preview for first few pages only (to avoid too many thumbnails)
+                max_previews = min(10, total_pages)
+                for i in range(max_previews):
+                    page = doc[i]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'split_page_{i+1}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['output_files'].append({
+                        'file_name': f'ಪುಟ_{i+1}.pdf',
+                        'page_range': f'{i+1}',
+                        'page_count': 1,
+                        'thumbnail': thumb_path
+                    })
+                
+                if total_pages > max_previews:
+                    preview_data['output_files'].append({
+                        'file_name': f'... ಮತ್ತು {total_pages - max_previews} ಹೆಚ್ಚು',
+                        'page_range': f'{max_previews + 1}-{total_pages}',
+                        'page_count': total_pages - max_previews,
+                        'thumbnail': None
+                    })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ವಿಭಾಗ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_extract_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for extract operation"""
+        try:
+            page_range = params.get('page_range', '1')
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Parse page ranges
+            pages_to_extract = self._parse_page_ranges_enhanced(page_range, total_pages)
+            
+            preview_data = {
+                'success': True,
+                'operation': 'extract',
+                'operation_text': 'ಹೊರತೆಗೆಯಿರಿ',
+                'description': f'{len(pages_to_extract)} ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಲಾಗುತ್ತದೆ',
+                'input_pages': total_pages,
+                'extract_pages': pages_to_extract,
+                'extracted_previews': []
+            }
+            
+            # Generate thumbnails for extracted pages
+            max_previews = min(10, len(pages_to_extract))
+            for i, page_num in enumerate(pages_to_extract[:max_previews]):
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'extract_page_{page_num}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['extracted_previews'].append({
+                        'page_number': page_num,
+                        'thumbnail': thumb_path
+                    })
+            
+            if len(pages_to_extract) > max_previews:
+                preview_data['extracted_previews'].append({
+                    'page_number': f'... ಮತ್ತು {len(pages_to_extract) - max_previews} ಹೆಚ್ಚು',
+                    'thumbnail': None
+                })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಹೊರತೆಗೆಯುವ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_delete_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for delete operation"""
+        try:
+            page_range = params.get('page_range', '')
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Parse pages to delete
+            pages_to_delete = self._parse_page_ranges_enhanced(page_range, total_pages)
+            remaining_pages = [i for i in range(1, total_pages + 1) if i not in pages_to_delete]
+            
+            preview_data = {
+                'success': True,
+                'operation': 'delete',
+                'operation_text': 'ಅಳಿಸಿ',
+                'description': f'{len(pages_to_delete)} ಪುಟಗಳನ್ನು ಅಳಿಸಲಾಗುತ್ತದೆ, {len(remaining_pages)} ಪುಟಗಳು ಉಳಿಯುತ್ತವೆ',
+                'input_pages': total_pages,
+                'pages_to_delete': pages_to_delete,
+                'remaining_pages': remaining_pages,
+                'deleted_previews': [],
+                'remaining_previews': []
+            }
+            
+            # Generate thumbnails for pages to be deleted
+            max_delete_previews = min(5, len(pages_to_delete))
+            for i, page_num in enumerate(pages_to_delete[:max_delete_previews]):
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'delete_page_{page_num}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['deleted_previews'].append({
+                        'page_number': page_num,
+                        'thumbnail': thumb_path
+                    })
+            
+            # Generate thumbnails for remaining pages
+            max_remain_previews = min(5, len(remaining_pages))
+            for i, page_num in enumerate(remaining_pages[:max_remain_previews]):
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'remain_page_{page_num}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    preview_data['remaining_previews'].append({
+                        'page_number': page_num,
+                        'thumbnail': thumb_path
+                    })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಅಳಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_rotate_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for rotate operation"""
+        try:
+            rotation_angle = int(params.get('rotation_angle', 90))
+            page_range = params.get('page_range', '')
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Determine which pages to rotate
+            if page_range.strip():
+                pages_to_rotate = self._parse_page_ranges_enhanced(page_range, total_pages)
+            else:
+                pages_to_rotate = list(range(1, total_pages + 1))
+            
+            preview_data = {
+                'success': True,
+                'operation': 'rotate',
+                'operation_text': 'ತಿರುಗಿಸಿ',
+                'description': f'{len(pages_to_rotate)} ಪುಟಗಳನ್ನು {rotation_angle}° ತಿರುಗಿಸಲಾಗುತ್ತದೆ',
+                'rotation_angle': rotation_angle,
+                'pages_to_rotate': pages_to_rotate,
+                'rotation_previews': []
+            }
+            
+            # Generate before/after thumbnails
+            max_previews = min(5, len(pages_to_rotate))
+            for i, page_num in enumerate(pages_to_rotate[:max_previews]):
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]
+                    
+                    # Original (before) thumbnail
+                    mat = fitz.Matrix(0.3, 0.3)
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    before_path = os.path.join(preview_dir, f'rotate_before_{page_num}_thumb.png')
+                    with open(before_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    # Rotated (after) thumbnail
+                    page.set_rotation(rotation_angle)
+                    pix_rotated = page.get_pixmap(matrix=mat)
+                    img_data_rotated = pix_rotated.tobytes("png")
+                    
+                    after_path = os.path.join(preview_dir, f'rotate_after_{page_num}_thumb.png')
+                    with open(after_path, 'wb') as f:
+                        f.write(img_data_rotated)
+                    
+                    preview_data['rotation_previews'].append({
+                        'page_number': page_num,
+                        'before_thumbnail': before_path,
+                        'after_thumbnail': after_path
+                    })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ತಿರುಗಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_compress_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for compress operation"""
+        try:
+            compression_level = params.get('compression_level', 'medium')
+            target_size_mb = params.get('target_size_mb')
+            
+            # Get file info
+            original_size = os.path.getsize(file_path)
+            original_size_mb = original_size / (1024 * 1024)
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Estimate compression based on level
+            compression_estimates = {
+                'low': {'reduction': 20, 'quality': 'ಅತ್ಯುತ್ತಮ'},
+                'medium': {'reduction': 40, 'quality': 'ಮಧ್ಯಮ'},
+                'high': {'reduction': 60, 'quality': 'ಕಡಿಮೆ'},
+                'maximum': {'reduction': 80, 'quality': 'ಅತಿ ಕಡಿಮೆ'}
+            }
+            
+            estimate = compression_estimates.get(compression_level, compression_estimates['medium'])
+            estimated_size_mb = original_size_mb * (1 - estimate['reduction'] / 100)
+            
+            if target_size_mb:
+                estimated_size_mb = min(estimated_size_mb, target_size_mb)
+            
+            preview_data = {
+                'success': True,
+                'operation': 'compress',
+                'operation_text': 'ಸಂಕುಚಿಸಿ',
+                'description': f'PDF ಅನ್ನು ಸಂಕುಚಿಸಲಾಗುತ್ತದೆ',
+                'original_size_mb': round(original_size_mb, 2),
+                'estimated_size_mb': round(estimated_size_mb, 2),
+                'estimated_reduction': estimate['reduction'],
+                'quality_level': estimate['quality'],
+                'compression_level': compression_level,
+                'target_size_mb': target_size_mb,
+                'sample_pages': []
+            }
+            
+            # Generate sample page thumbnails
+            sample_pages = min(3, total_pages)
+            for i in range(sample_pages):
+                page = doc[i]
+                mat = fitz.Matrix(0.3, 0.3)
+                pix = page.get_pixmap(matrix=mat)
+                img_data = pix.tobytes("png")
+                
+                thumb_path = os.path.join(preview_dir, f'compress_sample_{i+1}_thumb.png')
+                with open(thumb_path, 'wb') as f:
+                    f.write(img_data)
+                
+                preview_data['sample_pages'].append({
+                    'page_number': i + 1,
+                    'thumbnail': thumb_path
+                })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಸಂಕುಚನ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_crop_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for crop operation"""
+        try:
+            # Crop parameters (margins in points)
+            top_margin = float(params.get('top_margin', 0))
+            bottom_margin = float(params.get('bottom_margin', 0))
+            left_margin = float(params.get('left_margin', 0))
+            right_margin = float(params.get('right_margin', 0))
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            preview_data = {
+                'success': True,
+                'operation': 'crop',
+                'operation_text': 'ಕತ್ತರಿಸಿ',
+                'description': f'{total_pages} ಪುಟಗಳನ್ನು ಕತ್ತರಿಸಲಾಗುತ್ತದೆ',
+                'crop_margins': {
+                    'top': top_margin,
+                    'bottom': bottom_margin,
+                    'left': left_margin,
+                    'right': right_margin
+                },
+                'crop_previews': []
+            }
+            
+            # Generate before/after thumbnails for first few pages
+            max_previews = min(3, total_pages)
+            for i in range(max_previews):
+                page = doc[i]
+                rect = page.rect
+                
+                # Original (before) thumbnail
+                mat = fitz.Matrix(0.3, 0.3)
+                pix = page.get_pixmap(matrix=mat)
+                img_data = pix.tobytes("png")
+                
+                before_path = os.path.join(preview_dir, f'crop_before_{i+1}_thumb.png')
+                with open(before_path, 'wb') as f:
+                    f.write(img_data)
+                
+                # Cropped (after) thumbnail
+                # Create cropped rectangle
+                cropped_rect = fitz.Rect(
+                    rect.x0 + left_margin,
+                    rect.y0 + top_margin,
+                    rect.x1 - right_margin,
+                    rect.y1 - bottom_margin
+                )
+                
+                # Make sure the cropped rectangle is valid
+                if cropped_rect.width > 0 and cropped_rect.height > 0:
+                    page.set_cropbox(cropped_rect)
+                    pix_cropped = page.get_pixmap(matrix=mat)
+                    img_data_cropped = pix_cropped.tobytes("png")
+                    
+                    after_path = os.path.join(preview_dir, f'crop_after_{i+1}_thumb.png')
+                    with open(after_path, 'wb') as f:
+                        f.write(img_data_cropped)
+                else:
+                    after_path = before_path  # Use original if crop is invalid
+                
+                preview_data['crop_previews'].append({
+                    'page_number': i + 1,
+                    'before_thumbnail': before_path,
+                    'after_thumbnail': after_path,
+                    'original_size': f'{rect.width:.0f}x{rect.height:.0f}',
+                    'cropped_size': f'{cropped_rect.width:.0f}x{cropped_rect.height:.0f}' if cropped_rect.width > 0 else 'ಅಮಾನ್ಯ'
+                })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಕತ್ತರಿಸುವ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_pdf_to_image_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for PDF to image conversion"""
+        try:
+            image_format = params.get('image_format', 'png').upper()
+            image_dpi = int(params.get('image_dpi', 300))
+            page_range = params.get('page_range', '')
+            
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Determine which pages to convert
+            if page_range.strip():
+                pages_to_convert = self._parse_page_ranges_enhanced(page_range, total_pages)
+            else:
+                pages_to_convert = list(range(1, total_pages + 1))
+            
+            preview_data = {
+                'success': True,
+                'operation': 'pdf-to-image',
+                'operation_text': 'PDF ಯಿಂದ ಚಿತ್ರಕ್ಕೆ',
+                'description': f'{len(pages_to_convert)} ಪುಟಗಳನ್ನು {image_format} ಚಿತ್ರಗಳಾಗಿ ಪರಿವರ್ತಿಸಲಾಗುತ್ತದೆ',
+                'image_format': image_format,
+                'image_dpi': image_dpi,
+                'pages_to_convert': pages_to_convert,
+                'image_previews': []
+            }
+            
+            # Generate sample image previews
+            max_previews = min(5, len(pages_to_convert))
+            for i, page_num in enumerate(pages_to_convert[:max_previews]):
+                if 1 <= page_num <= total_pages:
+                    page = doc[page_num - 1]
+                    
+                    # Generate thumbnail at preview DPI
+                    mat = fitz.Matrix(0.3, 0.3)  # Lower resolution for preview
+                    pix = page.get_pixmap(matrix=mat)
+                    img_data = pix.tobytes("png")
+                    
+                    thumb_path = os.path.join(preview_dir, f'pdf_to_img_{page_num}_thumb.png')
+                    with open(thumb_path, 'wb') as f:
+                        f.write(img_data)
+                    
+                    # Estimate file size at target DPI
+                    full_mat = fitz.Matrix(image_dpi/72.0, image_dpi/72.0)
+                    full_pix = page.get_pixmap(matrix=full_mat)
+                    estimated_size = len(full_pix.tobytes("png")) / 1024  # KB
+                    
+                    preview_data['image_previews'].append({
+                        'page_number': page_num,
+                        'thumbnail': thumb_path,
+                        'estimated_size_kb': round(estimated_size, 1),
+                        'dimensions': f'{full_pix.width}x{full_pix.height}'
+                    })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'ಚಿತ್ರ ಪರಿವರ್ತನೆ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_word_to_pdf_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for Word to PDF conversion"""
+        try:
+            preview_data = {
+                'success': True,
+                'operation': 'word-to-pdf',
+                'operation_text': 'Word ಯಿಂದ PDF ಗೆ',
+                'description': 'Word ಫೈಲ್ ಅನ್ನು PDF ಆಗಿ ಪರಿವರ್ತಿಸಲಾಗುತ್ತದೆ',
+                'input_file': os.path.basename(file_path),
+                'estimated_pages': 'ಫೈಲ್ ವಿಷಯದ ಆಧಾರದ ಮೇಲೆ',
+                'features': [
+                    'ಪಠ್ಯ ಸಂರಕ್ಷಣೆ',
+                    'ಚಿತ್ರಗಳ ಸೇರ್ಪಡೆ',
+                    'ಫಾರ್ಮ್ಯಾಟಿಂಗ್ ಸಂರಕ್ಷಣೆ',
+                    'ಕನ್ನಡ ಫಾಂಟ್ ಬೆಂಬಲ'
+                ]
+            }
+            
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'Word ಪರಿವರ್ತನೆ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}
+    
+    def _generate_pdf_to_word_preview(self, file_path, session_id, params, preview_dir):
+        """Generate preview for PDF to Word conversion"""
+        try:
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            
+            # Get text content from first page for preview
+            first_page_text = ""
+            if total_pages > 0:
+                page = doc[0]
+                first_page_text = page.get_text()[:200] + "..." if len(page.get_text()) > 200 else page.get_text()
+            
+            preview_data = {
+                'success': True,
+                'operation': 'pdf-to-word',
+                'operation_text': 'PDF ಯಿಂದ Word ಗೆ',
+                'description': f'{total_pages} ಪುಟಗಳ PDF ಅನ್ನು Word ಫೈಲ್ ಆಗಿ ಪರಿವರ್ತಿಸಲಾಗುತ್ತದೆ',
+                'input_pages': total_pages,
+                'sample_text': first_page_text,
+                'features': [
+                    'ಪಠ್ಯ ಹೊರತೆಗೆಯುವಿಕೆ',
+                    'ಚಿತ್ರಗಳ ಸಂರಕ್ಷಣೆ',
+                    'ಟೇಬಲ್ ರಚನೆ',
+                    'ಕನ್ನಡ ಪಠ್ಯ ಬೆಂಬಲ'
+                ],
+                'sample_pages': []
+            }
+            
+            # Generate sample page thumbnails
+            max_previews = min(3, total_pages)
+            for i in range(max_previews):
+                page = doc[i]
+                mat = fitz.Matrix(0.3, 0.3)
+                pix = page.get_pixmap(matrix=mat)
+                img_data = pix.tobytes("png")
+                
+                thumb_path = os.path.join(preview_dir, f'pdf_to_word_{i+1}_thumb.png')
+                with open(thumb_path, 'wb') as f:
+                    f.write(img_data)
+                
+                preview_data['sample_pages'].append({
+                    'page_number': i + 1,
+                    'thumbnail': thumb_path
+                })
+            
+            doc.close()
+            return preview_data
+            
+        except Exception as e:
+            return {'success': False, 'error': f'Word ಪರಿವರ್ತನೆ ಪೂರ್ವವೀಕ್ಷಣೆ ವಿಫಲ: {str(e)}'}

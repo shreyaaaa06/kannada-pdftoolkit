@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
             multiple: false,
             options: [],
             minFiles: 1,
-            hasPreview: false
+            hasPreview: true
         },
         'word_to_pdf': {
             title: 'Word ನಿಂದ PDF',
