@@ -447,7 +447,7 @@ def convert_pdf_to_docx_with_images(
 
     # Extract text and images together in their natural positions
     if include_images:
-        print(f"🚀 EXTRACTING TEXT AND REAL IMAGES ONLY...")
+        print(f"🚀 PRIORITIZING TEXT EXTRACTION OVER IMAGE RENDERING...")
         
         try:
             import io as _io
@@ -462,63 +462,98 @@ def convert_pdf_to_docx_with_images(
                 # Add page heading
                 doc.add_heading(f"Page {page_num + 1}", level=2)
                 
-                # Get all text blocks with their positions
-                text_blocks = page.get_text("dict")
+                # STEP 1: Try multiple text extraction methods with priority
+                page_text = ""
+                text_extraction_methods_tried = []
                 
-                # Get all ACTUAL images (not text rendered as images)
-                image_list = page.get_images(full=True)
+                # Method 1: Direct text extraction
+                try:
+                    direct_text = page.get_text()
+                    if direct_text and direct_text.strip() and len(direct_text.strip()) > 10:
+                        page_text = direct_text.strip()
+                        text_extraction_methods_tried.append("direct")
+                        print(f"   ✅ Page {page_num + 1}: Direct text extraction successful ({len(page_text)} chars)")
+                except Exception as e:
+                    print(f"   ⚠️ Direct text extraction failed: {e}")
                 
-                # Create a list of all content items (text blocks + real images) with positions
-                content_items = []
-                
-                # Add text blocks
-                for block in text_blocks["blocks"]:
-                    if "lines" in block:  # Text block
-                        y_pos = block["bbox"][1]  # Top Y coordinate
-                        
-                        # FIXED: Properly combine text spans within lines
-                        block_text = ""
-                        for line in block["lines"]:
-                            line_text = ""
-                            for span in line["spans"]:
-                                line_text += span["text"]
-                            
-                            # Add the complete line with proper spacing
-                            if line_text.strip():
-                                block_text += line_text.strip() + " "
-                        
-                        # Clean up the complete block text
-                        block_text = block_text.strip()
-                        
-                        if block_text:
-                            content_items.append({
-                                "type": "text",
-                                "y_pos": y_pos,
-                                "content": block_text
-                            })
-                
-                # Add ONLY actual images (filter out text-based images)
-                actual_images_found = 0
-                for img_index, img in enumerate(image_list):
+                # Method 2: Dictionary-based text extraction (better positioning)
+                if not page_text:
                     try:
-                        # Get image position
-                        img_rect = page.get_image_rects(img[0])
-                        if img_rect:
-                            y_pos = img_rect[0].y0  # Top Y coordinate of image
-                            
+                        text_blocks = page.get_text("dict")
+                        extracted_lines = []
+                        
+                        for block in text_blocks["blocks"]:
+                            if "lines" in block:
+                                for line in block["lines"]:
+                                    line_text = ""
+                                    for span in line["spans"]:
+                                        span_text = span.get("text", "").strip()
+                                        if span_text:
+                                            line_text += span_text + " "
+                                    if line_text.strip():
+                                        extracted_lines.append(line_text.strip())
+                        
+                        if extracted_lines:
+                            page_text = "\n".join(extracted_lines)
+                            text_extraction_methods_tried.append("dict")
+                            print(f"   ✅ Page {page_num + 1}: Dictionary text extraction successful ({len(page_text)} chars)")
+                    
+                    except Exception as e:
+                        print(f"   ⚠️ Dictionary text extraction failed: {e}")
+                
+                # Method 3: OCR as fallback (only if no text found)
+                if not page_text:
+                    try:
+                        print(f"   🔄 No direct text found, trying OCR for page {page_num + 1}...")
+                        
+                        # Render page for OCR at high resolution
+                        mat = fitz.Matrix(2.0, 2.0)  # High resolution for better OCR
+                        pix = page.get_pixmap(matrix=mat)
+                        img_data = pix.pil_tobytes(format="PNG")
+                        
+                        from PIL import Image
+                        import pytesseract
+                        
+                        image = Image.open(_io.BytesIO(img_data))
+                        ocr_text = pytesseract.image_to_string(image, lang=ocr_language, config='--psm 6')
+                        
+                        if ocr_text and ocr_text.strip() and len(ocr_text.strip()) > 5:
+                            page_text = ocr_text.strip()
+                            text_extraction_methods_tried.append("ocr")
+                            print(f"   ✅ Page {page_num + 1}: OCR extraction successful ({len(page_text)} chars)")
+                        
+                        pix = None
+                        
+                    except Exception as ocr_err:
+                        print(f"   ❌ OCR extraction failed: {ocr_err}")
+                
+                # STEP 2: Add the extracted text to document
+                if page_text:
+                    # Split text into paragraphs and add to document
+                    paragraphs = [p.strip() for p in page_text.split('\n') if p.strip()]
+                    for paragraph in paragraphs:
+                        doc.add_paragraph(paragraph)
+                    
+                    print(f"   ✅ Page {page_num + 1}: Added {len(paragraphs)} text paragraphs (methods: {', '.join(text_extraction_methods_tried)})")
+                
+                # STEP 3: Handle actual embedded images (only if they exist)
+                try:
+                    image_list = page.get_images(full=True)
+                    actual_images_added = 0
+                    
+                    for img_index, img in enumerate(image_list):
+                        try:
                             # Extract the actual image
                             xref = img[0]
                             pix = fitz.Pixmap(pdf_doc, xref)
                             
-                            # IMPROVED filtering: Include maps, diagrams, and actual pictures
-                            # Skip very small images (likely icons/bullets) but include larger diagrams/maps
-                            is_actual_image = (
-                                pix.width >= 30 and pix.height >= 30 and  # Allow smaller diagrams/maps
-                                pix.width <= 3000 and pix.height <= 3000 and  # Allow larger diagrams
-                                (pix.width * pix.height) >= 1500  # Lower minimum area for diagrams/maps
+                            # Filter out tiny images (likely icons/bullets)
+                            is_substantial_image = (
+                                pix.width >= 50 and pix.height >= 50 and  # Minimum size
+                                (pix.width * pix.height) >= 5000  # Minimum area
                             )
                             
-                            if is_actual_image:
+                            if is_substantial_image:
                                 # Handle color space conversion
                                 if pix.n - pix.alpha < 4:  # Not CMYK
                                     if pix.n != 3:
@@ -528,91 +563,59 @@ def convert_pdf_to_docx_with_images(
                                             pass
                                     
                                     img_data = pix.pil_tobytes(format="PNG")
+                                    buf = _io.BytesIO(img_data)
                                     
-                                    content_items.append({
-                                        "type": "image",
-                                        "y_pos": y_pos,
-                                        "content": img_data,
-                                        "width": pix.width,
-                                        "height": pix.height
-                                    })
+                                    # Add image to document
+                                    aspect_ratio = pix.width / pix.height
+                                    width = min(5.0 if aspect_ratio > 1 else 3.0, image_max_width_inches)
                                     
-                                    actual_images_found += 1
-                                    print(f"      ✅ Found actual image: {pix.width}x{pix.height}px")
-                            else:
-                                print(f"      ⚠️  Skipped (likely text/icon): {pix.width}x{pix.height}px")
+                                    doc.add_picture(buf, width=Inches(width))
+                                    actual_images_added += 1
+                                    print(f"   🖼️ Added substantial image: {pix.width}x{pix.height}px")
                                     
                             pix = None
                             
-                    except Exception as img_err:
-                        print(f"      ❌ Error processing image {img_index + 1}: {img_err}")
-                
-                # FOR HAND-DRAWN CONTENT: Check if page has vector graphics/drawings
-                # If no embedded images found but page has drawings, render the page
-                page_has_drawings = len(page.get_drawings()) > 0
-                
-                if actual_images_found == 0 and page_has_drawings:
-                    print(f"      🖊️  Detected hand-drawn content, rendering page...")
-                    try:
-                        # Render the entire page to capture hand-drawn elements
-                        mat = fitz.Matrix(2.0, 2.0)  # 2x zoom for quality
-                        pix = page.get_pixmap(matrix=mat)
-                        img_data = pix.pil_tobytes(format="PNG")
-                        
-                        # Add the rendered page as an image
-                        content_items.append({
-                            "type": "image",
-                            "y_pos": 0,  # Place at top since it's the whole page
-                            "content": img_data,
-                            "width": pix.width,
-                            "height": pix.height
-                        })
-                        
-                        actual_images_found += 1
-                        print(f"      ✅ Page rendered to capture drawings: {pix.width}x{pix.height}px")
-                        pix = None
-                        
-                    except Exception as render_err:
-                        print(f"      ❌ Failed to render page: {render_err}")
-                
-                # Sort all content by Y position (top to bottom)
-                content_items.sort(key=lambda x: x["y_pos"])
-                
-                # Add content to document in correct order
-                text_blocks_added = 0
-                images_added = 0
-                
-                for item in content_items:
-                    if item["type"] == "text":
-                        # FIXED: Add as single paragraph with proper text flow
-                        if item["content"].strip():
-                            doc.add_paragraph(item["content"])
-                            text_blocks_added += 1
+                        except Exception as img_err:
+                            print(f"   ⚠️ Error processing image {img_index + 1}: {img_err}")
                     
-                    elif item["type"] == "image":
-                        # Add actual image inline
-                        buf = _io.BytesIO(item["content"])
-                        
-                        # Calculate appropriate size
-                        aspect_ratio = item["width"] / item["height"]
-                        if aspect_ratio > 1:  # Wider than tall
-                            width = min(image_max_width_inches, 5.0)
-                        else:  # Taller than wide
-                            width = min(3.0, image_max_width_inches)
-                        
-                        doc.add_picture(buf, width=Inches(width))
-                        images_added += 1
-                        print(f"   🖼️  Image added inline ({item['width']}x{item['height']}px)")
+                    if actual_images_added > 0:
+                        print(f"   ✅ Page {page_num + 1}: Added {actual_images_added} actual images")
+                    
+                except Exception as img_process_err:
+                    print(f"   ⚠️ Image processing error: {img_process_err}")
                 
-                if text_blocks_added == 0 and images_added == 0:
-                    doc.add_paragraph("(No extractable content on this page)")
+                # STEP 4: Only render page as image if absolutely no text was found AND no images
+                # This should be extremely rare now
+                if not page_text:
+                    print(f"   ⚠️ Page {page_num + 1}: No text found with any method, checking for visual content...")
+                    
+                    # Check if page has any visual content at all
+                    page_drawings = page.get_drawings()
+                    has_visual_content = len(page_drawings) > 5  # Only if substantial visual elements
+                    
+                    if has_visual_content:
+                        print(f"   🖊️ Page {page_num + 1}: Rendering as image (substantial visual content, no text)")
+                        try:
+                            mat = fitz.Matrix(1.5, 1.5)  # Lower resolution for fallback
+                            pix = page.get_pixmap(matrix=mat)
+                            img_data = pix.pil_tobytes(format="PNG")
+                            
+                            buf = _io.BytesIO(img_data)
+                            doc.add_picture(buf, width=Inches(6.0))
+                            
+                            pix = None
+                        except Exception as render_err:
+                            print(f"   ❌ Page rendering failed: {render_err}")
+                            doc.add_paragraph("(Page could not be processed)")
+                    else:
+                        print(f"   ℹ️ Page {page_num + 1}: Empty page or processing failed")
+                        doc.add_paragraph("(Empty page or content could not be extracted)")
                 
-                # Add space between pages
+                # Add spacing between pages
                 doc.add_paragraph("")
-                print(f"   ✅ Page {page_num + 1}: {text_blocks_added} text blocks, {images_added} actual images")
             
             pdf_doc.close()
-            print(f"🎉 All pages processed - only real images included!")
+            print(f"🎉 TEXT-FIRST PROCESSING COMPLETE - All pages processed with priority on text extraction!")
                 
         except Exception as major_err:
             print(f"❌ CRITICAL: Content extraction failed: {major_err}")
@@ -629,7 +632,7 @@ def convert_pdf_to_docx_with_images(
             except Exception as e:
                 doc.add_paragraph(f"❌ Text extraction error: {e}")
         
-        print(f"✅ TEXT AND REAL IMAGE EXTRACTION COMPLETE!")
+        print(f"✅ TEXT-FIRST EXTRACTION COMPLETE!")
     else:
         # Text-only mode
         print(f"ℹ️  Text-only mode (images disabled)")

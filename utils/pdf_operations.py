@@ -2603,14 +2603,14 @@ class PDFOperations:
                 if not temp_pdf_path or not os.path.exists(temp_pdf_path):
                     raise Exception("ಆಯ್ಕೆ ಮಾಡಿದ ಪುಟಗಳನ್ನು ಹೊರತೆಗೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ")
 
-            # Use the enhanced conversion function that includes both text and images
+            # Use the enhanced conversion function with text-first approach
             output_path = convert_pdf_to_docx_with_images(
                 pdf_path=temp_pdf_path,
                 session_id=session_id,
                 output_dir=self.config.OUTPUT_FOLDER,
-                text_method='ocr',  # Force OCR for pure Kannada OCR
-                ocr_language='kan',  # Pure Kannada for best results
-                include_images=True,  # ✅ Enable image extraction
+                text_method='auto',  # Use auto method (tries multiple approaches)
+                ocr_language='kan',  # Pure Kannada for OCR fallback
+                include_images=True,  # ✅ Enable smart image handling (text-first approach)
                 image_dpi=300,  # High quality images
                 image_max_width_inches=6.0  # Good size for Word documents
             )

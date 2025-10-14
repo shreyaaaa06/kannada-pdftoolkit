@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
             multiple: false,
             options: [],
             minFiles: 1,
-            hasPreview: true
+            hasPreview: false
         },
         'word_to_pdf': {
             title: 'Word ನಿಂದ PDF',
@@ -1219,36 +1219,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="256">ಹೆಚ್ಚು ಸುರಕ್ಷತೆ (256-bit)</option>
                             </select>
                         </div>
-
-                        <!-- Permission Settings -->
-                        <details style="margin-top: 1rem; border: 1px solid var(--biscuit-light); border-radius: 8px; padding: 1rem;">
-                            <summary style="cursor: pointer; font-weight: 600; color: var(--brown-text);">
-                                <i class="fas fa-cog"></i> ಅನುಮತಿ ಸೆಟ್ಟಿಂಗ್ಸ್ (ಐಚ್ಛಿಕ)
-                            </summary>
-                            <div style="margin-top: 1rem;">
-                                <div style="display: grid; gap: 0.8rem;">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="checkbox" name="allow_printing" value="true" checked>
-                                        <i class="fas fa-print"></i> ಮುದ್ರಣ ಅನುಮತಿಸಿ
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="checkbox" name="allow_copying" value="true">
-                                        <i class="fas fa-copy"></i> ಪಠ್ಯ ನಕಲು ಅನುಮತಿಸಿ
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="checkbox" name="allow_modification" value="true">
-                                        <i class="fas fa-edit"></i> ಸಂಪಾದನೆ ಅನುಮತಿಸಿ
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="checkbox" name="allow_annotation" value="true" checked>
-                                        <i class="fas fa-comment"></i> ಟಿಪ್ಪಣಿಗಳು ಅನುಮತಿಸಿ
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <input type="checkbox" name="allow_form_filling" value="true" checked>
-                                        <i class="fas fa-wpforms"></i> ಫಾರ್ಮ್ ಭರ್ತಿ ಅನುಮತಿಸಿ
-                                    </label>
-                                </div>
-                            </div>
                         </details>
 
                         <!-- Security Notice -->
@@ -1968,135 +1938,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             updateSelectedPagesDisplay();
         }
-        // Language change function
-        function changeLanguage(lang, langName, flagClass, event) {
-            // Prevent default link behavior
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            // Store language preference
-            localStorage.setItem('preferredLanguage', lang);
-            localStorage.setItem('preferredLanguageName', langName);
-            localStorage.setItem('preferredLanguageFlag', flagClass);
-            
-            // Update current language display
-            const currentLang = document.getElementById('currentLanguage');
-            const currentFlag = document.querySelector('.language-button .language-flag');
-            
-            if (currentLang) currentLang.textContent = langName;
-            if (currentFlag) {
-                currentFlag.className = `language-flag ${flagClass}`;
-            }
-            
-            // Update active state
-            document.querySelectorAll('.language-option').forEach(option => {
-                option.classList.remove('active');
-            });
-            
-            // Add active class to clicked option
-            if (event && event.target) {
-                const clickedOption = event.target.closest('.language-option');
-                if (clickedOption) {
-                    clickedOption.classList.add('active');
-                }
-            }
-            
-            // Close dropdown
-            const dropdown = document.getElementById('languageDropdown');
-            if (dropdown) {
-                dropdown.classList.remove('active');
-            }
-            
-            console.log('Language changed to:', lang, langName);
-            
-            // Show notification based on language
-            if (lang === 'en') {
-                showLanguageNotification('English language support will be added soon!', 'info');
-            } else {
-                showLanguageNotification('ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ: ' + langName, 'success');
-            }
-        }
-
-        function showLanguageNotification(message, type) {
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'success' ? 'var(--success-green)' : 'var(--gov-blue)'};
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                z-index: 10000;
-                font-family: 'Noto Sans Kannada', sans-serif;
-                font-size: 0.9rem;
-                max-width: 300px;
-                animation: slideInRight 0.3s ease;
-            `;
-            notification.textContent = message;
-            
-            // Add animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideInRight {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Show notification
-            document.body.appendChild(notification);
-            
-            // Remove after 3 seconds
-            setTimeout(() => {
-                notification.style.animation = 'slideInRight 0.3s ease reverse';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                    if (style.parentNode) {
-                        style.parentNode.removeChild(style);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Load preferred language on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const preferredLang = localStorage.getItem('preferredLanguage') || 'kn';
-            const preferredLangName = localStorage.getItem('preferredLanguageName') || 'ಕನ್ನಡ';
-            const preferredLangFlag = localStorage.getItem('preferredLanguageFlag') || 'flag-kn';
-            
-            // Set initial language display
-            const currentLang = document.getElementById('currentLanguage');
-            const currentFlag = document.querySelector('.language-button .language-flag');
-            
-            if (currentLang) currentLang.textContent = preferredLangName;
-            if (currentFlag) {
-                currentFlag.className = `language-flag ${preferredLangFlag}`;
-            }
-            
-            // Update active state
-            document.querySelectorAll('.language-option').forEach(option => {
-                option.classList.remove('active');
-                const optionLang = option.getAttribute('onclick').match(/'(\w+)'/)[1];
-                if (optionLang === preferredLang) {
-                    option.classList.add('active');
-                }
-            });
-        });
-
         // Password validation for PDF protection
         function initializePasswordValidation() {
             const protectionPassword = document.getElementById('protectionPassword');
@@ -2640,7 +2481,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         <details style="margin: 1rem 0; cursor: pointer;">
                             <summary style="font-weight: bold; color: var(--gov-blue);">Q: ಫೈಲ್ ಗಾತ್ರದ ಮಿತಿ ಎಷ್ಟು?</summary>
-                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಪ್ರತಿ ಫೈಲ್‌ಗೆ ಗರಿಷ್ಠ 100MB ವರೆಗೆ.</p>
+                            <p style="margin-left: 1rem; margin-top: 0.5rem;">A: ಪ್ರತಿ ಫೈಲ್‌ಗೆ ಗರಿಷ್ಠ 1GB ವರೆಗೆ.</p>
                         </details>
                         
                         <details style="margin: 1rem 0; cursor: pointer;">
