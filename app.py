@@ -25,7 +25,7 @@ from weasyprint import HTML, CSS
 import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'karnataka-govt-pdf-toolkit-secret-key-2025'
+app.config['SECRET_KEY'] = 'karnataka-govt-pdf-toolkit-secret-key-2025'  # Primary secret key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -56,16 +56,20 @@ def after_request(response):
                 response.content_type = 'application/json; charset=utf-8'
     return response
 
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['OUTPUT_FOLDER'] = 'output'
-app.config['PREVIEW_FOLDER'] = 'static/previews'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+# SECRET_KEY is already set above with the proper key
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+# Use absolute paths for all folders to prevent path resolution issues
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
+OUTPUT_FOLDER = os.path.join(BASE_DIR, 'output')
+PREVIEW_FOLDER = os.path.join(BASE_DIR, 'static', 'previews')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+os.makedirs(PREVIEW_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+app.config['PREVIEW_FOLDER'] = PREVIEW_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 auth_manager = AuthenticationManager()
 
@@ -192,7 +196,7 @@ os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PREVIEW_FOLDER'], exist_ok=True)
 
 # Create temporary directory for comparison images
-app.config['TEMP_FOLDER'] = 'static/temp'
+app.config['TEMP_FOLDER'] = os.path.join(BASE_DIR, 'static', 'temp')
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 
 # Initialize handlers
@@ -207,9 +211,6 @@ def index():
 @app.route('/favicon.ico')
 def favicon():
     return '', 204  # No content response for favicon
-    # Clear session on main page load to ensure fresh start (from file 2)
-    session.clear()
-    return render_template('index.html')
 
 @app.route('/generate-preview', methods=['POST'])
 def generate_preview():
@@ -403,7 +404,7 @@ def generate_operation_preview():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        # Always generate new session for each upload operation (from file 2)
+        # Always generate new session for each upload operation
         if 'session_id' not in session:
             session['session_id'] = str(uuid.uuid4())
             session['processed_files'] = []
@@ -421,13 +422,19 @@ def upload_file():
                 original_filenames.append(file.filename)
 
         use_previous = request.form.get('use_previous') == 'true'
-        
+
+        print(f"=== DEBUG UPLOAD (NEW SESSION) ===")
+        print(f"Operation: {operation}")
+        print(f"New Session ID: {session_id}")
+        print(f"Use previous: {use_previous}")
+        print(f"Form data: {dict(request.form)}")
+
         # Get files - from upload or previous results
         if use_previous and session.get('processed_files'):
             file_paths = [f['path'] for f in session['processed_files']]
         else:
+            # Collect uploaded files (support both 'files' list and individual 'file_*' fields)
             files = request.files.getlist('files')
-            # If no 'files' list, try any file_* fields
             if not files or all(not f.filename for f in files):
                 files = []
                 for key in request.files:
@@ -439,121 +446,96 @@ def upload_file():
                 return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
 
             file_paths = []
-            for file in files:
+            for i, file in enumerate(files):  # Process each uploaded file with guaranteed uniqueness
                 if file and file.filename:
-                    file_path = file_handler.save_uploaded_file(file, session_id)
-                    if file_path:
-                        file_paths.append(file_path)
-        
-        print(f"=== DEBUG UPLOAD (NEW SESSION) ===")
-        print(f"Operation: {operation}")
-        print(f"New Session ID: {session_id}")
-        print(f"Use previous: {use_previous}")
-        print(f"Form data: {dict(request.form)}")
-        
-        # Get files from upload (enhanced file handling from file 2)
-        files = request.files.getlist('files')
-        if not files or all(not f.filename for f in files):
-            # fallback to individual file_* fields
-            files = []
-            for key in request.files:
-                if key.startswith('file_'):
-                    f = request.files.get(key)
-                    if f and f.filename:
-                        files.append(f)
-        if not files or all(not f.filename for f in files):
-            return jsonify({'success': False, 'error': 'ಕನಿಷ್ಠ ಒಂದು ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ'})
-
-        file_paths = []
-        
-        for i, file in enumerate(files):  # Add enumerate to ensure unique processing
-            if file and file.filename:
-                # Enhanced filename processing with guaranteed uniqueness
-                print(f"=== PROCESSING FILE {i+1} ===")
-                print(f"Original filename: '{file.filename}'")
-                print(f"Original filename bytes: {file.filename.encode('utf-8')}")
-                
-                original_filename = file.filename
-                secure_name = secure_filename(original_filename)
-                print(f"After secure_filename: '{secure_name}'")
-                
-                # CRITICAL FIX: Handle Kannada/Unicode filenames better
-                if not secure_name or len(secure_name) < 3:
-                    # If secure_filename stripped everything, preserve extension
-                    if '.' in original_filename:
-                        file_ext = original_filename.rsplit('.', 1)[1].lower()
-                    else:
-                        file_ext = 'pdf'  # Default extension
-                    secure_name = f"file.{file_ext}"
-                    print(f"Generated fallback filename: '{secure_name}'")
-                elif '.' not in secure_name:
-                    # Add extension if missing after secure_filename
-                    if '.' in original_filename:
-                        file_ext = original_filename.rsplit('.', 1)[1].lower()
-                        secure_name = f"{secure_name}.{file_ext}"
-                        print(f"Added missing extension: '{secure_name}'")
-                
-                # GUARANTEED UNIQUENESS: Always add file index + timestamp + UUID
-                timestamp = str(int(time.time() * 1000))  # Millisecond precision
-                unique_id = str(uuid.uuid4().hex[:8])
-                file_index = f"f{i+1}"  # f1, f2, f3, etc.
-                
-                # Final unique filename with multiple uniqueness guarantees
-                unique_filename = f"{session_id}_{file_index}_{timestamp}_{unique_id}_{secure_name}"
-                print(f"Final unique filename: '{unique_filename}'")
-                
-                # Truncate filename if too long (Windows path limit safety)
-                if len(unique_filename) > 100:
-                    ext = ''
-                    if '.' in unique_filename:
-                        ext = '.' + unique_filename.rsplit('.', 1)[1]
-                    unique_filename = unique_filename[:95] + ext
-                    print(f"Truncated unique filename: '{unique_filename}'")
-                print(f"Final unique filename: '{unique_filename}'")
-
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                print(f"Full file path: '{file_path}'")
-
-                try:
-                    # Check if file stream is empty before saving
-                    file.seek(0, os.SEEK_END)
-                    file_size_check = file.tell()
-                    file.seek(0)
-                    if file_size_check == 0:
-                        print(f"✗ File {i+1} stream is empty before save")
-                        continue
-                    # Save the file
-                    file.save(file_path)
-                    print(f"File saved successfully")
-
-                    # CRITICAL: Verify file was saved with correct content
-                    if os.path.exists(file_path):
-                        file_size = os.path.getsize(file_path)
-                        print(f"Saved file size: {file_size} bytes")
-
-                        if file_size > 0:
-                            file_paths.append(file_path)
-                            print(f"✓ File {i+1} processed successfully: {file_path}")
+                    # Enhanced filename processing with guaranteed uniqueness
+                    print(f"=== PROCESSING FILE {i+1} ===")
+                    print(f"Original filename: '{file.filename}'")
+                    print(f"Original filename bytes: {file.filename.encode('utf-8')}")
+                    
+                    original_filename = file.filename
+                    secure_name = secure_filename(original_filename)
+                    print(f"After secure_filename: '{secure_name}'")
+                    
+                    # CRITICAL FIX: Handle Kannada/Unicode filenames better
+                    if not secure_name or len(secure_name) < 3:
+                        # If secure_filename stripped everything, preserve extension
+                        if '.' in original_filename:
+                            file_ext = original_filename.rsplit('.', 1)[1].lower()
                         else:
-                            print(f"✗ File {i+1} is empty after save")
-                    else:
-                        print(f"✗ File {i+1} was not saved properly")
+                            file_ext = 'pdf'  # Default extension
+                        secure_name = f"file.{file_ext}"
+                        print(f"Generated fallback filename: '{secure_name}'")
+                    elif '.' not in secure_name:
+                        # Add extension if missing after secure_filename
+                        if '.' in original_filename:
+                            file_ext = original_filename.rsplit('.', 1)[1].lower()
+                            secure_name = f"{secure_name}.{file_ext}"
+                            print(f"Added missing extension: '{secure_name}'")
+                    
+                    # GUARANTEED UNIQUENESS: Always add file index + timestamp + UUID
+                    timestamp = str(int(time.time() * 1000))  # Millisecond precision
+                    unique_id = str(uuid.uuid4().hex[:8])
+                    file_index = f"f{i+1}"  # f1, f2, f3, etc.
+                    
+                    # Final unique filename with multiple uniqueness guarantees
+                    unique_filename = f"{session_id}_{file_index}_{timestamp}_{unique_id}_{secure_name}"
+                    print(f"Final unique filename: '{unique_filename}'")
+                    
+                    # Truncate filename if too long (Windows path limit safety)
+                    if len(unique_filename) > 100:
+                        ext = ''
+                        if '.' in unique_filename:
+                            ext = '.' + unique_filename.rsplit('.', 1)[1]
+                        unique_filename = unique_filename[:95] + ext
+                        print(f"Truncated unique filename: '{unique_filename}'")
+                    print(f"Final unique filename: '{unique_filename}'")
 
-                except Exception as save_error:
-                    print(f"✗ Error saving file {i+1} ({file.filename}): {save_error}")
-                    continue
-                finally:
-                    # Ensure file stream is properly closed
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                    print(f"Full file path: '{file_path}'")
+
                     try:
-                        if hasattr(file, 'close'):
-                            file.close()
-                        elif hasattr(file, 'stream') and hasattr(file.stream, 'close'):
-                            file.stream.close()
-                    except:
-                        pass
+                        # Check if file stream is empty before saving
+                        file.seek(0, os.SEEK_END)
+                        file_size_check = file.tell()
+                        file.seek(0)
+                        if file_size_check == 0:
+                            print(f"✗ File {i+1} stream is empty before save")
+                            continue
+                        # Save the file
+                        file.save(file_path)
+                        print(f"File saved successfully")
 
-                print(f"=== FILE {i+1} PROCESSING COMPLETE ===")
-        
+                        # CRITICAL: Verify file was saved with correct content
+                        if os.path.exists(file_path):
+                            file_size = os.path.getsize(file_path)
+                            print(f"Saved file size: {file_size} bytes")
+
+                            if file_size > 0:
+                                file_paths.append(file_path)
+                                print(f"✓ File {i+1} processed successfully: {file_path}")
+                            else:
+                                print(f"✗ File {i+1} is empty after save")
+                        else:
+                            print(f"✗ File {i+1} was not saved properly")
+
+                    except Exception as save_error:
+                        print(f"✗ Error saving file {i+1} ({file.filename}): {save_error}")
+                        continue
+                    finally:
+                        # Ensure file stream is properly closed
+                        try:
+                            if hasattr(file, 'close'):
+                                file.close()
+                            elif hasattr(file, 'stream') and hasattr(file.stream, 'close'):
+                                file.stream.close()
+                        except:
+                            pass
+
+                    print(f"=== FILE {i+1} PROCESSING COMPLETE ===")
+
+
+
         print(f"=== FINAL SUMMARY ===")
         print(f"Total files processed: {len(file_paths)}")
         for idx, path in enumerate(file_paths):
@@ -809,8 +791,6 @@ def upload_file():
             
             elif operation == 'word_to_pdf':
                 print("Processing Word to PDF operation")
-                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
-                result_path = pdf_ops.word_to_pdf(file_paths[0], session_id)
                 # Enhanced Word to PDF operation from file 2
                 print("=== PROCESSING WORD TO PDF OPERATION (FIXED) ===")
                 print(f"File paths: {file_paths}")
@@ -1187,10 +1167,8 @@ def serve_thumbnail(session_id, filename):
             return jsonify({'error': 'ಥಮ್‌ನೇಲ್ ಸಿಗಲಿಲ್ಲ'}), 404
             
     except Exception as e:
+        print(f"Thumbnail serving error: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-        print(f"Download error: {str(e)}")
-        return f"ದೋಷ: {str(e)}", 500
     
 @app.route('/reset', methods=['POST'])
 def reset_session():
@@ -1394,6 +1372,27 @@ def compare_result():
     except Exception as e:
         print(f"Compare result error: {e}")
         return redirect(url_for('index'))
+
+@app.route('/static/temp/<session_id>/<path:filename>')
+def serve_temp_file(session_id, filename):
+    """Serve comparison temp files (images) without login requirement"""
+    try:
+        temp_dir = os.path.abspath(os.path.join(BASE_DIR, 'static', 'temp', session_id))
+        file_path = os.path.join(temp_dir, filename)
+        
+        # Security check - ensure the file is within the temp directory
+        if not os.path.abspath(file_path).startswith(temp_dir):
+            return jsonify({'error': 'Unauthorized file access'}), 403
+        
+        if not os.path.exists(file_path):
+            print(f"✗ Temp file not found: {file_path}")
+            return jsonify({'error': 'File not found'}), 404
+        
+        print(f"✓ Serving temp file: {file_path}")
+        return send_from_directory(temp_dir, filename)
+    except Exception as e:
+        print(f"Temp file serving error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def generate_page_image(pdf_path, session_id, file_num, page_num):
     """Generate page image from PDF"""

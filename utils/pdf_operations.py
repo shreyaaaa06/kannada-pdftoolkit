@@ -308,7 +308,7 @@ class PDFOperations:
                             if page_count == 0:
                                 print(f"WARNING: PDF with no pages: {os.path.basename(file_path_created)}")
                                 continue
-                            print(f"✓ {os.path.basename(file_path_created)}: {page_count} pages, {file_size:,} bytes")
+                            print(f"[OK] {os.path.basename(file_path_created)}: {page_count} pages, {file_size:,} bytes")
                             validated_files.append(file_path_created)
                             total_output_size += file_size
                             
@@ -326,9 +326,15 @@ class PDFOperations:
                 print(f"Validated files: {len(validated_files)}")
                 print(f"Total output size: {total_output_size:,} bytes ({total_output_size/(1024*1024):.2f}MB)")
                 
-                # ===== CREATE OUTPUT ZIP =====
+                # If only one file was created, return it directly instead of zipping
+                if len(validated_files) == 1:
+                    print(f"Only one file generated, returning PDF directly: {validated_files[0]}")
+                    return validated_files[0]
+                
+                # ===== CREATE OUTPUT ZIP FOR MULTIPLE FILES =====
                 zip_path = os.path.join(self.config.OUTPUT_FOLDER, f"{session_id}_split.zip")
                 print(f"Creating ZIP archive: {zip_path}")
+
                 
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zipf:
                     for i, file_path_to_zip in enumerate(validated_files):
@@ -2834,108 +2840,48 @@ class PDFOperations:
         except Exception as e:
             return {'error': f'ಪೂರ್ವವೀಕ್ಷಣೆ ರಚನೆ ವಿಫಲ: {str(e)}'}
     def _generate_page_thumbnail(self, page, page_num, session_id):
-        """Generate a thumbnail image for a PDF page with automatic orientation detection"""
+        """Generate a thumbnail image for a PDF page and return as base64 data URI.
+        Uses in-memory processing to avoid OneDrive/filesystem sync issues."""
         try:
-            import os
             from PIL import Image
             import io
-            
-            thumbnails_dir = os.path.join(self.config.OUTPUT_FOLDER, 'thumbnails', session_id)
-            os.makedirs(thumbnails_dir, exist_ok=True)
-            
-            import time
-            timestamp = int(time.time() * 1000)
-            thumbnail_filename = f"page_{page_num}_{timestamp}.png"
-            thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
-            
+            import base64
+
             zoom = 1.5
             mat = fitz.Matrix(zoom, zoom)
-            
-            # Get page information
+
+            # Get page rotation
             page_rotation = page.rotation
-            page_rect = page.rect
-            
-            # Get pixmap without pre-rotation
+
+            # Get pixmap
             pix = page.get_pixmap(matrix=mat, alpha=False)
-            
             img_data = pix.tobytes("png")
             img = Image.open(io.BytesIO(img_data))
-            
-            # Smart orientation detection
-            needs_rotation = False
-            rotation_angle = 0
-            
-            # First, handle explicit page rotation from PDF
-            if page_rotation != 0:
-                # Handle rotated pages by rotating them back to normal
-                if page_rotation == 90:
-                    rotation_angle = -90
-                    needs_rotation = True
-                elif page_rotation == 180:
-                    rotation_angle = 180  
-                    needs_rotation = True
-                elif page_rotation == 270:
-                    rotation_angle = 90
-                    needs_rotation = True
-            else:
-                # For pages with 0 rotation, try to detect if they're upside down
-                # This is a heuristic based on text analysis
-                try:
-                    text_content = page.get_text()
-                    
-                    # If page has text, try to determine orientation
-                    if text_content and len(text_content.strip()) > 10:
-                        # Get text blocks with position information
-                        blocks = page.get_text("dict")
-                        
-                        # Analyze text orientation heuristics
-                        # Check if most text appears to be in normal reading order
-                        normal_text_indicators = 0
-                        total_text_blocks = 0
-                        
-                        for block in blocks.get("blocks", []):
-                            if "lines" in block:
-                                total_text_blocks += 1
-                                for line in block["lines"]:
-                                    for span in line.get("spans", []):
-                                        text = span.get("text", "").strip()
-                                        if text:
-                                            # Check for Kannada or English characters in normal positions
-                                            # If y-coordinates increase downward, text is likely normal
-                                            # This is a simplified heuristic
-                                            if any(c.isalnum() or ord(c) >= 0x0c80 for c in text):
-                                                normal_text_indicators += 1
-                        
-                        # If we have very few normal text indicators relative to total blocks,
-                        # the page might be upside down
-                        if total_text_blocks > 0 and normal_text_indicators < (total_text_blocks * 0.3):
-                            rotation_angle = 180
-                            needs_rotation = True
-                        
-                except Exception as text_analysis_error:
-                    # If text analysis fails, use simple dimension heuristic
-                    # Many scanned documents appear upside down when height > width
-                    page_width = page_rect.width
-                    page_height = page_rect.height
-                    
-                    # This is a last resort heuristic - don't rotate by default
-                    # Let users manually rotate if needed
-                    pass
-            
-            # Apply rotation if needed
-            if needs_rotation and rotation_angle != 0:
-                img = img.rotate(rotation_angle, expand=True)
-            
+
+            # Apply rotation if the PDF page has an explicit rotation
+            if page_rotation == 90:
+                img = img.rotate(-90, expand=True)
+            elif page_rotation == 180:
+                img = img.rotate(180, expand=True)
+            elif page_rotation == 270:
+                img = img.rotate(90, expand=True)
+
+            # Resize to thumbnail
             thumbnail_size = (150, 200)
             img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
-            
-            img.save(thumbnail_path, "PNG", optimize=True)
-            
-            return f'/thumbnails/{session_id}/{thumbnail_filename}'
-            
+
+            # Encode to base64 data URI (no disk write needed)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG", optimize=True)
+            b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            return f"data:image/png;base64,{b64}"
+
         except Exception as e:
-            print(f"Thumbnail generation error: {str(e)}")
+            import traceback
+            print(f"Thumbnail generation error for page {page_num}: {type(e).__name__}: {str(e)}")
+            traceback.print_exc()
             return None
+
 
     def protect_pdf(self, file_path, session_id, protection_options):
         """Protect PDF with password and permissions using PyPDF2 for better compatibility"""

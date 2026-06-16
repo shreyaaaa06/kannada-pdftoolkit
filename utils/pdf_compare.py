@@ -365,9 +365,11 @@ class PDFCompare:
             max_pages = max(len(doc1), len(doc2))
             comparison_data['summary']['total_pages_compared'] = max_pages
             
-            # Create output directories
-            output_dir = f"static/temp/{session_id}"
+            # Create output directories with absolute path
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            output_dir = os.path.join(base_dir, 'static', 'temp', session_id)
             os.makedirs(output_dir, exist_ok=True)
+            print(f"✓ Comparison images will be saved to: {output_dir}")
             
             total_text_changes = 0
             visual_diff_pages = 0

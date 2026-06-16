@@ -1,7 +1,31 @@
+# Core Framework & Web Server
 Flask==2.3.3
-PyPDF2==3.0.1
-reportlab==4.0.7
-Pillow==10.1.0
-PyMuPDF==1.23.14
-python-docx==1.1.0
 Werkzeug==2.3.7
+python-dotenv>=1.0.0
+
+# PDF Processing & Manipulation
+PyPDF2==3.0.1
+#pymupdf>=4.0.0
+pdf2image>=1.17.0
+pdfplumber>=0.11.0
+
+# Image & Graphics Processing
+Pillow==10.1.0
+opencv-python-headless>=4.12.0.0
+
+# Document Conversion & Export
+python-docx==1.1.0
+reportlab==4.0.7
+weasyprint>=60.0
+
+# OCR & Text Processing
+pytesseract>=0.3.10
+
+# Data Processing & Scientific Computing
+numpy>=1.26.0
+
+# HTTP & Network Requests
+requests>=2.31.0
+
+# System & Process Management
+psutil>=5.9.0

@@ -462,19 +462,27 @@
 
         .zoomable-wrapper {
             overflow: auto;
-            max-height: 600px;
+            /* Fit the image area to the viewport while leaving space for header/controls */
+            max-height: calc(100vh - 260px);
             border: 3px solid var(--gold);
             border-radius: 10px;
             position: relative;
             background: #f9f9f9;
             cursor: default;
+            /* Center the image and allow it to scale to fill the wrapper */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .page-image.zoomable {
             transition: transform 0.3s ease;
-            transform-origin: top left;
+            transform-origin: center center;
             cursor: grab;
-            max-width: 100%; /* Reset to 100% for proper fitting */
+            /* Make the image fill the wrapper while preserving aspect ratio */
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
             height: auto;
             display: block;
         }
@@ -642,7 +650,7 @@
         }
 
         .text-changes-container.sync-scroll::before {
-            content: "🔄 Scroll synchronized";
+            content: "🔄";
             position: absolute;
             top: -25px;
             right: 0;
