@@ -5,7 +5,7 @@ python-dotenv>=1.0.0
 
 # PDF Processing & Manipulation
 PyPDF2==3.0.1
-#pymupdf>=4.0.0
+PyMuPDF>=1.23.0
 pdf2image>=1.17.0
 pdfplumber>=0.11.0
 
@@ -29,3 +29,4 @@ requests>=2.31.0
 
 # System & Process Management
 psutil>=5.9.0
+gunicorn==21.2.0
